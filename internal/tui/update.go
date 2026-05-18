@@ -57,13 +57,12 @@ func (m RootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.lastConfigCheckTime = time.Now()
 		if info, err := os.Stat(config.GetKeyMapConfigPath()); err == nil {
 			if info.ModTime().After(m.lastKeyMapModTime) {
-				m.lastKeyMapModTime = info.ModTime()
+				// Use the pre-load ModTime as the watermark to avoid TOCTOU
+				preLoadModTime := info.ModTime()
 				if newKeys, err := config.LoadKeyMap(); err == nil && newKeys != nil {
 					m.keys = newKeys
+					m.lastKeyMapModTime = preLoadModTime
 					utils.Debug("TUI: dynamically reloaded keymap.json from disk")
-					if postInfo, postErr := os.Stat(config.GetKeyMapConfigPath()); postErr == nil {
-						m.lastKeyMapModTime = postInfo.ModTime()
-					}
 				}
 			}
 		}

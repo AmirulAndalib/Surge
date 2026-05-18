@@ -79,6 +79,14 @@ The `keymap.json` file is structured into nested sections matching each TUI stat
 
 *Note: You do not need to specify all keys. Surge will automatically validate and fall back to internal defaults for any missing or invalid keybindings on startup.*
 
+### Ambiguous Bindings & ForceQuit
+
+By default, both `Quit` and `ForceQuit` in the dashboard bind `ctrl+c`. 
+- **Quit** (`ctrl+c` or `ctrl+q`) initiates a graceful shutdown of all active download tasks, ensuring that progress and state are fully persisted before exiting the application.
+- **ForceQuit** (`ctrl+c`) performs an immediate exit of the application without waiting for the graceful shutdown of the background download engine.
+
+If you choose to customize these bindings, you can separate them (e.g. binding `Quit` exclusively to `ctrl+q` and `ForceQuit` exclusively to `ctrl+c`) to avoid any ambiguity during normal exit.
+
 ## Directory Structure
 
 Surge follows OS conventions for storing its files. Below is a breakdown of every directory it uses and where to find it on each platform.

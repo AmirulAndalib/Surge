@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 
 	"charm.land/bubbles/v2/key"
 	"github.com/SurgeDM/Surge/internal/utils"
@@ -266,7 +267,7 @@ func (k *KeyMap) ApplyConfig(cfg *KeyMapConfig) {
 						if helpDesc == "" {
 							helpDesc = field.Interface().(key.Binding).Help().Desc
 						}
-						helpKey := bCfg.Keys[0] // TODO: `helpKey := strings.Join(bCfg.Keys, "/")` but now it will break the help view of the Dashboard
+						helpKey := strings.Join(bCfg.Keys, "/")
 						newBinding := key.NewBinding(
 							key.WithKeys(bCfg.Keys...),
 							key.WithHelp(helpKey, helpDesc),
@@ -327,7 +328,7 @@ func (k *KeyMap) ToConfig() *KeyMapConfig {
 	}
 }
 
-// Validate checks keymap for missing or invalid bindings and fills with defaults.
+// Validate checks keymap for missing or invalid bindings and fills with defaults at both section and binding levels.
 func (k *KeyMap) Validate() {
 	defaults := DefaultKeyMap()
 	if k == nil {
@@ -340,10 +341,35 @@ func (k *KeyMap) Validate() {
 
 	for i := 0; i < v.NumField(); i++ {
 		field := v.Field(i)
+		defaultField := dV.Field(i)
 		fieldType := t.Field(i).Type
+
 		if fieldType.Kind() == reflect.Struct {
+			// If the entire section struct is zero, copy it completely from default
 			if reflect.DeepEqual(field.Interface(), reflect.Zero(fieldType).Interface()) {
-				field.Set(dV.Field(i))
+				field.Set(defaultField)
+				continue
+			}
+
+			// Otherwise, do field-by-field check for each key.Binding within the section
+			// to heal any individual missing or invalid bindings.
+			if field.CanAddr() {
+				fieldAddr := field.Addr().Interface()
+				defaultFieldVal := defaultField
+
+				subV := reflect.ValueOf(fieldAddr).Elem()
+				subDV := defaultFieldVal
+
+				for j := 0; j < subV.NumField(); j++ {
+					subField := subV.Field(j)
+					if subField.Type() == reflect.TypeFor[key.Binding]() {
+						b := subField.Interface().(key.Binding)
+						// If the binding is uninitialized or has no keys configured, restore the default binding
+						if len(b.Keys()) == 0 {
+							subField.Set(subDV.Field(j))
+						}
+					}
+				}
 			}
 		}
 	}

@@ -319,17 +319,23 @@ func (ps *ProgressState) RestoreBitmap(bitmap []byte, actualChunkSize int64) {
 	ps.mu.Lock()
 	defer ps.mu.Unlock()
 
-	if len(bitmap) == 0 || actualChunkSize <= 0 {
+	if len(bitmap) == 0 || actualChunkSize <= 0 || ps.TotalSize <= 0 {
 		return
 	}
 
-	//utils.Debug("RestoreBitmap: Len=%d, ChunkSize=%d", len(bitmap), actualChunkSize)
-
-	ps.ChunkBitmap = bitmap
-	ps.ActualChunkSize = actualChunkSize
-
 	// Recalculate width
-	numChunks := int((ps.TotalSize + ps.ActualChunkSize - 1) / ps.ActualChunkSize)
+	numChunks := int((ps.TotalSize + actualChunkSize - 1) / actualChunkSize)
+	bytesNeeded := (numChunks + 3) / 4
+
+	// Safety check: ensure the bitmap size matches what we expect
+	if len(bitmap) < bytesNeeded {
+		return
+	}
+
+	// Deep copy to prevent mutation hazard of caller's backing array
+	ps.ChunkBitmap = make([]byte, bytesNeeded)
+	copy(ps.ChunkBitmap, bitmap)
+	ps.ActualChunkSize = actualChunkSize
 	ps.BitmapWidth = numChunks
 
 	// Re-initialize progress tracking (will be filled by RecalculateProgress)

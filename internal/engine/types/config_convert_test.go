@@ -109,6 +109,7 @@ func TestConvertRuntimeConfig_Exhaustive(t *testing.T) {
 
 	result := ConvertRuntimeConfig(input)
 
+	// 1. Verify that every field in result is non-zero when populated on input
 	v := reflect.ValueOf(*result)
 	typeOfS := v.Type()
 
@@ -116,9 +117,36 @@ func TestConvertRuntimeConfig_Exhaustive(t *testing.T) {
 		field := v.Field(i)
 		fieldName := typeOfS.Field(i).Name
 
-		// Ensure no field is zero-valued
 		if field.IsZero() {
 			t.Errorf("Field %q is zero in converted RuntimeConfig. Did you forget to map it in ConvertRuntimeConfig?", fieldName)
+		}
+	}
+
+	// 2. Perform reciprocal reflection checks to ensure both structs remain fully synchronized.
+	configType := reflect.TypeOf(config.RuntimeConfig{})
+	typesType := reflect.TypeOf(RuntimeConfig{})
+
+	// Map of fields in config.RuntimeConfig that are expected to be dropped/not mapped
+	ignoredFields := map[string]bool{
+		"MaxConcurrentProbes": true,
+	}
+
+	for i := 0; i < configType.NumField(); i++ {
+		fieldName := configType.Field(i).Name
+		if ignoredFields[fieldName] {
+			continue
+		}
+		// Ensure field exists in types.RuntimeConfig
+		if _, found := typesType.FieldByName(fieldName); !found {
+			t.Errorf("Field %q in config.RuntimeConfig has no matching field in types.RuntimeConfig", fieldName)
+		}
+	}
+
+	// Conversely, ensure all fields in types.RuntimeConfig exist in config.RuntimeConfig
+	for i := 0; i < typesType.NumField(); i++ {
+		fieldName := typesType.Field(i).Name
+		if _, found := configType.FieldByName(fieldName); !found {
+			t.Errorf("Field %q in types.RuntimeConfig has no matching field in config.RuntimeConfig", fieldName)
 		}
 	}
 }

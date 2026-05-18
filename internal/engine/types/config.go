@@ -156,7 +156,7 @@ func (r *RuntimeConfig) GetDialHedgeCount() int {
 
 // GetSlowWorkerThreshold returns configured value or default
 func (r *RuntimeConfig) GetSlowWorkerThreshold() float64 {
-	if r == nil || r.SlowWorkerThreshold <= 0 {
+	if r == nil || r.SlowWorkerThreshold < 0 {
 		return SlowWorkerThreshold
 	}
 	return r.SlowWorkerThreshold
@@ -164,7 +164,7 @@ func (r *RuntimeConfig) GetSlowWorkerThreshold() float64 {
 
 // GetSlowWorkerGracePeriod returns configured value or default
 func (r *RuntimeConfig) GetSlowWorkerGracePeriod() time.Duration {
-	if r == nil || r.SlowWorkerGracePeriod <= 0 {
+	if r == nil || r.SlowWorkerGracePeriod < 0 {
 		return SlowWorkerGrace
 	}
 	return r.SlowWorkerGracePeriod
@@ -172,7 +172,7 @@ func (r *RuntimeConfig) GetSlowWorkerGracePeriod() time.Duration {
 
 // GetStallTimeout returns configured value or default
 func (r *RuntimeConfig) GetStallTimeout() time.Duration {
-	if r == nil || r.StallTimeout <= 0 {
+	if r == nil || r.StallTimeout < 0 {
 		return StallTimeout
 	}
 	return r.StallTimeout
