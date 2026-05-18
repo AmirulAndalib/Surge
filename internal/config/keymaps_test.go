@@ -104,3 +104,40 @@ func TestValidateKeyMap(t *testing.T) {
 		t.Error("Validate should have filled Dashboard with defaults")
 	}
 }
+
+func TestReportBugAndToggleHelpKeymaps(t *testing.T) {
+	km := DefaultKeyMap()
+
+	// 1. Dashboard.ToggleHelp
+	toggleHelpKeys := km.Dashboard.ToggleHelp.Keys()
+	if len(toggleHelpKeys) != 1 || toggleHelpKeys[0] != "h" {
+		t.Errorf("Expected Dashboard.ToggleHelp default keys to be ['h'], got %v", toggleHelpKeys)
+	}
+	if km.Dashboard.ToggleHelp.Help().Key != "h" {
+		t.Errorf("Expected Dashboard.ToggleHelp help key to be 'h', got %q", km.Dashboard.ToggleHelp.Help().Key)
+	}
+
+	// 2. Dashboard.ReportBug
+	reportBugKeys := km.Dashboard.ReportBug.Keys()
+	if len(reportBugKeys) != 1 || reportBugKeys[0] != "?" {
+		t.Errorf("Expected Dashboard.ReportBug default keys to be ['?'], got %v", reportBugKeys)
+	}
+	if km.Dashboard.ReportBug.Help().Key != "?" {
+		t.Errorf("Expected Dashboard.ReportBug help key to be '?', got %q", km.Dashboard.ReportBug.Help().Key)
+	}
+	if km.Dashboard.ReportBug.Help().Desc != "bug report" {
+		t.Errorf("Expected Dashboard.ReportBug help desc to be 'bug report', got %q", km.Dashboard.ReportBug.Help().Desc)
+	}
+
+	// 3. Settings.ReportBug
+	settingsReportBugKeys := km.Settings.ReportBug.Keys()
+	if len(settingsReportBugKeys) != 1 || settingsReportBugKeys[0] != "?" {
+		t.Errorf("Expected Settings.ReportBug default keys to be ['?'], got %v", settingsReportBugKeys)
+	}
+	if km.Settings.ReportBug.Help().Key != "?" {
+		t.Errorf("Expected Settings.ReportBug help key to be '?', got %q", km.Settings.ReportBug.Help().Key)
+	}
+	if km.Settings.ReportBug.Help().Desc != "bug report" {
+		t.Errorf("Expected Settings.ReportBug help desc to be 'bug report', got %q", km.Settings.ReportBug.Help().Desc)
+	}
+}

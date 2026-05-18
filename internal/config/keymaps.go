@@ -407,7 +407,7 @@ func DefaultKeyMap() *KeyMap {
 			),
 			ReportBug: key.NewBinding(
 				key.WithKeys("?"),
-				key.WithHelp("shift+?", "report bug"),
+				key.WithHelp("?", "bug report"),
 			),
 			OpenFile: key.NewBinding(
 				key.WithKeys("o"),
@@ -601,7 +601,7 @@ func DefaultKeyMap() *KeyMap {
 			),
 			ReportBug: key.NewBinding(
 				key.WithKeys("?"),
-				key.WithHelp("shift+?", "report bug"),
+				key.WithHelp("?", "bug report"),
 			),
 		},
 		SettingsEditor: SettingsEditorKeyMap{
