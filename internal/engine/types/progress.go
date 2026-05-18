@@ -341,11 +341,6 @@ func (ps *ProgressState) RestoreBitmap(bitmap []byte, actualChunkSize int64) {
 		return
 	}
 
-	// Safety check: ensure the bitmap size matches what we expect
-	if len(bitmap) < bytesNeeded {
-		return
-	}
-
 	// Deep copy to prevent mutation hazard of caller's backing array
 	ps.ChunkBitmap = make([]byte, bytesNeeded)
 	copy(ps.ChunkBitmap, bitmap)
