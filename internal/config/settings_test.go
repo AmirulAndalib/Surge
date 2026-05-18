@@ -489,7 +489,7 @@ func TestToRuntimeConfig_Exhaustive(t *testing.T) {
 	ignoredNetworkFields := map[string]bool{
 		"MaxConcurrentDownloads": true,
 		"MaxConcurrentProbes":    true,
-		"MaxConnectionsPerHost":   true,
+		"MaxConnectionsPerHost":  true,
 	}
 
 	for i := 0; i < networkType.NumField(); i++ {
