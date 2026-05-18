@@ -109,7 +109,7 @@ func (m RootModel) updateSettings(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	// Tab Navigation
+	// Tab Navigation (NextTab/PrevTab) - always switches active tab
 	if key.Matches(msg, m.keys.Settings.NextTab) {
 		m.SettingsActiveTab = (m.SettingsActiveTab + 1) % categoryCount
 		m.SettingsSelectedRow = 0
@@ -123,8 +123,41 @@ func (m RootModel) updateSettings(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
+	// Up/Down navigation & pane switching between tabs and lists
+	if m.SettingsFocusedPane == 0 { // Tabs focused
+		if key.Matches(msg, m.keys.Settings.Down) {
+			m.SettingsFocusedPane = 1 // Focus settings list
+			m.SettingsSelectedRow = 0
+			m.settingsError = ""
+			return m, nil
+		}
+	} else { // List focused
+		if key.Matches(msg, m.keys.Settings.Up) {
+			if m.SettingsSelectedRow > 0 {
+				m.SettingsSelectedRow--
+				m.settingsError = ""
+			} else {
+				// At the very top row, go up to focus the Tabs!
+				m.SettingsFocusedPane = 0
+				m.settingsError = ""
+			}
+			return m, nil
+		}
+		if key.Matches(msg, m.keys.Settings.Down) {
+			maxRow := m.getSettingsCount() - 1
+			if m.SettingsSelectedRow < maxRow {
+				m.SettingsSelectedRow++
+				m.settingsError = ""
+			}
+			return m, nil
+		}
+	}
+
 	// Open file browser for default_download_dir or theme_path
 	if key.Matches(msg, m.keys.Settings.Browse) {
+		if m.SettingsFocusedPane == 0 {
+			return m, nil // Can't browse when tabs are focused
+		}
 		settingKey := m.getCurrentSettingKey()
 		switch settingKey {
 		case "default_download_dir":
@@ -155,32 +188,19 @@ func (m RootModel) updateSettings(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	// Back tab - not currently bound, ignoring or could use Shift+Tab manual check if really needed
-	// For now, we rely on Tab (Browse) to cycle.
-
-	// Up/Down navigation
-	if key.Matches(msg, m.keys.Settings.Up) {
-		if m.SettingsSelectedRow > 0 {
-			m.SettingsSelectedRow--
-			m.settingsError = ""
-		}
-		return m, nil
-	}
-	if key.Matches(msg, m.keys.Settings.Down) {
-		maxRow := m.getSettingsCount() - 1
-		if m.SettingsSelectedRow < maxRow {
-			m.SettingsSelectedRow++
-			m.settingsError = ""
-		}
-		return m, nil
-	}
-
 	// Edit / Toggle
 	if key.Matches(msg, m.keys.Settings.Edit) {
 		// Categories tab → open Category Manager
 		if m.SettingsActiveTab < len(categories) && categories[m.SettingsActiveTab] == "Categories" {
 			m.catMgrCursor = 0
 			m.state = CategoryManagerState
+			return m, nil
+		}
+
+		if m.SettingsFocusedPane == 0 {
+			m.SettingsFocusedPane = 1
+			m.SettingsSelectedRow = 0
+			m.settingsError = ""
 			return m, nil
 		}
 
@@ -242,6 +262,9 @@ func (m RootModel) updateSettings(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 
 	// Reset
 	if key.Matches(msg, m.keys.Settings.Reset) {
+		if m.SettingsFocusedPane == 0 {
+			return m, nil // Can't reset when tabs are focused
+		}
 		settingKey := m.getCurrentSettingKey()
 		if settingKey == "max_global_connections" {
 			return m, nil

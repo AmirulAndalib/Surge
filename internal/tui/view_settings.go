@@ -177,7 +177,16 @@ func (m RootModel) renderSettingsTabBar(categories []string, activeTab int, maxW
 		return tabs
 	}
 
-	settingsActiveTab := lipgloss.NewStyle().Foreground(colors.Magenta())
+	var settingsActiveTab lipgloss.Style
+	if m.SettingsFocusedPane == 0 {
+		settingsActiveTab = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("0")).
+			Background(colors.Magenta()).
+			Bold(true)
+	} else {
+		settingsActiveTab = lipgloss.NewStyle().Foreground(colors.Magenta())
+	}
+
 	tryBars := []string{
 		components.RenderNumberedTabBar(makeTabs(false), activeTab, settingsActiveTab, TabStyle),
 		components.RenderTabBar(makeTabs(false), activeTab, settingsActiveTab, TabStyle),
@@ -191,8 +200,14 @@ func (m RootModel) renderSettingsTabBar(categories []string, activeTab int, maxW
 	}
 
 	fallback := fmt.Sprintf("[%d/%d] %s", activeTab+1, len(categories), categories[activeTab])
-	return lipgloss.NewStyle().
-		Foreground(colors.Gray()).
+	fallbackStyle := lipgloss.NewStyle().Foreground(colors.Gray())
+	if m.SettingsFocusedPane == 0 {
+		fallbackStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("0")).
+			Background(colors.Magenta()).
+			Bold(true)
+	}
+	return fallbackStyle.
 		Width(maxWidth).
 		Align(lipgloss.Center).
 		Render(fallback)
@@ -241,7 +256,7 @@ func formatSettingsBlock(content string, width, rows int) string {
 	return strings.Join(lines, "\n")
 }
 
-func renderSettingsListViewport(settingsMeta []config.SettingMeta, selectedRow, rows, innerWidth int) string {
+func (m RootModel) renderSettingsListViewport(settingsMeta []config.SettingMeta, selectedRow, rows, innerWidth int) string {
 	if rows < 1 {
 		rows = 1
 	}
@@ -284,15 +299,25 @@ func renderSettingsListViewport(settingsMeta []config.SettingMeta, selectedRow, 
 		prefix := "  "
 		style := lipgloss.NewStyle().Foreground(colors.LightGray())
 		if idx == selectedRow {
-			prefix = "\u25b8 "
-			style = lipgloss.NewStyle().Foreground(colors.Magenta()).Bold(true)
+			if m.SettingsFocusedPane == 1 {
+				prefix = "\u25b8 "
+				style = lipgloss.NewStyle().Foreground(colors.Magenta()).Bold(true)
+			} else {
+				prefix = "  "
+				style = lipgloss.NewStyle().Foreground(colors.Gray()).Bold(true)
+			}
 		}
 
 		if meta.Key == "max_global_connections" {
 			style = lipgloss.NewStyle().Foreground(colors.ThemeColor("#aaaaaa", "238"))
 			if idx == selectedRow {
-				prefix = "# "
-				style = lipgloss.NewStyle().Foreground(colors.Gray())
+				if m.SettingsFocusedPane == 1 {
+					prefix = "# "
+					style = lipgloss.NewStyle().Foreground(colors.Gray())
+				} else {
+					prefix = "  "
+					style = lipgloss.NewStyle().Foreground(colors.ThemeColor("#777777", "236"))
+				}
 			}
 		}
 
@@ -421,7 +446,7 @@ func (m RootModel) renderSettingsTwoColumn(settingsMeta []config.SettingMeta, se
 	if listRows < 1 {
 		listRows = 1
 	}
-	listContent := renderSettingsListViewport(settingsMeta, selectedRow, listRows, leftWidth-(BoxStyle.GetHorizontalFrameSize()*2))
+	listContent := m.renderSettingsListViewport(settingsMeta, selectedRow, listRows, leftWidth-(BoxStyle.GetHorizontalFrameSize()*2))
 	listBox := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(colors.Gray()).
@@ -475,7 +500,7 @@ func (m RootModel) renderSettingsCompact(settingsMeta []config.SettingMeta, sele
 		}
 	}
 
-	list := renderSettingsListViewport(settingsMeta, selectedRow, listRows, innerWidth)
+	list := m.renderSettingsListViewport(settingsMeta, selectedRow, listRows, innerWidth)
 	detail := m.renderSettingsDetailBlock(settingsMeta, selectedRow, settingsValues, innerWidth, detailRows)
 	divider := lipgloss.NewStyle().Foreground(colors.Gray()).Render(strings.Repeat("\u2500", innerWidth))
 

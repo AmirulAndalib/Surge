@@ -156,6 +156,7 @@ type RootModel struct {
 	StartupConfigWarnings []string         // Config validation warnings to emit on first render
 	SettingsActiveTab     int              // Active category tab (0-3)
 	SettingsSelectedRow   int              // Selected setting within current tab
+	SettingsFocusedPane   int              // Focused settings pane (0 = Tabs, 1 = List)
 	SettingsIsEditing     bool             // Whether currently editing a value
 	SettingsInput         textinput.Model  // Input for editing string/int values
 	settingsError         string           // Current validation error in settings
@@ -454,6 +455,9 @@ func InitialRootModel(serverPort int, currentVersion string, service core.Downlo
 		PWD:                   pwd,
 		Settings:              settings,
 		StartupConfigWarnings: startupConfigWarnings,
+		SettingsActiveTab:     0,
+		SettingsSelectedRow:   0,
+		SettingsFocusedPane:   1,
 		SpeedHistory:          make([]float64, GraphHistoryPoints),                          // 60 points of history (30s at 0.5s interval)
 		logViewport:           viewport.New(viewport.WithWidth(40), viewport.WithHeight(5)), // Default size, will be resized
 		logEntries:            make([]string, 0),
