@@ -332,10 +332,7 @@ func (ps *ProgressState) RestoreBitmap(bitmap []byte, actualChunkSize int64) {
 	ps.mu.Lock()
 	defer ps.mu.Unlock()
 
-	if len(bitmap) == 0 || actualChunkSize <= 0 {
-		return
-	}
-	if ps.TotalSize <= 0 {
+	if len(bitmap) == 0 || actualChunkSize <= 0 || ps.TotalSize <= 0 {
 		return
 	}
 
@@ -344,8 +341,7 @@ func (ps *ProgressState) RestoreBitmap(bitmap []byte, actualChunkSize int64) {
 		return
 	}
 
-	//utils.Debug("RestoreBitmap: Len=%d, ChunkSize=%d", len(bitmap), actualChunkSize)
-
+	// Deep copy to prevent mutation hazard of caller's backing array
 	ps.ChunkBitmap = make([]byte, bytesNeeded)
 	copy(ps.ChunkBitmap, bitmap)
 	ps.ActualChunkSize = actualChunkSize
