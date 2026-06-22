@@ -282,6 +282,7 @@ func (d *ConcurrentDownloader) downloadTask(ctx context.Context, rawurl string, 
 
 		readSoFar := 0
 		var readErr error
+		lastActivityUpdateBytes := 0
 
 		for readSoFar < int(readSize) {
 			n, err := resp.Body.Read(buf[readSoFar:readSize])
@@ -289,9 +290,13 @@ func (d *ConcurrentDownloader) downloadTask(ctx context.Context, rawurl string, 
 				readSoFar += n
 				// CONTINUOUS HEALTH KEEPALIVE:
 				// Update LastActivity directly off the TCP socket instead of waiting for the buffer
-				// to completely fill and hit disk. This prevents the Health Monitor from killing
-				// workers on slightly slower networks during the 500KB buffer acquisition.
-				activeTask.LastActivity.Store(time.Now().UnixNano())
+				// to completely fill and hit disk. To prevent excessive syscalls on fast networks,
+				// we only update the timestamp every 64KB. This is frequent enough to prevent the
+				// Health Monitor from killing workers on slow networks.
+				if readSoFar-lastActivityUpdateBytes >= 64*1024 {
+					activeTask.LastActivity.Store(time.Now().UnixNano())
+					lastActivityUpdateBytes = readSoFar
+				}
 			}
 			if err != nil {
 				readErr = err

@@ -728,8 +728,11 @@ func (d *ConcurrentDownloader) prewarmConnections(ctx context.Context, client *h
 				return
 			}
 
-			// Drain body and close to return connection to idle pool, then signal readiness.
-			_, _ = io.Copy(io.Discard, resp.Body)
+			// If the server ignores the Range request (returns 200 OK) or the content is unexpectedly large,
+			// do NOT drain the body. Draining a large body just to pool the connection is extremely wasteful.
+			if resp.StatusCode == http.StatusPartialContent && resp.ContentLength <= types.AlignSize {
+				_, _ = io.Copy(io.Discard, resp.Body)
+			}
 			_ = resp.Body.Close()
 			ready <- struct{}{}
 		}(i)
