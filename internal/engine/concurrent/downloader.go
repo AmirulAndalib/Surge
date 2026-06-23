@@ -258,7 +258,13 @@ func (d *ConcurrentDownloader) Download(ctx context.Context, rawurl string, cand
 	}
 	d.TotalSize = fileSize
 
-	numConns := d.getInitialConnections(fileSize)
+	// Load saved state early to determine remaining size for connection count heuristic
+	savedState, err := state.LoadState(d.URL, destPath)
+	isResume := err == nil && savedState != nil && len(savedState.Tasks) > 0
+
+	effectiveSizeForWorkers := d.getEffectiveSizeForWorkers(fileSize, savedState, isResume)
+
+	numConns := d.getInitialConnections(effectiveSizeForWorkers)
 	chunkSize := d.determineChunkSize(fileSize, numConns)
 
 	workerMirrors := d.getWorkerMirrors(activeMirrors)
@@ -285,7 +291,7 @@ func (d *ConcurrentDownloader) Download(ctx context.Context, rawurl string, cand
 		d.State.InitBitmap(fileSize, chunkSize)
 	}
 
-	tasks, err := d.setupTasks(destPath, fileSize, chunkSize, outFile)
+	tasks, err := d.setupTasks(destPath, fileSize, chunkSize, outFile, savedState, isResume)
 	if err != nil {
 		return err
 	}
@@ -297,7 +303,7 @@ func (d *ConcurrentDownloader) Download(ctx context.Context, rawurl string, cand
 	d.startHelpers(downloadCtx, &wgHelpers, queue, fileSize, numConns)
 
 	// Execute download workers
-	downloadErr := d.executeWorkers(downloadCtx, client, outFile, queue, fileSize, workerMirrors, numConns)
+	downloadErr := d.executeWorkers(downloadCtx, cancel, client, outFile, queue, fileSize, workerMirrors, numConns)
 
 	// Handle pause request: must return types.ErrPaused to prevent finalization
 	if d.State != nil && d.State.IsPaused() {
@@ -309,13 +315,11 @@ func (d *ConcurrentDownloader) Download(ctx context.Context, rawurl string, cand
 		return pauseErr
 	}
 
-	// Handle cancel: context was cancelled but not via Pause()
-	// Propagate cancellation so callers don't treat this as a successful completion.
-	if downloadCtx.Err() == context.Canceled {
-		return context.Canceled
-	}
 	if downloadErr != nil {
 		return downloadErr
+	}
+	if downloadCtx.Err() != nil {
+		return downloadCtx.Err()
 	}
 
 	// Note: Download completion notifications are handled by the TUI via DownloadCompleteMsg
@@ -377,9 +381,18 @@ func (d *ConcurrentDownloader) getWorkerMirrors(activeMirrors []string) []string
 	return mirrors
 }
 
-func (d *ConcurrentDownloader) setupTasks(destPath string, fileSize, chunkSize int64, outFile *os.File) ([]types.Task, error) {
-	savedState, err := state.LoadState(d.URL, destPath)
-	isResume := err == nil && savedState != nil && len(savedState.Tasks) > 0
+func (d *ConcurrentDownloader) getEffectiveSizeForWorkers(fileSize int64, savedState *types.DownloadState, isResume bool) int64 {
+	if isResume && savedState != nil && savedState.TotalSize > 0 {
+		eff := savedState.TotalSize - savedState.Downloaded
+		if eff < 0 {
+			return 0
+		}
+		return eff
+	}
+	return fileSize
+}
+
+func (d *ConcurrentDownloader) setupTasks(destPath string, fileSize, chunkSize int64, outFile *os.File, savedState *types.DownloadState, isResume bool) ([]types.Task, error) {
 
 	if isResume {
 		if d.State != nil {
@@ -501,7 +514,7 @@ func (d *ConcurrentDownloader) runHealthMonitor(ctx context.Context) {
 	}
 }
 
-func (d *ConcurrentDownloader) executeWorkers(ctx context.Context, client *http.Client, outFile *os.File, queue *TaskQueue, fileSize int64, workerMirrors []string, numConns int) error {
+func (d *ConcurrentDownloader) executeWorkers(ctx context.Context, cancel context.CancelFunc, client *http.Client, outFile *os.File, queue *TaskQueue, fileSize int64, workerMirrors []string, numConns int) error {
 	var wg sync.WaitGroup
 	workerErrors := make(chan error, numConns)
 
@@ -511,8 +524,9 @@ func (d *ConcurrentDownloader) executeWorkers(ctx context.Context, client *http.
 		go func(workerID int) {
 			defer wg.Done()
 			err := d.worker(ctx, workerID, workerMirrors, outFile, queue, fileSize, client)
-			if err != nil && err != context.Canceled {
+			if err != nil && !errors.Is(err, context.Canceled) {
 				workerErrors <- err
+				cancel()
 			}
 		}(i)
 	}
