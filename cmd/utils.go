@@ -117,6 +117,30 @@ func startsNewMirror(segment string) bool {
 	return strings.HasPrefix(segment, "http://") || strings.HasPrefix(segment, "https://")
 }
 
+// ValidateAndNormalizeURL ensures a provided download string has a valid URL scheme
+// and normalizes missing schemes for common domains.
+func ValidateAndNormalizeURL(rawURL string) (string, error) {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return "", fmt.Errorf("invalid URL format: %w", err)
+	}
+
+	if u.Scheme == "" {
+		// Could be a domain (e.g. example.com/file.zip or github.com/release/v1.0.0), try prepending https
+		if strings.Contains(rawURL, ".") {
+			return "https://" + rawURL, nil
+		}
+		return "", fmt.Errorf("missing or unsupported scheme (must be http:// or https://)")
+	}
+
+	scheme := strings.ToLower(u.Scheme)
+	if scheme != "http" && scheme != "https" {
+		return "", fmt.Errorf("unsupported URL scheme: %s (must be http:// or https://)", u.Scheme)
+	}
+
+	return rawURL, nil
+}
+
 func resolveLocalToken() string {
 	return resolveLocalTokenForDetails(activeConnectionDetails{})
 }
