@@ -202,6 +202,9 @@ func TUIDownload(ctx context.Context, cfg *types.DownloadConfig) error {
 		d.Limiter = cfg.Limiter
 		d.RateLimitBps = cfg.RateLimitBps
 		d.RateLimitSet = cfg.RateLimitSet
+		if cfg.Global429 != nil {
+			d.SetShared429Count(cfg.Global429)
+		}
 		utils.Debug("Calling Download with mirrors: %v", mirrors)
 		// Pass effectiveTotalSize to avoid unnecessary bootstrap if state already knows the size
 		downloadErr = d.Download(ctx, cfg.URL, mirrors, activeMirrors, finalDestPath, effectiveTotalSize)

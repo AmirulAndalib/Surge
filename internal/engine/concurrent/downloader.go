@@ -42,6 +42,7 @@ type ConcurrentDownloader struct {
 	taskRequeueCount map[int64]int
 	taskRequeueMu    sync.Mutex
 	active429Count   atomic.Int32
+	shared429Count   *atomic.Int32
 }
 
 // NewConcurrentDownloader creates a new concurrent downloader with all required parameters
@@ -787,16 +788,17 @@ func (d *ConcurrentDownloader) prewarmConnections(ctx context.Context, client *h
 }
 
 func (d *ConcurrentDownloader) report429() {
-	d.active429Count.Add(1)
+	d.get429Counter().Add(1)
 }
 
 func (d *ConcurrentDownloader) clear429() {
+	counter := d.get429Counter()
 	for {
-		old := d.active429Count.Load()
+		old := counter.Load()
 		if old <= 0 {
 			return
 		}
-		if d.active429Count.CompareAndSwap(old, old-1) {
+		if counter.CompareAndSwap(old, old-1) {
 			return
 		}
 	}
@@ -804,7 +806,7 @@ func (d *ConcurrentDownloader) clear429() {
 
 func (d *ConcurrentDownloader) sleepBackoff(ctx context.Context, attempt int) {
 	base := time.Duration(1<<attempt) * types.RetryBaseDelay
-	active429 := d.active429Count.Load()
+	active429 := d.get429Counter().Load()
 	if active429 > 2 {
 		scale := active429
 		if scale > 8 {
@@ -816,4 +818,15 @@ func (d *ConcurrentDownloader) sleepBackoff(ctx context.Context, attempt int) {
 	case <-time.After(base):
 	case <-ctx.Done():
 	}
+}
+
+func (d *ConcurrentDownloader) SetShared429Count(counter *atomic.Int32) {
+	d.shared429Count = counter
+}
+
+func (d *ConcurrentDownloader) get429Counter() *atomic.Int32 {
+	if d.shared429Count != nil {
+		return d.shared429Count
+	}
+	return &d.active429Count
 }
