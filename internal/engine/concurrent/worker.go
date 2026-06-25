@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -42,6 +43,7 @@ func (d *ConcurrentDownloader) worker(ctx context.Context, id int, mirrors []str
 		var lastErr error
 		maxRetries := d.Runtime.GetMaxTaskRetries()
 		var activeTask *ActiveTask
+		had429ThisTask := false
 		for attempt := 0; attempt < maxRetries; attempt++ {
 			if attempt > 0 {
 
@@ -95,6 +97,10 @@ func (d *ConcurrentDownloader) worker(ctx context.Context, id int, mirrors []str
 
 			taskStart := time.Now()
 			lastErr = d.downloadTask(taskCtx, currentURL, file, activeTask, buf, client, totalSize)
+			if lastErr != nil && strings.Contains(lastErr.Error(), "rate limited") && !had429ThisTask {
+				d.report429()
+				had429ThisTask = true
+			}
 
 			// CRITICAL: Capture external cancellation state BEFORE calling taskCancel()
 			// If we call taskCancel() first, taskCtx.Err() will always be non-nil
@@ -106,6 +112,9 @@ func (d *ConcurrentDownloader) worker(ctx context.Context, id int, mirrors []str
 			// Check for PARENT context cancellation (pause/shutdown)
 			// This preserves active task info for pause handler to collect
 			if ctx.Err() != nil {
+				if had429ThisTask {
+					d.clear429()
+				}
 				// DON'T delete from activeTasks - pause handler needs it
 				if d.State != nil {
 					d.State.ActiveWorkers.Add(-1)
@@ -140,6 +149,9 @@ func (d *ConcurrentDownloader) worker(ctx context.Context, id int, mirrors []str
 				d.activeMu.Unlock()
 				// Clear lastErr so the fallthrough logic doesn't re-queue the original task
 				lastErr = nil
+				if had429ThisTask {
+					d.clear429()
+				}
 				break // Exit retry loop, get next task
 			}
 
@@ -149,7 +161,9 @@ func (d *ConcurrentDownloader) worker(ctx context.Context, id int, mirrors []str
 			d.activeMu.Unlock()
 
 			if lastErr == nil {
-				d.clear429()
+				if had429ThisTask {
+					d.clear429()
+				}
 				// Check if we stopped early due to stealing
 				stopAt := activeTask.StopAt.Load()
 				current := activeTask.CurrentOffset.Load()
@@ -188,6 +202,9 @@ func (d *ConcurrentDownloader) worker(ctx context.Context, id int, mirrors []str
 
 			maxRequeues := maxRetries
 			if count >= maxRequeues {
+				if had429ThisTask {
+					d.clear429()
+				}
 				return fmt.Errorf("task at offset %d failed after %d requeue attempts: %w", task.Offset, count, lastErr)
 			}
 
@@ -201,6 +218,9 @@ func (d *ConcurrentDownloader) worker(ctx context.Context, id int, mirrors []str
 					utils.Debug("Worker %d: re-queued %d bytes at offset %d (requeue %d/%d)",
 						id, remaining.Length, remaining.Offset, count+1, maxRequeues)
 				}
+			}
+			if had429ThisTask {
+				d.clear429()
 			}
 		}
 	}
@@ -242,7 +262,6 @@ func (d *ConcurrentDownloader) downloadTask(ctx context.Context, rawurl string, 
 
 	// Handle rate limiting explicitly
 	if resp.StatusCode == http.StatusTooManyRequests {
-		d.report429()
 		return fmt.Errorf("rate limited (429)")
 	}
 

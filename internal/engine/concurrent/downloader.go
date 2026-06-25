@@ -538,10 +538,10 @@ func (d *ConcurrentDownloader) executeWorkers(ctx context.Context, cancel contex
 		}(i)
 	}
 
-	var orphanCount int
+	var orphanCount atomic.Int64
 	go func() {
 		wg.Wait()
-		orphanCount = queue.Len()
+		orphanCount.Store(int64(queue.Len()))
 		queue.Close()
 		close(workerErrors)
 	}()
@@ -558,8 +558,8 @@ func (d *ConcurrentDownloader) executeWorkers(ctx context.Context, cancel contex
 		}
 	}
 
-	if orphanCount > 0 && ctx.Err() == nil {
-		orphanErr := fmt.Errorf("%d chunk(s) could not be completed", orphanCount)
+	if orphanCount.Load() > 0 && ctx.Err() == nil {
+		orphanErr := fmt.Errorf("%d chunk(s) could not be completed", orphanCount.Load())
 		downloadErr = errors.Join(downloadErr, orphanErr)
 	}
 
@@ -791,8 +791,14 @@ func (d *ConcurrentDownloader) report429() {
 }
 
 func (d *ConcurrentDownloader) clear429() {
-	if d.active429Count.Load() > 0 {
-		d.active429Count.Add(-1)
+	for {
+		old := d.active429Count.Load()
+		if old <= 0 {
+			return
+		}
+		if d.active429Count.CompareAndSwap(old, old-1) {
+			return
+		}
 	}
 }
 

@@ -40,6 +40,7 @@ type WorkerPool struct {
 	globalLimiter               *engine.RateLimiter
 	downloadLimiters            map[string]*engine.RateLimiter
 	defaultDownloadRateLimitBps int64
+	global429Count              atomic.Int32
 }
 
 var (
@@ -474,9 +475,17 @@ func (p *WorkerPool) Cancel(downloadID string) types.CancelResult {
 
 		// Best effort: wait for worker to exit so delete cleanup doesn't race with
 		// downloader startup that can recreate the .surge file after removal.
-		deadline := time.Now().Add(cancelStopWaitTimeout)
-		for ad.running.Load() && time.Now().Before(deadline) {
-			time.Sleep(cancelStopPollInterval)
+		ctx, cancelFunc := context.WithTimeout(context.Background(), cancelStopWaitTimeout)
+		defer cancelFunc()
+		ticker := time.NewTicker(cancelStopPollInterval)
+		defer ticker.Stop()
+	waitLoop:
+		for ad.running.Load() {
+			select {
+			case <-ticker.C:
+			case <-ctx.Done():
+				break waitLoop
+			}
 		}
 
 		// Mark as done to stop polling
@@ -596,6 +605,7 @@ func (p *WorkerPool) worker() {
 
 		// Make a local copy for TUIDownload to mutate safely
 		localCfg := ad.config
+		localCfg.Global429 = &p.global429Count
 		p.mu.Unlock()
 
 		err := TUIDownload(ctx, &localCfg)

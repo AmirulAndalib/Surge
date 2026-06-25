@@ -2,6 +2,7 @@ package types
 
 import (
 	"context"
+	"sync/atomic"
 	"time"
 )
 
@@ -69,6 +70,7 @@ type DownloadConfig struct {
 	SupportsRange      bool
 	RateLimitBps       int64
 	RateLimitSet       bool
+	Global429          *atomic.Int32
 }
 
 // ByteLimiter abstracts byte-based throttling for downloads.
