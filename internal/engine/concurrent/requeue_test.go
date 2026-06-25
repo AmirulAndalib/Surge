@@ -227,3 +227,63 @@ func TestConcurrentDownloader_MidTransfer429KeepsCompletedChunks(t *testing.T) {
 	}
 	t.Logf(".surge file size: %d (expected > 0, < %d)", fi.Size(), fileSize)
 }
+
+// TestConcurrentDownloader_429CounterReturnsToZero verifies that the 429
+// counter is incremented during rate-limited requests and returns to zero
+// after the download completes (or fails with the circuit-breaker).
+func TestConcurrentDownloader_429CounterReturnsToZero(t *testing.T) {
+	tmpDir, cleanup := initTestState(t)
+	defer cleanup()
+
+	fileSize := int64(1 * types.MB)
+
+	var reqCount atomic.Int64
+	// First 3 requests → 429, subsequent requests → success.
+	server := testutil.NewMockServerT(t,
+		testutil.WithFileSize(fileSize),
+		testutil.WithRangeSupport(true),
+		testutil.WithHandler(func(w http.ResponseWriter, r *http.Request) {
+			n := reqCount.Add(1)
+			if n <= 3 {
+				w.WriteHeader(http.StatusTooManyRequests)
+				return
+			}
+			serveFileData(w, r, fileSize)
+		}),
+	)
+	defer server.Close()
+
+	destPath := filepath.Join(tmpDir, "429counter_test.bin")
+	state := types.NewProgressState("429counter-test", fileSize)
+
+	runtime := &types.RuntimeConfig{
+		MaxConnectionsPerDownload: 1,
+		MaxTaskRetries:            3,
+		MinChunkSize:              512 * types.KB,
+		DialHedgeCount:            0,
+	}
+
+	downloader := NewConcurrentDownloader("429counter-test-id", nil, state, runtime)
+
+	if f, err := os.Create(destPath + ".surge"); err == nil {
+		_ = f.Close()
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	err := downloader.Download(ctx, server.URL(), nil, nil, destPath, fileSize)
+	if err != nil {
+		t.Fatalf("download should have succeeded, got: %v", err)
+	}
+
+	if err := testutil.VerifyFileSize(destPath+types.IncompleteSuffix, fileSize); err != nil {
+		t.Error(err)
+	}
+
+	// The counter should have returned to zero — every report429 was balanced
+	// by a clear429.
+	if c := downloader.active429Count.Load(); c != 0 {
+		t.Errorf("expected 429 counter to return to zero after successful download, got %d", c)
+	}
+}

@@ -787,6 +787,8 @@ func (d *ConcurrentDownloader) prewarmConnections(ctx context.Context, client *h
 	// Remaining pings will be cancelled by defer cancelPings()
 }
 
+var ErrRateLimited = fmt.Errorf("rate limited (429)")
+
 func (d *ConcurrentDownloader) report429() {
 	d.get429Counter().Add(1)
 }

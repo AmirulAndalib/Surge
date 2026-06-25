@@ -2,11 +2,11 @@ package concurrent
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
-	"strings"
 	"sync/atomic"
 	"time"
 
@@ -97,7 +97,7 @@ func (d *ConcurrentDownloader) worker(ctx context.Context, id int, mirrors []str
 
 			taskStart := time.Now()
 			lastErr = d.downloadTask(taskCtx, currentURL, file, activeTask, buf, client, totalSize)
-			if lastErr != nil && strings.Contains(lastErr.Error(), "rate limited") && !had429ThisTask {
+			if lastErr != nil && errors.Is(lastErr, ErrRateLimited) && !had429ThisTask {
 				d.report429()
 				had429ThisTask = true
 			}
@@ -164,6 +164,9 @@ func (d *ConcurrentDownloader) worker(ctx context.Context, id int, mirrors []str
 				if had429ThisTask {
 					d.clear429()
 				}
+				d.taskRequeueMu.Lock()
+				delete(d.taskRequeueCount, task.Offset)
+				d.taskRequeueMu.Unlock()
 				// Check if we stopped early due to stealing
 				stopAt := activeTask.StopAt.Load()
 				current := activeTask.CurrentOffset.Load()
@@ -195,6 +198,12 @@ func (d *ConcurrentDownloader) worker(ctx context.Context, id int, mirrors []str
 			delete(d.activeTasks, id)
 			d.activeMu.Unlock()
 
+			// The requeue circuit-breaker is keyed on task.Offset. When a chunk
+			// makes partial progress across retries, task.Offset advances (see
+			// the resume-on-retry block above), effectively resetting the count
+			// for the new offset. This is intentional: forward progress means
+			// the chunk is eventually completable, so we allow a fresh budget.
+			// Only zero-progress failures (e.g. pure 429) are strictly capped.
 			d.taskRequeueMu.Lock()
 			count := d.taskRequeueCount[task.Offset]
 			d.taskRequeueCount[task.Offset] = count + 1
@@ -262,7 +271,7 @@ func (d *ConcurrentDownloader) downloadTask(ctx context.Context, rawurl string, 
 
 	// Handle rate limiting explicitly
 	if resp.StatusCode == http.StatusTooManyRequests {
-		return fmt.Errorf("rate limited (429)")
+		return ErrRateLimited
 	}
 
 	// Validate status code
