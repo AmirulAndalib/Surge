@@ -15,13 +15,14 @@ import (
 	"github.com/SurgeDM/Surge/internal/engine"
 	"github.com/SurgeDM/Surge/internal/engine/types"
 	"github.com/SurgeDM/Surge/internal/testutil"
+	"github.com/SurgeDM/Surge/internal/utils"
 )
 
 func TestConcurrentDownloader_SwitchOn429(t *testing.T) {
 	tmpDir, cleanup := initTestState(t)
 	defer cleanup()
 
-	fileSize := int64(256 * types.KB)
+	fileSize := int64(256 * utils.KiB)
 
 	server1 := testutil.NewMockServerT(t,
 		testutil.WithFileSize(fileSize),
@@ -44,8 +45,8 @@ func TestConcurrentDownloader_SwitchOn429(t *testing.T) {
 	runtime := &types.RuntimeConfig{
 		MaxConnectionsPerDownload: 1,
 		MaxTaskRetries:            5,
-		MinChunkSize:              64 * types.KB,
-		DialHedgeCount:            0,
+		MinChunkSize:              64 * utils.KiB,
+		DialHedgeCount:            0, // Disable hedging for deterministic failover test
 	}
 
 	downloader := NewConcurrentDownloader("switch429-id", nil, state, runtime)
@@ -90,7 +91,7 @@ func TestConcurrentDownloader_BackoffOnSingleMirror(t *testing.T) {
 	tmpDir, cleanup := initTestState(t)
 	defer cleanup()
 
-	fileSize := int64(1 * types.MB)
+	fileSize := int64(1 * utils.MiB) // Use enough size so it doesn't just finish instantly on 1st byte
 
 	server := testutil.NewMockServerT(t,
 		testutil.WithFileSize(fileSize),
@@ -106,8 +107,8 @@ func TestConcurrentDownloader_BackoffOnSingleMirror(t *testing.T) {
 	runtime := &types.RuntimeConfig{
 		MaxConnectionsPerDownload: 1,
 		MaxTaskRetries:            5,
-		MinChunkSize:              64 * types.KB,
-		DialHedgeCount:            0,
+		MinChunkSize:              64 * utils.KiB,
+		DialHedgeCount:            0, // Disable hedging for deterministic backoff timing
 	}
 
 	downloader := NewConcurrentDownloader("backoff-id", nil, state, runtime)
@@ -139,7 +140,7 @@ func TestConcurrentDownloader_AllMirrors429ThenRecover(t *testing.T) {
 	tmpDir, cleanup := initTestState(t)
 	defer cleanup()
 
-	fileSize := int64(64 * types.KB)
+	fileSize := int64(64 * utils.KiB)
 
 	var s1Count, s2Count atomic.Int64
 
@@ -153,13 +154,13 @@ func TestConcurrentDownloader_AllMirrors429ThenRecover(t *testing.T) {
 			}
 			w.Header().Set("Content-Length", strconv.FormatInt(fileSize, 10))
 			w.WriteHeader(http.StatusOK)
-			buf := make([]byte, 32*types.KB)
+			buf := make([]byte, 32*utils.KiB)
 			for written := int64(0); written < fileSize; {
 				n := int64(len(buf))
 				if written+n > fileSize {
 					n = fileSize - written
 				}
-				w.Write(buf[:n])
+				_, _ = w.Write(buf[:n])
 				written += n
 			}
 		}
@@ -214,7 +215,7 @@ func TestConcurrentDownloader_429RespectsRetryAfterHeader(t *testing.T) {
 	tmpDir, cleanup := initTestState(t)
 	defer cleanup()
 
-	fileSize := int64(128 * types.KB)
+	fileSize := int64(128 * utils.KiB)
 
 	var requestTimes []time.Time
 	var mu sync.Mutex
@@ -235,7 +236,7 @@ func TestConcurrentDownloader_429RespectsRetryAfterHeader(t *testing.T) {
 			w.Header().Set("Content-Length", strconv.FormatInt(fileSize, 10))
 			w.WriteHeader(http.StatusOK)
 			buf := make([]byte, fileSize)
-			w.Write(buf)
+			_, _ = w.Write(buf)
 		}),
 	)
 	defer server.Close()
@@ -288,7 +289,7 @@ func TestConcurrentDownloader_429DoesNotTearDownWithHealthyMirror(t *testing.T) 
 	tmpDir, cleanup := initTestState(t)
 	defer cleanup()
 
-	fileSize := int64(1 * types.MB)
+	fileSize := int64(1 * utils.MiB)
 
 	server1 := testutil.NewMockServerT(t,
 		testutil.WithFileSize(fileSize),
@@ -311,7 +312,7 @@ func TestConcurrentDownloader_429DoesNotTearDownWithHealthyMirror(t *testing.T) 
 	runtime := &types.RuntimeConfig{
 		MaxConnectionsPerDownload: 4,
 		MaxTaskRetries:            3,
-		MinChunkSize:              128 * types.KB,
+		MinChunkSize:              128 * utils.KiB,
 		DialHedgeCount:            0,
 	}
 
@@ -353,7 +354,7 @@ func TestConcurrentDownloader_503WithRetryAfterTreatedAsThrottle(t *testing.T) {
 	tmpDir, cleanup := initTestState(t)
 	defer cleanup()
 
-	fileSize := int64(128 * types.KB)
+	fileSize := int64(128 * utils.KiB)
 
 	var count atomic.Int64
 
@@ -370,7 +371,7 @@ func TestConcurrentDownloader_503WithRetryAfterTreatedAsThrottle(t *testing.T) {
 			w.Header().Set("Content-Length", strconv.FormatInt(fileSize, 10))
 			w.WriteHeader(http.StatusPartialContent)
 			buf := make([]byte, fileSize)
-			w.Write(buf)
+			_, _ = w.Write(buf)
 		}),
 	)
 	defer server.Close()
@@ -414,7 +415,7 @@ func TestConcurrentDownloader_Persistent429ExhaustsBudget(t *testing.T) {
 	tmpDir, cleanup := initTestState(t)
 	defer cleanup()
 
-	fileSize := int64(64 * types.KB)
+	fileSize := int64(64 * utils.KiB)
 
 	server := testutil.NewMockServerT(t,
 		testutil.WithFileSize(fileSize),
@@ -461,7 +462,7 @@ func TestConcurrentDownloader_Bare503IsGeneric(t *testing.T) {
 	tmpDir, cleanup := initTestState(t)
 	defer cleanup()
 
-	fileSize := int64(128 * types.KB)
+	fileSize := int64(128 * utils.KiB)
 
 	var count atomic.Int64
 
@@ -477,7 +478,7 @@ func TestConcurrentDownloader_Bare503IsGeneric(t *testing.T) {
 			w.Header().Set("Content-Length", strconv.FormatInt(fileSize, 10))
 			w.WriteHeader(http.StatusPartialContent)
 			buf := make([]byte, fileSize)
-			w.Write(buf)
+			_, _ = w.Write(buf)
 		}),
 	)
 	defer server.Close()

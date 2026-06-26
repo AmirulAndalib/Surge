@@ -19,15 +19,15 @@ import (
 	"github.com/google/uuid"
 )
 
-func completedSpeedMBps(entry types.DownloadEntry) float64 {
+func completedSpeedBps(entry types.DownloadEntry) float64 {
 	if entry.Status != "completed" {
 		return 0
 	}
 	if entry.AvgSpeed > 0 {
-		return entry.AvgSpeed / float64(types.MB)
+		return entry.AvgSpeed
 	}
 	if entry.TimeTaken > 0 {
-		return float64(entry.TotalSize) * 1000 / float64(entry.TimeTaken) / float64(types.MB)
+		return float64(entry.TotalSize) * 1000 / float64(entry.TimeTaken)
 	}
 	return 0
 }
@@ -450,13 +450,12 @@ func (s *LocalDownloadService) List() ([]types.DownloadStatus, error) {
 				if status.Status == "downloading" {
 					sessionDownloaded := downloaded - sessionStart
 					if sessionElapsed.Seconds() > 0 && sessionDownloaded > 0 {
-						status.Speed = float64(sessionDownloaded) / sessionElapsed.Seconds() / float64(types.MB)
+						status.Speed = float64(sessionDownloaded) / sessionElapsed.Seconds()
 
 						// Calculate ETA (seconds remaining)
 						remaining := status.TotalSize - status.Downloaded
 						if remaining > 0 && status.Speed > 0 {
-							speedBytes := status.Speed * float64(types.MB)
-							status.ETA = int64(float64(remaining) / speedBytes)
+							status.ETA = int64(float64(remaining) / status.Speed)
 						}
 					}
 				}
@@ -497,7 +496,7 @@ func (s *LocalDownloadService) List() ([]types.DownloadStatus, error) {
 				TotalSize:    d.TotalSize,
 				Downloaded:   d.Downloaded,
 				Progress:     progress,
-				Speed:        completedSpeedMBps(d),
+				Speed:        completedSpeedBps(d),
 				Connections:  0,
 				TimeTaken:    d.TimeTaken,
 				AvgSpeed:     d.AvgSpeed,
@@ -749,7 +748,7 @@ func (s *LocalDownloadService) GetStatus(id string) (*types.DownloadStatus, erro
 			TotalSize:    entry.TotalSize,
 			Downloaded:   entry.Downloaded,
 			Progress:     progress,
-			Speed:        completedSpeedMBps(*entry),
+			Speed:        completedSpeedBps(*entry),
 			Status:       entry.Status,
 			TimeTaken:    entry.TimeTaken,
 			AvgSpeed:     entry.AvgSpeed,
