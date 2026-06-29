@@ -12,8 +12,8 @@ import (
 
 	"github.com/SurgeDM/Surge/internal/core"
 	"github.com/SurgeDM/Surge/internal/download"
-	"github.com/SurgeDM/Surge/internal/engine/state"
 	"github.com/SurgeDM/Surge/internal/processing"
+	"github.com/SurgeDM/Surge/internal/store"
 	"github.com/SurgeDM/Surge/internal/types"
 )
 
@@ -85,7 +85,7 @@ func TestCLI_DeleteEndpoint_CleansPausedStateAndPartialFile(t *testing.T) {
 		t.Fatalf("failed to create partial file: %v", err)
 	}
 
-	if err := state.AddToMasterList(types.DownloadEntry{
+	if err := store.AddToMasterList(types.DownloadEntry{
 		ID:         id,
 		URL:        url,
 		DestPath:   destPath,
@@ -97,7 +97,7 @@ func TestCLI_DeleteEndpoint_CleansPausedStateAndPartialFile(t *testing.T) {
 		t.Fatalf("failed to seed master list: %v", err)
 	}
 
-	if err := state.SaveState(url, destPath, &types.DownloadState{
+	if err := store.SaveState(url, destPath, &types.DownloadState{
 		ID:         id,
 		URL:        url,
 		DestPath:   destPath,
@@ -132,7 +132,7 @@ func TestCLI_DeleteEndpoint_CleansPausedStateAndPartialFile(t *testing.T) {
 	deadline := time.Now().Add(2 * time.Second)
 	for time.Now().Before(deadline) {
 		_, statErr := os.Stat(incompletePath)
-		entry, dbErr := state.GetDownload(id)
+		entry, dbErr := store.GetDownload(id)
 		if dbErr != nil {
 			t.Fatalf("failed to query entry after delete: %v", dbErr)
 		}
@@ -145,7 +145,7 @@ func TestCLI_DeleteEndpoint_CleansPausedStateAndPartialFile(t *testing.T) {
 	if _, err := os.Stat(incompletePath); !os.IsNotExist(err) {
 		t.Fatalf("expected partial file to be deleted, stat err: %v", err)
 	}
-	entry, err := state.GetDownload(id)
+	entry, err := store.GetDownload(id)
 	if err != nil {
 		t.Fatalf("failed to query entry after delete: %v", err)
 	}

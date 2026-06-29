@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/SurgeDM/Surge/internal/config"
-	"github.com/SurgeDM/Surge/internal/engine/state"
+	"github.com/SurgeDM/Surge/internal/store"
 	"github.com/SurgeDM/Surge/internal/testutil"
 	"github.com/SurgeDM/Surge/internal/types"
 )
@@ -806,11 +806,11 @@ func TestLifecycleManager_Resume_HydratesFromDisk(t *testing.T) {
 		Status:   "paused",
 	})
 
-	if err := state.SaveStateWithOptions("http://example.com/hydrated.zip", destPath, &types.DownloadState{
+	if err := store.SaveStateWithOptions("http://example.com/hydrated.zip", destPath, &types.DownloadState{
 		ID: "hydrate-id", URL: "http://example.com/hydrated.zip", Filename: "hydrated.zip",
 		DestPath: destPath, TotalSize: 5000,
 		Tasks: []types.Task{{Offset: 0, Length: 2500}, {Offset: 2500, Length: 2500}},
-	}, state.SaveStateOptions{SkipFileHash: true}); err != nil {
+	}, store.SaveStateOptions{SkipFileHash: true}); err != nil {
 		t.Fatalf("failed to seed state: %v", err)
 	}
 
@@ -996,7 +996,7 @@ func TestLifecycleManager_UpdateURL_Success(t *testing.T) {
 		t.Error("Expected UpdateURL hook to be called")
 	}
 
-	entry, err := state.GetDownload("update-id")
+	entry, err := store.GetDownload("update-id")
 	if err != nil {
 		t.Fatalf("GetDownload failed: %v", err)
 	}

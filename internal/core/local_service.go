@@ -12,7 +12,7 @@ import (
 
 	"github.com/SurgeDM/Surge/internal/config"
 	"github.com/SurgeDM/Surge/internal/download"
-	"github.com/SurgeDM/Surge/internal/engine/state"
+	"github.com/SurgeDM/Surge/internal/store"
 	"github.com/SurgeDM/Surge/internal/types"
 	"github.com/SurgeDM/Surge/internal/utils"
 	"github.com/google/uuid"
@@ -466,7 +466,7 @@ func (s *LocalDownloadService) List() ([]types.DownloadStatus, error) {
 	}
 
 	// 2. Fetch from database for history/paused/completed
-	dbDownloads, err := state.ListAllDownloads()
+	dbDownloads, err := store.ListAllDownloads()
 	if err == nil {
 		// Create a map of existing IDs to avoid duplicates
 		existingIDs := make(map[string]bool)
@@ -546,7 +546,7 @@ func (s *LocalDownloadService) add(url string, path string, filename string, mir
 	if st := s.Pool.GetStatus(id); st != nil {
 		return "", types.ErrIDExists
 	}
-	if entry, err := state.GetDownload(id); err != nil {
+	if entry, err := store.GetDownload(id); err != nil {
 		return "", fmt.Errorf("failed to query download state: %w", err)
 	} else if entry != nil {
 		return "", types.ErrIDExists
@@ -661,7 +661,7 @@ func (s *LocalDownloadService) Delete(id string) error {
 		return types.ErrPoolNotInit
 	}
 	s.Pool.Cancel(id)
-	if entry, err := state.GetDownload(id); err == nil && entry != nil {
+	if entry, err := store.GetDownload(id); err == nil && entry != nil {
 		if s.InputCh != nil {
 			s.InputCh <- types.DownloadRemovedMsg{
 				DownloadID: id,
@@ -731,7 +731,7 @@ func (s *LocalDownloadService) GetStatus(id string) (*types.DownloadStatus, erro
 	}
 
 	// 2. Fallback to DB
-	entry, err := state.GetDownload(id)
+	entry, err := store.GetDownload(id)
 	if err == nil && entry != nil {
 		var progress float64
 		if entry.TotalSize > 0 {
@@ -764,15 +764,15 @@ func (s *LocalDownloadService) GetStatus(id string) (*types.DownloadStatus, erro
 // History returns completed downloads
 func (s *LocalDownloadService) History() ([]types.DownloadEntry, error) {
 	// For local service, we can directly access the state DB
-	return state.LoadCompletedDownloads()
+	return store.LoadCompletedDownloads()
 }
 
 func (s *LocalDownloadService) ClearCompleted() (int64, error) {
-	return state.RemoveCompletedDownloads()
+	return store.RemoveCompletedDownloads()
 }
 
 func (s *LocalDownloadService) ClearFailed() (int64, error) {
-	return state.RemoveFailedDownloads()
+	return store.RemoveFailedDownloads()
 }
 
 // SetRateLimit sets the speed limit for a specific download
@@ -784,7 +784,7 @@ func (s *LocalDownloadService) SetRateLimit(id string, rate int64) error {
 		return types.ErrPoolNotInit
 	}
 
-	entry, err := state.GetDownload(id)
+	entry, err := store.GetDownload(id)
 	if err != nil && !errors.Is(err, types.ErrNotFound) {
 		return err
 	}
@@ -794,7 +794,7 @@ func (s *LocalDownloadService) SetRateLimit(id string, rate int64) error {
 		return fmt.Errorf("%w: %s", types.ErrNotFound, id)
 	}
 
-	err = state.UpdateRateLimit(id, rate)
+	err = store.UpdateRateLimit(id, rate)
 	if err != nil && !errors.Is(err, types.ErrNotFound) {
 		return err
 	}
@@ -814,7 +814,7 @@ func (s *LocalDownloadService) ClearRateLimit(id string) error {
 		return types.ErrPoolNotInit
 	}
 
-	entry, err := state.GetDownload(id)
+	entry, err := store.GetDownload(id)
 	if err != nil && !errors.Is(err, types.ErrNotFound) {
 		return err
 	}
@@ -824,7 +824,7 @@ func (s *LocalDownloadService) ClearRateLimit(id string) error {
 		return fmt.Errorf("%w: %s", types.ErrNotFound, id)
 	}
 
-	err = state.ClearRateLimit(id)
+	err = store.ClearRateLimit(id)
 	if err != nil && !errors.Is(err, types.ErrNotFound) {
 		return err
 	}
@@ -900,7 +900,7 @@ func (s *LocalDownloadService) SetDefaultRateLimit(rate int64) error {
 		var dbErrs []string
 		for _, cfg := range configs {
 			if !cfg.RateLimitSet {
-				if err := state.UpdateDefaultRateLimit(cfg.ID, rate); err != nil {
+				if err := store.UpdateDefaultRateLimit(cfg.ID, rate); err != nil {
 					dbErrs = append(dbErrs, fmt.Sprintf("%s: %v", cfg.ID, err))
 				}
 			}

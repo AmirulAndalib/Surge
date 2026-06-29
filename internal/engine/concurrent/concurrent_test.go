@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/SurgeDM/Surge/internal/engine/state"
+	"github.com/SurgeDM/Surge/internal/store"
 	"github.com/SurgeDM/Surge/internal/testutil"
 	"github.com/SurgeDM/Surge/internal/types"
 	"github.com/SurgeDM/Surge/internal/utils"
@@ -621,7 +621,7 @@ func TestConcurrentDownloader_ResumePartialDownload(t *testing.T) {
 		Filename:   "resume_test.bin",
 		URLHash:    state.URLHash(server.URL()),
 	}
-	if err := state.SaveState(server.URL(), destPath, savedState); err != nil {
+	if err := store.SaveState(server.URL(), destPath, savedState); err != nil {
 		t.Fatalf("Failed to save state: %v", err)
 	}
 

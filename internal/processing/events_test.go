@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/SurgeDM/Surge/internal/engine/state"
+	"github.com/SurgeDM/Surge/internal/store"
 	"github.com/SurgeDM/Surge/internal/processing"
 	"github.com/SurgeDM/Surge/internal/testutil"
 	"github.com/SurgeDM/Surge/internal/types"
@@ -22,7 +22,7 @@ func TestStartEventWorker_FinalizesCompletedFileUsingDestPath(t *testing.T) {
 		t.Fatalf("failed to create incomplete file: %v", err)
 	}
 
-	if err := state.AddToMasterList(types.DownloadEntry{
+	if err := store.AddToMasterList(types.DownloadEntry{
 		ID:       "download-1",
 		URL:      "https://example.com/video.mp4",
 		URLHash:  state.URLHash("https://example.com/video.mp4"),
@@ -32,7 +32,7 @@ func TestStartEventWorker_FinalizesCompletedFileUsingDestPath(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("failed to seed download entry: %v", err)
 	}
-	if err := state.SaveStateWithOptions("https://example.com/video.mp4", finalPath, &types.DownloadState{
+	if err := store.SaveStateWithOptions("https://example.com/video.mp4", finalPath, &types.DownloadState{
 		ID:        "download-1",
 		URL:       "https://example.com/video.mp4",
 		Filename:  "video.mp4",
@@ -41,7 +41,7 @@ func TestStartEventWorker_FinalizesCompletedFileUsingDestPath(t *testing.T) {
 		Tasks: []types.Task{
 			{Offset: 0, Length: 7},
 		},
-	}, state.SaveStateOptions{SkipFileHash: true}); err != nil {
+	}, store.SaveStateOptions{SkipFileHash: true}); err != nil {
 		t.Fatalf("failed to seed download state: %v", err)
 	}
 
@@ -64,7 +64,7 @@ func TestStartEventWorker_FinalizesCompletedFileUsingDestPath(t *testing.T) {
 		t.Fatalf("expected incomplete file to be removed, stat err: %v", err)
 	}
 
-	entry, err := state.GetDownload("download-1")
+	entry, err := store.GetDownload("download-1")
 	if err != nil {
 		t.Fatalf("failed to reload completed entry: %v", err)
 	}
@@ -79,7 +79,7 @@ func TestStartEventWorker_FinalizesCompletedFileUsingDestPath(t *testing.T) {
 		t.Fatalf("dest_path = %q, want %q", entry.DestPath, finalPath)
 	}
 
-	loadedState, _ := state.LoadState("https://example.com/video.mp4", finalPath)
+	loadedState, _ := store.LoadState("https://example.com/video.mp4", finalPath)
 	if loadedState != nil && len(loadedState.Tasks) != 0 {
 		t.Fatalf("task_count = %d, want 0", len(loadedState.Tasks))
 	}
@@ -94,7 +94,7 @@ func TestStartEventWorker_CompletionPreservesOverrideMetadata(t *testing.T) {
 		t.Fatalf("failed to create incomplete file: %v", err)
 	}
 
-	if err := state.AddToMasterList(types.DownloadEntry{
+	if err := store.AddToMasterList(types.DownloadEntry{
 		ID:           "download-1",
 		URL:          "https://example.com/video.mp4",
 		URLHash:      state.URLHash("https://example.com/video.mp4"),
@@ -119,7 +119,7 @@ func TestStartEventWorker_CompletionPreservesOverrideMetadata(t *testing.T) {
 
 	mgr.StartEventWorker(ch)
 
-	entry, err := state.GetDownload("download-1")
+	entry, err := store.GetDownload("download-1")
 	if err != nil {
 		t.Fatalf("failed to reload completed entry: %v", err)
 	}
@@ -154,7 +154,7 @@ func TestStartEventWorker_PersistsQueuedMirrorsForResume(t *testing.T) {
 
 	mgr.StartEventWorker(ch)
 
-	queuedState, err := state.GetDownload("download-queued")
+	queuedState, err := store.GetDownload("download-queued")
 	if err != nil {
 		t.Fatalf("failed to reload queued state: %v", err)
 	}
@@ -200,7 +200,7 @@ func TestStartEventWorker_PreservesQueuedMirrorsAcrossStartedThenError(t *testin
 
 	mgr.StartEventWorker(ch)
 
-	entry, err := state.GetDownload("download-queued")
+	entry, err := store.GetDownload("download-queued")
 	if err != nil {
 		t.Fatalf("failed to reload errored entry: %v", err)
 	}

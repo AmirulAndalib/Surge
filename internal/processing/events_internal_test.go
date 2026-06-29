@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/SurgeDM/Surge/internal/config"
-	"github.com/SurgeDM/Surge/internal/engine/state"
+	"github.com/SurgeDM/Surge/internal/store"
 	"github.com/SurgeDM/Surge/internal/testutil"
 	"github.com/SurgeDM/Surge/internal/types"
 	"github.com/SurgeDM/Surge/internal/utils"
@@ -71,7 +71,7 @@ func TestStartEventWorker_MarksCompletionAsErrorWhenFinalizationFails(t *testing
 		t.Fatalf("failed to create working file: %v", err)
 	}
 
-	if err := state.AddToMasterList(types.DownloadEntry{
+	if err := store.AddToMasterList(types.DownloadEntry{
 		ID:           "download-1",
 		URL:          "https://example.com/video.mp4",
 		URLHash:      state.URLHash("https://example.com/video.mp4"),
@@ -124,7 +124,7 @@ func TestStartEventWorker_MarksCompletionAsErrorWhenFinalizationFails(t *testing
 
 	mgr.StartEventWorker(ch)
 
-	entry, err := state.GetDownload("download-1")
+	entry, err := store.GetDownload("download-1")
 	if err != nil {
 		t.Fatalf("failed to reload entry: %v", err)
 	}
@@ -192,7 +192,7 @@ func TestStartEventWorker_SuppressesNotificationWhenSettingDisabled(t *testing.T
 		t.Fatalf("failed to create working file: %v", err)
 	}
 
-	if err := state.AddToMasterList(types.DownloadEntry{
+	if err := store.AddToMasterList(types.DownloadEntry{
 		ID:       "download-1",
 		URL:      "https://example.com/video.mp4",
 		URLHash:  state.URLHash("https://example.com/video.mp4"),
@@ -242,7 +242,7 @@ func TestStartEventWorker_CompletionNotificationUsesGenericMessageWhenElapsedZer
 		t.Fatalf("failed to create working file: %v", err)
 	}
 
-	if err := state.AddToMasterList(types.DownloadEntry{
+	if err := store.AddToMasterList(types.DownloadEntry{
 		ID:       "download-1",
 		URL:      "https://example.com/video.mp4",
 		URLHash:  state.URLHash("https://example.com/video.mp4"),

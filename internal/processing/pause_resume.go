@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/SurgeDM/Surge/internal/config"
-	"github.com/SurgeDM/Surge/internal/engine/state"
+	"github.com/SurgeDM/Surge/internal/store"
 	"github.com/SurgeDM/Surge/internal/types"
 	"github.com/SurgeDM/Surge/internal/utils"
 )
@@ -45,7 +45,7 @@ func (mgr *LifecycleManager) Pause(id string) error {
 
 	// Downloads paused in a prior session are not tracked by the in-memory pool;
 	// synthesize a paused event so the UI can clear any transient "pausing" spinner.
-	entry, err := state.GetDownload(id)
+	entry, err := store.GetDownload(id)
 	if err == nil && entry != nil {
 		if hooks.PublishEvent != nil {
 			_ = hooks.PublishEvent(types.DownloadPausedMsg{
@@ -69,7 +69,7 @@ func hydrateConfigFromDisk(cfg *types.DownloadConfig) {
 	if cfg.URL == "" || cfg.DestPath == "" {
 		return
 	}
-	saved, err := state.LoadState(cfg.URL, cfg.DestPath)
+	saved, err := store.LoadState(cfg.URL, cfg.DestPath)
 	if err != nil || saved == nil {
 		return
 	}
@@ -115,7 +115,7 @@ func (mgr *LifecycleManager) Resume(id string) error {
 	}
 
 	// Cold path: download from a prior session (only in DB).
-	entry, err := state.GetDownload(id)
+	entry, err := store.GetDownload(id)
 	if err != nil || entry == nil {
 		return types.ErrNotFound
 	}
@@ -131,7 +131,7 @@ func (mgr *LifecycleManager) Resume(id string) error {
 		outputPath = "."
 	}
 
-	savedState, stateErr := state.LoadState(entry.URL, entry.DestPath)
+	savedState, stateErr := store.LoadState(entry.URL, entry.DestPath)
 	if stateErr != nil {
 		savedState = nil
 	}
@@ -202,7 +202,7 @@ func (mgr *LifecycleManager) ResumeBatch(ids []string) []error {
 		return errs
 	}
 
-	states, err := state.LoadStates(coldIDs)
+	states, err := store.LoadStates(coldIDs)
 	if err != nil {
 		for _, id := range coldIDs {
 			idx := coldIdx[id]
@@ -256,7 +256,7 @@ func (mgr *LifecycleManager) Cancel(id string) error {
 	}
 
 	// Supplement with DB info (covers DB-only / completed entries)
-	if entry, err := state.GetDownload(id); err == nil && entry != nil {
+	if entry, err := store.GetDownload(id); err == nil && entry != nil {
 		found = true
 		if filename == "" {
 			filename = entry.Filename
@@ -299,10 +299,10 @@ func (mgr *LifecycleManager) UpdateURL(id string, newURL string) error {
 			return err
 		}
 		// Pool update succeeded; persist to DB.
-		return state.UpdateURL(id, newURL)
+		return store.UpdateURL(id, newURL)
 	}
 	// No pool connected - DB-only update is correct (no in-memory state to sync).
-	return state.UpdateURL(id, newURL)
+	return store.UpdateURL(id, newURL)
 }
 
 // buildResumeConfig constructs a DownloadConfig for a cold-path resume from saved state.

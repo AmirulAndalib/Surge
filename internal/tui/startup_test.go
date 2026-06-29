@@ -9,7 +9,7 @@ import (
 	"github.com/SurgeDM/Surge/internal/config"
 	"github.com/SurgeDM/Surge/internal/core"
 	"github.com/SurgeDM/Surge/internal/download"
-	"github.com/SurgeDM/Surge/internal/engine/state"
+	"github.com/SurgeDM/Surge/internal/store"
 	"github.com/SurgeDM/Surge/internal/processing"
 	"github.com/SurgeDM/Surge/internal/types"
 )
@@ -82,7 +82,7 @@ func TestTUI_Startup_LoadsCompletedTiming(t *testing.T) {
 	const timeTakenMs = int64(2500)
 	const avgSpeed = float64(2 * 1024 * 1024) // 2 MB/s
 
-	if err := state.AddToMasterList(types.DownloadEntry{
+	if err := store.AddToMasterList(types.DownloadEntry{
 		ID:         testID,
 		URL:        testURL,
 		URLHash:    state.URLHash(testURL),
@@ -135,7 +135,7 @@ func TestTUI_Startup_LoadsErroredDownloadsIntoDoneTab(t *testing.T) {
 	testID := "tui-error-id"
 	testURL := "http://example.com/error.bin"
 	testDest := filepath.Join(tmpDir, "error.bin")
-	if err := state.AddToMasterList(types.DownloadEntry{
+	if err := store.AddToMasterList(types.DownloadEntry{
 		ID:       testID,
 		URL:      testURL,
 		URLHash:  state.URLHash(testURL),
@@ -202,7 +202,7 @@ func seedDownload(t *testing.T, id, url, dest, status string) {
 		PausedAt:   0,
 		CreatedAt:  time.Now().Unix(),
 	}
-	if err := state.AddToMasterList(types.DownloadEntry{
+	if err := store.AddToMasterList(types.DownloadEntry{
 		ID:         id,
 		URL:        url,
 		DestPath:   dest,
@@ -213,7 +213,7 @@ func seedDownload(t *testing.T, id, url, dest, status string) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if err := state.SaveState(url, dest, manualState); err != nil {
+	if err := store.SaveState(url, dest, manualState); err != nil {
 		t.Fatal(err)
 	}
 }

@@ -3,7 +3,7 @@ package processing
 import (
 	"strings"
 
-	"github.com/SurgeDM/Surge/internal/engine/state"
+	"github.com/SurgeDM/Surge/internal/store"
 	"github.com/SurgeDM/Surge/internal/types"
 )
 
@@ -45,7 +45,7 @@ func CheckForDuplicate(url string, activeDownloads func() map[string]*types.Down
 	}
 
 	// Check persisted completed/paused/queued entries in DB.
-	if exists, err := state.CheckDownloadExists(normalizedInputURL); err == nil && exists {
+	if exists, err := store.CheckDownloadExists(normalizedInputURL); err == nil && exists {
 		return &DuplicateResult{
 			Exists:   true,
 			IsActive: false,

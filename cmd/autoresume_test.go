@@ -9,8 +9,8 @@ import (
 	"github.com/SurgeDM/Surge/internal/config"
 	"github.com/SurgeDM/Surge/internal/core"
 	"github.com/SurgeDM/Surge/internal/download"
-	"github.com/SurgeDM/Surge/internal/engine/state"
 	"github.com/SurgeDM/Surge/internal/processing"
+	"github.com/SurgeDM/Surge/internal/store"
 	"github.com/SurgeDM/Surge/internal/types"
 )
 
@@ -68,7 +68,7 @@ func TestCmd_AutoResume_Execution(t *testing.T) {
 		PausedAt:   time.Now().Unix(),
 		CreatedAt:  time.Now().Unix(),
 	}
-	if err := state.AddToMasterList(types.DownloadEntry{
+	if err := store.AddToMasterList(types.DownloadEntry{
 		ID:         testID,
 		URL:        testURL,
 		DestPath:   testDest,
@@ -79,7 +79,7 @@ func TestCmd_AutoResume_Execution(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if err := state.SaveState(testURL, testDest, manualState); err != nil {
+	if err := store.SaveState(testURL, testDest, manualState); err != nil {
 		t.Fatal(err)
 	}
 

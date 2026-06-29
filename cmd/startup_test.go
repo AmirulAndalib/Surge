@@ -9,8 +9,8 @@ import (
 	"github.com/SurgeDM/Surge/internal/config"
 	"github.com/SurgeDM/Surge/internal/core"
 	"github.com/SurgeDM/Surge/internal/download"
-	"github.com/SurgeDM/Surge/internal/engine/state"
 	"github.com/SurgeDM/Surge/internal/processing"
+	"github.com/SurgeDM/Surge/internal/store"
 	"github.com/SurgeDM/Surge/internal/types"
 	"github.com/SurgeDM/Surge/internal/utils"
 )
@@ -105,7 +105,7 @@ func TestStartupIntegrityCheck_RemovesMissingPausedEntry(t *testing.T) {
 	msg := runStartupIntegrityCheck()
 	utils.Debug("%s", msg)
 
-	entry, err := state.GetDownload(testID)
+	entry, err := store.GetDownload(testID)
 	if err != nil {
 		t.Fatalf("GetDownload failed: %v", err)
 	}
@@ -156,7 +156,7 @@ func seedDownload(t *testing.T, id, url, dest, status string) {
 		PausedAt:   0,
 		CreatedAt:  time.Now().Unix(),
 	}
-	if err := state.AddToMasterList(types.DownloadEntry{
+	if err := store.AddToMasterList(types.DownloadEntry{
 		ID:         id,
 		URL:        url,
 		DestPath:   dest,
@@ -167,7 +167,7 @@ func seedDownload(t *testing.T, id, url, dest, status string) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if err := state.SaveState(url, dest, manualState); err != nil {
+	if err := store.SaveState(url, dest, manualState); err != nil {
 		t.Fatal(err)
 	}
 }

@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/SurgeDM/Surge/internal/download"
-	"github.com/SurgeDM/Surge/internal/engine/state"
+	"github.com/SurgeDM/Surge/internal/store"
 	"github.com/SurgeDM/Surge/internal/processing"
 	"github.com/SurgeDM/Surge/internal/testutil"
 	"github.com/SurgeDM/Surge/internal/types"
@@ -130,7 +130,7 @@ func TestIntegration_PauseResume(t *testing.T) {
 	var savedState *types.DownloadState
 	deadline = time.Now().Add(5 * time.Second)
 	for time.Now().Before(deadline) {
-		savedState, err = state.LoadState(url, destPath)
+		savedState, err = store.LoadState(url, destPath)
 		if err == nil && savedState != nil && savedState.Downloaded > 0 && len(savedState.Tasks) > 0 {
 			break
 		}
@@ -187,7 +187,7 @@ func TestIntegration_PauseResume(t *testing.T) {
 	for time.Now().Before(deadline) {
 		_, surgeErr := os.Stat(incompletePath)
 		finalInfo, finalErr := os.Stat(destPath)
-		entry, _ := state.GetDownload(cfg.ID)
+		entry, _ := store.GetDownload(cfg.ID)
 		if os.IsNotExist(surgeErr) && finalErr == nil && finalInfo.Size() == fileSize && entry != nil && entry.Status == "completed" {
 			completed = true
 			break
@@ -208,7 +208,7 @@ func TestIntegration_PauseResume(t *testing.T) {
 	if finalInfo.Size() != fileSize {
 		t.Errorf("Final file size = %d, want %d", finalInfo.Size(), fileSize)
 	}
-	entry, _ := state.GetDownload(cfg.ID)
+	entry, _ := store.GetDownload(cfg.ID)
 	if entry == nil || entry.Status != "completed" {
 		t.Fatalf("download entry not marked completed, got %+v", entry)
 	}

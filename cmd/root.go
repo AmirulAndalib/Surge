@@ -17,8 +17,8 @@ import (
 	"github.com/SurgeDM/Surge/internal/config"
 	"github.com/SurgeDM/Surge/internal/core"
 	"github.com/SurgeDM/Surge/internal/download"
-	"github.com/SurgeDM/Surge/internal/engine/state"
 	"github.com/SurgeDM/Surge/internal/processing"
+	"github.com/SurgeDM/Surge/internal/store"
 	"github.com/SurgeDM/Surge/internal/tui"
 	"github.com/SurgeDM/Surge/internal/types"
 	"github.com/SurgeDM/Surge/internal/utils"
@@ -285,12 +285,12 @@ func recordPreflightDownloadError(url, outPath string, err error) {
 	entry := types.DownloadEntry{
 		ID:       uuid.New().String(),
 		URL:      url,
-		URLHash:  state.URLHash(url),
+		URLHash:  store.URLHash(url),
 		DestPath: destPath,
 		Filename: filename,
 		Status:   "error",
 	}
-	if addErr := state.AddToMasterList(entry); addErr != nil {
+	if addErr := store.AddToMasterList(entry); addErr != nil {
 		utils.Debug("Failed to persist preflight download error for %s: %v", url, addErr)
 	}
 	if GlobalService != nil {

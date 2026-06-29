@@ -15,8 +15,8 @@ import (
 	"github.com/SurgeDM/Surge/internal/config"
 	"github.com/SurgeDM/Surge/internal/core"
 	"github.com/SurgeDM/Surge/internal/download"
-	"github.com/SurgeDM/Surge/internal/engine/state"
 	"github.com/SurgeDM/Surge/internal/processing"
+	"github.com/SurgeDM/Surge/internal/store"
 	"github.com/SurgeDM/Surge/internal/testutil"
 	"github.com/SurgeDM/Surge/internal/types"
 )
@@ -166,7 +166,7 @@ func TestEnsureLocalLifecycle_StartsEventWorker(t *testing.T) {
 
 	deadline := time.Now().Add(3 * time.Second)
 	for time.Now().Before(deadline) {
-		entries, err := state.ListAllDownloads()
+		entries, err := store.ListAllDownloads()
 		if err == nil {
 			for _, entry := range entries {
 				if strings.HasSuffix(entry.DestPath, fmt.Sprintf("%clocal.bin", filepath.Separator)) {
@@ -177,7 +177,7 @@ func TestEnsureLocalLifecycle_StartsEventWorker(t *testing.T) {
 		time.Sleep(25 * time.Millisecond)
 	}
 
-	entries, err := state.ListAllDownloads()
+	entries, err := store.ListAllDownloads()
 	if err != nil {
 		t.Fatalf("failed to list downloads: %v", err)
 	}
@@ -286,7 +286,7 @@ func TestProcessDownloads_RoutesBinFilesToCustomCategory(t *testing.T) {
 				t.Fatalf("expected no file in default dir, stat err: %v", err)
 			}
 
-			entries, err := state.ListAllDownloads()
+			entries, err := store.ListAllDownloads()
 			if err != nil {
 				t.Fatalf("failed to list downloads: %v", err)
 			}
@@ -305,7 +305,7 @@ func TestProcessDownloads_RoutesBinFilesToCustomCategory(t *testing.T) {
 	if _, err := os.Stat(unexpectedPath); !os.IsNotExist(err) {
 		t.Fatalf("expected no file in default dir, stat err: %v", err)
 	}
-	entries, err := state.ListAllDownloads()
+	entries, err := store.ListAllDownloads()
 	if err != nil {
 		t.Fatalf("failed to list downloads: %v", err)
 	}

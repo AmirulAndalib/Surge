@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/SurgeDM/Surge/internal/download"
-	"github.com/SurgeDM/Surge/internal/engine/state"
+	"github.com/SurgeDM/Surge/internal/store"
 	"github.com/SurgeDM/Surge/internal/testutil"
 	"github.com/SurgeDM/Surge/internal/types"
 )
@@ -45,7 +45,7 @@ func TestLocalDownloadService_Delete_DBOnlyBroadcastsRemoved(t *testing.T) {
 		t.Fatalf("failed to create partial file: %v", err)
 	}
 
-	if err := state.SaveState(url, destPath, &types.DownloadState{
+	if err := store.SaveState(url, destPath, &types.DownloadState{
 		ID:         id,
 		URL:        url,
 		DestPath:   destPath,
@@ -58,7 +58,7 @@ func TestLocalDownloadService_Delete_DBOnlyBroadcastsRemoved(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("failed to seed state: %v", err)
 	}
-	_ = state.AddToMasterList(types.DownloadEntry{ID: id, URL: url, DestPath: destPath, Status: "paused"})
+	_ = store.AddToMasterList(types.DownloadEntry{ID: id, URL: url, DestPath: destPath, Status: "paused"})
 
 	if err := svc.Delete(id); err != nil {
 		t.Fatalf("delete failed: %v", err)
@@ -80,14 +80,14 @@ func TestLocalDownloadService_Delete_DBOnlyBroadcastsRemoved(t *testing.T) {
 	// Wait briefly for event worker to actually apply the DB deletion after emitting the event
 	deletionDeadline := time.Now().Add(500 * time.Millisecond)
 	for time.Now().Before(deletionDeadline) {
-		entry, _ := state.GetDownload(id)
+		entry, _ := store.GetDownload(id)
 		if entry == nil {
 			return // Success, it is gone
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
 
-	entry, err := state.GetDownload(id)
+	entry, err := store.GetDownload(id)
 	if err != nil {
 		t.Fatalf("failed querying deleted entry: %v", err)
 	}
@@ -153,7 +153,7 @@ func TestLocalDownloadService_Delete_ActiveWithoutDB_RemovesPartialFile(t *testi
 	}
 
 	// Simulate delete-before-persist path: no DB entry available.
-	_ = state.RemoveFromMasterList(id)
+	_ = store.RemoveFromMasterList(id)
 
 	if err := svc.Delete(id); err != nil {
 		t.Fatalf("delete failed: %v", err)
@@ -342,7 +342,7 @@ func TestLocalDownloadService_Shutdown_PersistsPausedState(t *testing.T) {
 
 	deadline = time.Now().Add(2 * time.Second)
 	for {
-		entry, err := state.GetDownload(id)
+		entry, err := store.GetDownload(id)
 		if err != nil {
 			errStr := strings.ToLower(err.Error())
 			if strings.Contains(errStr, "locked") || strings.Contains(errStr, "busy") || strings.Contains(errStr, "process cannot access") {
@@ -387,7 +387,7 @@ func TestLocalDownloadService_Shutdown_PersistsPausedState(t *testing.T) {
 	}
 
 	destPath := filepath.Join(outputDir, filename)
-	saved, err := state.LoadState(server.URL(), destPath)
+	saved, err := store.LoadState(server.URL(), destPath)
 	if err != nil {
 		t.Fatalf("failed to load saved state: %v", err)
 	}

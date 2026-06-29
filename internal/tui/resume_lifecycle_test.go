@@ -11,7 +11,7 @@ import (
 	"github.com/SurgeDM/Surge/internal/config"
 	"github.com/SurgeDM/Surge/internal/core"
 	"github.com/SurgeDM/Surge/internal/download"
-	"github.com/SurgeDM/Surge/internal/engine/state"
+	"github.com/SurgeDM/Surge/internal/store"
 	"github.com/SurgeDM/Surge/internal/types"
 	"github.com/SurgeDM/Surge/internal/utils"
 )
@@ -116,7 +116,7 @@ func TestResume_RespectsOriginalPath_WhenDefaultChanges(t *testing.T) {
 		PausedAt:   time.Now().Unix(),
 		CreatedAt:  time.Now().Unix(),
 	}
-	if err := state.AddToMasterList(types.DownloadEntry{
+	if err := store.AddToMasterList(types.DownloadEntry{
 		ID:         dm.ID,
 		URL:        dm.URL,
 		DestPath:   dm.Destination,
@@ -127,7 +127,7 @@ func TestResume_RespectsOriginalPath_WhenDefaultChanges(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	err = state.SaveState(dm.URL, dm.Destination, manualState)
+	err = store.SaveState(dm.URL, dm.Destination, manualState)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -139,7 +139,7 @@ func TestResume_RespectsOriginalPath_WhenDefaultChanges(t *testing.T) {
 	}
 
 	// 7. Simulate Resume logic
-	paused, err := state.LoadPausedDownloads()
+	paused, err := store.LoadPausedDownloads()
 	if err != nil {
 		t.Fatal(err)
 	}

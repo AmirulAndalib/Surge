@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/SurgeDM/Surge/internal/engine/state"
+	"github.com/SurgeDM/Surge/internal/store"
 	"github.com/SurgeDM/Surge/internal/types"
 	"github.com/SurgeDM/Surge/internal/utils"
 )
@@ -24,17 +24,17 @@ func SetupStateDB(t *testing.T) string {
 	t.Helper()
 
 	tempDir := t.TempDir()
-	state.CloseDB()
-	state.Configure(filepath.Join(tempDir, "surge.db"))
+	store.CloseDB()
+	store.Configure(filepath.Join(tempDir, "surge.db"))
 
-	t.Cleanup(state.CloseDB)
+	t.Cleanup(store.CloseDB)
 	return tempDir
 }
 
 // SeedMasterList inserts a DownloadEntry into the master list for test setups.
 func SeedMasterList(t *testing.T, entry types.DownloadEntry) {
 	t.Helper()
-	if err := state.AddToMasterList(entry); err != nil {
+	if err := store.AddToMasterList(entry); err != nil {
 		t.Fatalf("SeedMasterList failed: %v", err)
 	}
 }

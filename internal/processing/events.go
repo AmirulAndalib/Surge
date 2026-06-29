@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/SurgeDM/Surge/internal/config"
-	"github.com/SurgeDM/Surge/internal/engine/state"
+	"github.com/SurgeDM/Surge/internal/store"
 	"github.com/SurgeDM/Surge/internal/types"
 	"github.com/SurgeDM/Surge/internal/utils"
 )
@@ -82,7 +82,7 @@ func (mgr *LifecycleManager) StartEventWorker(ch <-chan interface{}) {
 			entry := types.DownloadEntry{
 				ID:           m.DownloadID,
 				URL:          m.URL,
-				URLHash:      state.URLHash(m.URL),
+				URLHash:      store.URLHash(m.URL),
 				DestPath:     m.DestPath,
 				Filename:     m.Filename,
 				Status:       "downloading",
@@ -93,7 +93,7 @@ func (mgr *LifecycleManager) StartEventWorker(ch <-chan interface{}) {
 				Workers:      m.Workers,
 				MinChunkSize: m.MinChunkSize,
 			}
-			if existing, _ := state.GetDownload(m.DownloadID); existing != nil {
+			if existing, _ := store.GetDownload(m.DownloadID); existing != nil {
 				entry.Mirrors = append([]string(nil), existing.Mirrors...)
 				if existing.Downloaded > 0 {
 					entry.Downloaded = existing.Downloaded
@@ -102,13 +102,13 @@ func (mgr *LifecycleManager) StartEventWorker(ch <-chan interface{}) {
 					entry.TimeTaken = existing.TimeTaken
 				}
 			}
-			if err := state.AddToMasterList(entry); err != nil {
+			if err := store.AddToMasterList(entry); err != nil {
 				utils.Debug("Lifecycle: Failed to save initial download state: %v", err)
 			}
 
 		case types.DownloadPausedMsg:
 			if m.State == nil {
-				existing, _ := state.GetDownload(m.DownloadID)
+				existing, _ := store.GetDownload(m.DownloadID)
 				if existing == nil {
 					utils.Debug("Lifecycle: Skipping paused fallback for %s: no persisted entry yet", m.DownloadID)
 					break
@@ -119,12 +119,12 @@ func (mgr *LifecycleManager) StartEventWorker(ch <-chan interface{}) {
 				if m.Downloaded > 0 {
 					entry.Downloaded = m.Downloaded
 				}
-				if err := state.AddToMasterList(entry); err != nil {
+				if err := store.AddToMasterList(entry); err != nil {
 					utils.Debug("Lifecycle: Failed to persist paused fallback entry: %v", err)
 				}
 
 				if existing.URL != "" && existing.DestPath != "" {
-					saved, err := state.LoadState(existing.URL, existing.DestPath)
+					saved, err := store.LoadState(existing.URL, existing.DestPath)
 					if err == nil && saved != nil {
 						prevDownloaded := saved.Downloaded
 						prevElapsed := saved.Elapsed
@@ -144,7 +144,7 @@ func (mgr *LifecycleManager) StartEventWorker(ch <-chan interface{}) {
 							saved.Elapsed = prevElapsed + int64(time.Millisecond)
 						}
 
-						if err := state.SaveStateWithOptions(existing.URL, existing.DestPath, saved, state.SaveStateOptions{SkipFileHash: true}); err != nil {
+						if err := store.SaveStateWithOptions(existing.URL, existing.DestPath, saved, store.SaveStateOptions{SkipFileHash: true}); err != nil {
 							utils.Debug("Lifecycle: Failed to persist paused fallback state: %v", err)
 						}
 					}
@@ -158,7 +158,7 @@ func (mgr *LifecycleManager) StartEventWorker(ch <-chan interface{}) {
 			destPath := m.State.DestPath
 			url := m.State.URL
 
-			existing, _ := state.GetDownload(m.DownloadID)
+			existing, _ := store.GetDownload(m.DownloadID)
 			if existing != nil {
 				if destPath == "" {
 					destPath = existing.DestPath
@@ -192,7 +192,7 @@ func (mgr *LifecycleManager) StartEventWorker(ch <-chan interface{}) {
 				entry.URL = existing.URL
 				entry.URLHash = existing.URLHash
 			}
-			if err := state.AddToMasterList(entry); err != nil {
+			if err := store.AddToMasterList(entry); err != nil {
 				utils.Debug("Lifecycle: Failed to persist paused state: %v", err)
 			}
 
@@ -200,7 +200,7 @@ func (mgr *LifecycleManager) StartEventWorker(ch <-chan interface{}) {
 			// destPath/url pair used everywhere else as the state DB key.
 			if destPath != "" && url != "" {
 				// Keep pause persistence fast so lifecycle events don't back up and get dropped.
-				if err := state.SaveStateWithOptions(url, destPath, &snapshot, state.SaveStateOptions{
+				if err := store.SaveStateWithOptions(url, destPath, &snapshot, store.SaveStateOptions{
 					SkipFileHash: true,
 				}); err != nil {
 					utils.Debug("Lifecycle: Failed to save pause state: %v", err)
@@ -218,7 +218,7 @@ func (mgr *LifecycleManager) StartEventWorker(ch <-chan interface{}) {
 			destPath := ""
 			// DownloadCompleteMsg does not carry destPath, so we recover the stable final
 			// location from the DB entry written earlier on this same serialized event stream.
-			existing, _ := state.GetDownload(m.DownloadID)
+			existing, _ := store.GetDownload(m.DownloadID)
 			var url, urlHash string
 			filename := m.Filename
 			if existing != nil {
@@ -252,7 +252,7 @@ func (mgr *LifecycleManager) StartEventWorker(ch <-chan interface{}) {
 					errEntry.Workers = existing.Workers
 					errEntry.MinChunkSize = existing.MinChunkSize
 				}
-				if err := state.AddToMasterList(errEntry); err != nil {
+				if err := store.AddToMasterList(errEntry); err != nil {
 					utils.Debug("Lifecycle: Failed to persist finalization error state: %v", err)
 				}
 				if filename == "" {
@@ -287,10 +287,10 @@ func (mgr *LifecycleManager) StartEventWorker(ch <-chan interface{}) {
 				entry.Workers = existing.Workers
 				entry.MinChunkSize = existing.MinChunkSize
 			}
-			if err := state.AddToMasterList(entry); err != nil {
+			if err := store.AddToMasterList(entry); err != nil {
 				utils.Debug("Lifecycle: Failed to persist completed download: %v", err)
 			}
-			if err := state.DeleteTasks(m.DownloadID); err != nil {
+			if err := store.DeleteTasks(m.DownloadID); err != nil {
 				utils.Debug("Lifecycle: Failed to delete completed tasks: %v", err)
 			}
 			if settings := mgr.GetSettings(); settings != nil && config.Resolve[bool](settings.General.DownloadCompleteNotification) {
@@ -312,11 +312,11 @@ func (mgr *LifecycleManager) StartEventWorker(ch <-chan interface{}) {
 			}
 
 		case types.DownloadErrorMsg:
-			existing, _ := state.GetDownload(m.DownloadID)
+			existing, _ := store.GetDownload(m.DownloadID)
 			destPath := m.DestPath
 			if existing != nil {
 				existing.Status = "error"
-				if err := state.AddToMasterList(*existing); err != nil {
+				if err := store.AddToMasterList(*existing); err != nil {
 					utils.Debug("Lifecycle: Failed to persist error state: %v", err)
 				}
 				if existing.DestPath != "" {
@@ -351,7 +351,7 @@ func (mgr *LifecycleManager) StartEventWorker(ch <-chan interface{}) {
 			// come back during startup recovery. DeleteState atomically removes both the
 			// detail gob and the master list entry, so no separate RemoveFromMasterList call
 			// is needed.
-			if err := state.DeleteState(m.DownloadID); err != nil {
+			if err := store.DeleteState(m.DownloadID); err != nil {
 				utils.Debug("Lifecycle: Failed to delete state: %v", err)
 			}
 
@@ -366,10 +366,10 @@ func (mgr *LifecycleManager) StartEventWorker(ch <-chan interface{}) {
 		case types.DownloadQueuedMsg:
 			// Queue persistence is what lets downloads survive shutdown before any worker
 			// has emitted a started event.
-			if err := state.AddToMasterList(types.DownloadEntry{
+			if err := store.AddToMasterList(types.DownloadEntry{
 				ID:           m.DownloadID,
 				URL:          m.URL,
-				URLHash:      state.URLHash(m.URL),
+				URLHash:      store.URLHash(m.URL),
 				DestPath:     m.DestPath,
 				Filename:     m.Filename,
 				Mirrors:      append([]string(nil), m.Mirrors...),

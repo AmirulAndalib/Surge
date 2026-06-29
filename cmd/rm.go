@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/SurgeDM/Surge/internal/engine/state"
+	"github.com/SurgeDM/Surge/internal/store"
 	"github.com/spf13/cobra"
 )
 
@@ -40,14 +40,14 @@ var rmCmd = &cobra.Command{
 
 		if clean {
 			// Remove completed downloads from DB
-			count, err := state.RemoveCompletedDownloads()
+			count, err := store.RemoveCompletedDownloads()
 			if err != nil {
 				return fmt.Errorf("error cleaning downloads: %w", err)
 			}
 			fmt.Printf("Removed %d completed downloads.\n", count)
 			return nil
 		} else if cleanFailed {
-			count, err := state.RemoveFailedDownloads()
+			count, err := store.RemoveFailedDownloads()
 			if err != nil {
 				return fmt.Errorf("error cleaning failed downloads: %w", err)
 			}

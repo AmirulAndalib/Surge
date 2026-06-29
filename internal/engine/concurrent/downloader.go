@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/SurgeDM/Surge/internal/engine"
-	"github.com/SurgeDM/Surge/internal/engine/state"
+	"github.com/SurgeDM/Surge/internal/store"
 	"github.com/SurgeDM/Surge/internal/types"
 	"github.com/SurgeDM/Surge/internal/utils"
 )
@@ -264,7 +264,7 @@ func (d *ConcurrentDownloader) Download(ctx context.Context, rawurl string, cand
 	d.TotalSize = fileSize
 
 	// Load saved state early to determine remaining size for connection count heuristic
-	savedState, err := state.LoadState(d.URL, destPath)
+	savedState, err := store.LoadState(d.URL, destPath)
 	isResume := err == nil && savedState != nil && len(savedState.Tasks) > 0
 
 	effectiveSizeForWorkers := d.getEffectiveSizeForWorkers(fileSize, savedState, isResume)

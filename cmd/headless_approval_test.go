@@ -10,8 +10,8 @@ import (
 	"github.com/SurgeDM/Surge/internal/config"
 	"github.com/SurgeDM/Surge/internal/core"
 	"github.com/SurgeDM/Surge/internal/download"
-	"github.com/SurgeDM/Surge/internal/engine/state"
 	"github.com/SurgeDM/Surge/internal/processing"
+	"github.com/SurgeDM/Surge/internal/store"
 	"github.com/SurgeDM/Surge/internal/types"
 )
 
@@ -105,7 +105,7 @@ func TestHandleDownload_HeadlessMode_RejectsDuplicateWithWarn(t *testing.T) {
 
 	// Seed the DB with a "duplicate" entry
 	url := "http://example.com/duplicate.bin"
-	_ = state.AddToMasterList(types.DownloadEntry{
+	_ = store.AddToMasterList(types.DownloadEntry{
 		ID:       "dup-id",
 		URL:      url,
 		Filename: "duplicate.bin",
@@ -152,7 +152,7 @@ func TestHandleDownload_HeadlessMode_RejectsExtensionPromptDuplicate(t *testing.
 	}
 
 	url := "http://example.com/already-downloaded.bin"
-	_ = state.AddToMasterList(types.DownloadEntry{
+	_ = store.AddToMasterList(types.DownloadEntry{
 		ID: "ext-dup-id", URL: url, Filename: "already-downloaded.bin", Status: "completed",
 	})
 

@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/SurgeDM/Surge/internal/engine/state"
+	"github.com/SurgeDM/Surge/internal/store"
 	"github.com/SurgeDM/Surge/internal/types"
 )
 
@@ -197,7 +197,7 @@ func TestSetupTasks_BitmapRestoration(t *testing.T) {
 		ChunkBitmap:     savedBitmap,
 		Tasks:           []types.Task{{Offset: 500, Length: 500}},
 	}
-	if err := state.AddToMasterList(types.DownloadEntry{
+	if err := store.AddToMasterList(types.DownloadEntry{
 		ID:         "test-id",
 		URL:        "http://example.com",
 		DestPath:   destPath,
@@ -208,7 +208,7 @@ func TestSetupTasks_BitmapRestoration(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if err := state.SaveState("http://example.com", destPath, savedState); err != nil {
+	if err := store.SaveState("http://example.com", destPath, savedState); err != nil {
 		t.Fatal(err)
 	}
 

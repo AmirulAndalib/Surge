@@ -9,7 +9,7 @@ func TestChunkAccuracy(t *testing.T) {
 
 	// Init 200 chunks -> 500KB per chunk
 	// 10 MB total, 1 MB chunks
-	state.InitBitmap(10*1024*1024, 1024*1024)
+	store.InitBitmap(10*1024*1024, 1024*1024)
 
 	// Simulate downloading a small part of the first chunk (e.g. 1KB)
 	// UpdateChunkStatus(offset=0, length=1024, status=ChunkCompleted)
@@ -137,7 +137,7 @@ func TestRecalculateProgress(t *testing.T) {
 	// 30MB total, 10MB chunks -> 3 chunks
 	state := NewProgressState("test-recalc", 30*1024*1024)
 	chunkSize := int64(10 * 1024 * 1024)
-	state.InitBitmap(30*1024*1024, chunkSize)
+	store.InitBitmap(30*1024*1024, chunkSize)
 
 	// Simulate remaining tasks (Resume scenario)
 	// Chunk 0: Missing first 5MB (Offset 0, Len 5MB) -> 5MB downloaded

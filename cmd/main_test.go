@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/SurgeDM/Surge/internal/config"
-	"github.com/SurgeDM/Surge/internal/engine/state"
 	"github.com/SurgeDM/Surge/internal/utils"
 )
 

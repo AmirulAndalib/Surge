@@ -935,7 +935,7 @@ func TestWorkerPool_UpdateURL(t *testing.T) {
 }
 
 // Note: UpdateURL DB persistence is now tested in internal/processing tests
-// since LifecycleManager.UpdateURL() is responsible for calling state.UpdateURL().
+// since LifecycleManager.UpdateURL() is responsible for calling store.UpdateURL().
 
 // --- GracefulShutdown: queued download discard tests ---
 

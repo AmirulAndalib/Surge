@@ -16,8 +16,8 @@ import (
 	"github.com/SurgeDM/Surge/internal/config"
 	"github.com/SurgeDM/Surge/internal/core"
 	"github.com/SurgeDM/Surge/internal/download"
-	"github.com/SurgeDM/Surge/internal/engine/state"
 	"github.com/SurgeDM/Surge/internal/processing"
+	"github.com/SurgeDM/Surge/internal/store"
 	"github.com/SurgeDM/Surge/internal/types"
 )
 
@@ -399,7 +399,7 @@ func TestHandleDownload_EnqueueError_RecordsPreflightError(t *testing.T) {
 	}
 
 	// Verify that the error was persisted in the master list.
-	list, err := state.LoadMasterList()
+	list, err := store.LoadMasterList()
 	if err != nil {
 		t.Fatalf("LoadMasterList failed: %v", err)
 	}
@@ -532,7 +532,7 @@ func TestHandleDownload_PublishError_RecordsPreflightError(t *testing.T) {
 		t.Fatalf("expected 500, got %d: %s", rec.Code, rec.Body.String())
 	}
 
-	list, err := state.LoadMasterList()
+	list, err := store.LoadMasterList()
 	if err != nil {
 		t.Fatalf("LoadMasterList failed: %v", err)
 	}

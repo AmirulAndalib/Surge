@@ -354,7 +354,7 @@ func InitialRootModel(serverPort int, currentVersion string, service core.Downlo
 	// Load paused downloads from master list (now uses global config directory)
 	var downloads []*DownloadModel
 	// Note: With Service abstraction, we might want to let the Service handle loading.
-	// But LocalDownloadService's List() calls state.ListAllDownloads().
+	// But LocalDownloadService's List() calls store.ListAllDownloads().
 	// For TUI initialization, we should probably call Service.List() to populate the model.
 	// However, Service.List() returns []DownloadStatus, which we need to convert to []*DownloadModel.
 

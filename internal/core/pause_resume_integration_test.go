@@ -9,7 +9,7 @@ import (
 
 	"github.com/SurgeDM/Surge/internal/config"
 	"github.com/SurgeDM/Surge/internal/download"
-	"github.com/SurgeDM/Surge/internal/engine/state"
+	"github.com/SurgeDM/Surge/internal/store"
 	"github.com/SurgeDM/Surge/internal/testutil"
 	"github.com/SurgeDM/Surge/internal/types"
 )
@@ -68,7 +68,7 @@ func waitForSavedStateByID(
 	var lastErr error
 
 	for time.Now().Before(deadline) {
-		states, err := state.LoadStates([]string{id})
+		states, err := store.LoadStates([]string{id})
 		if err != nil {
 			lastErr = err
 			time.Sleep(50 * time.Millisecond)
@@ -236,9 +236,9 @@ func TestIntegration_PauseResume_HotPath_Aggregates(t *testing.T) {
 		t.Fatalf("saved dest path mismatch: got=%q want=%q", saved1.DestPath, destPath)
 	}
 
-	entry1, err := state.GetDownload(id)
+	entry1, err := store.GetDownload(id)
 	if err != nil {
-		t.Fatalf("state.GetDownload failed: %v", err)
+		t.Fatalf("store.GetDownload failed: %v", err)
 	}
 	// Wait for master list to catch up (SaveState writes detail then master)
 	deadline := time.Now().Add(5 * time.Second)
@@ -247,7 +247,7 @@ func TestIntegration_PauseResume_HotPath_Aggregates(t *testing.T) {
 			break
 		}
 		time.Sleep(50 * time.Millisecond)
-		entry1, _ = state.GetDownload(id)
+		entry1, _ = store.GetDownload(id)
 	}
 
 	if entry1 == nil {
@@ -433,7 +433,7 @@ func TestIntegration_PauseResume_ColdPath_StateContinuity(t *testing.T) {
 	}
 
 	// We can remove the sleep since waitForSavedStateByID now waits for the exact condition.
-	finalSaved, _ := state.LoadStates([]string{id})
+	finalSaved, _ := store.LoadStates([]string{id})
 	savedFinal := finalSaved[id]
 
 	if savedFinal == nil {
@@ -445,9 +445,9 @@ func TestIntegration_PauseResume_ColdPath_StateContinuity(t *testing.T) {
 		t.Fatalf("saved downloaded mismatch after cold resume: saved=%d status=%d", savedFinal.Downloaded, paused2.Downloaded)
 	}
 
-	entry2, err := state.GetDownload(id)
+	entry2, err := store.GetDownload(id)
 	if err != nil {
-		t.Fatalf("state.GetDownload failed: %v", err)
+		t.Fatalf("store.GetDownload failed: %v", err)
 	}
 
 	// Wait for master list to catch up (SaveState writes detail then master)
@@ -457,7 +457,7 @@ func TestIntegration_PauseResume_ColdPath_StateContinuity(t *testing.T) {
 			break
 		}
 		time.Sleep(50 * time.Millisecond)
-		entry2, _ = state.GetDownload(id)
+		entry2, _ = store.GetDownload(id)
 	}
 
 	if entry2 == nil {
@@ -631,7 +631,7 @@ func TestIntegration_PauseResume_StatusFormulaInvariants(t *testing.T) {
 	}
 
 	// DB-only status path must preserve the same progress invariant.
-	entry, err := state.GetDownload(id)
+	entry, err := store.GetDownload(id)
 	if err != nil {
 		t.Fatalf("GetDownload failed: %v", err)
 	}
@@ -717,7 +717,7 @@ func TestIntegration_PauseResume_ConcreteSnapshotDebugString(t *testing.T) {
 		return s.Downloaded == paused.Downloaded && s.Elapsed > 0
 	})
 
-	entry, err := state.GetDownload(id)
+	entry, err := store.GetDownload(id)
 	if err != nil {
 		t.Fatalf("GetDownload failed: %v", err)
 	}

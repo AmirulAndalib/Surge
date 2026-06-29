@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/SurgeDM/Surge/internal/download"
-	"github.com/SurgeDM/Surge/internal/engine/state"
+	"github.com/SurgeDM/Surge/internal/store"
 	"github.com/SurgeDM/Surge/internal/processing"
 	"github.com/SurgeDM/Surge/internal/testutil"
 	"github.com/SurgeDM/Surge/internal/types"
@@ -138,7 +138,7 @@ func TestIntegration_MirrorResume(t *testing.T) {
 	var savedState *types.DownloadState
 	deadline = time.Now().Add(5 * time.Second)
 	for time.Now().Before(deadline) {
-		savedState, err = state.LoadState(primary.URL(), destPath)
+		savedState, err = store.LoadState(primary.URL(), destPath)
 		if err == nil && savedState != nil && len(savedState.Mirrors) > 0 {
 			break
 		}

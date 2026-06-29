@@ -499,7 +499,7 @@ func makeDownloadWithChunks(longURL bool) *DownloadModel {
 	dm.Connections = 8
 
 	// Initialize the bitmap so GetBitmap() returns data
-	dm.state.InitBitmap(500*MB, 10*MB) // 50 chunks
+	dm.store.InitBitmap(500*MB, 10*MB) // 50 chunks
 	// Mark some chunks as downloading/completed
 	for i := 0; i < 20; i++ {
 		dm.state.SetChunkState(i, 2) // ChunkCompleted
