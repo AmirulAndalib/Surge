@@ -8,8 +8,8 @@ import (
 
 	"github.com/SurgeDM/Surge/internal/config"
 	"github.com/SurgeDM/Surge/internal/core"
-	"github.com/SurgeDM/Surge/internal/download"
 	"github.com/SurgeDM/Surge/internal/processing"
+	"github.com/SurgeDM/Surge/internal/scheduler"
 	"github.com/SurgeDM/Surge/internal/store"
 	"github.com/SurgeDM/Surge/internal/types"
 )
@@ -85,7 +85,7 @@ func TestCmd_AutoResume_Execution(t *testing.T) {
 
 	// 5. Initialize GlobalPool + GlobalService
 	GlobalProgressCh = make(chan any, 10)
-	GlobalPool = download.NewWorkerPool(GlobalProgressCh, 4)
+	GlobalPool = scheduler.New(GlobalProgressCh, 4)
 	GlobalService = core.NewLocalDownloadServiceWithInput(GlobalPool, GlobalProgressCh)
 
 	GlobalLifecycle = processing.NewLifecycleManager(nil, nil, nil)

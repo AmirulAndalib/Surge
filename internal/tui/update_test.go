@@ -16,8 +16,8 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"github.com/SurgeDM/Surge/internal/config"
 	"github.com/SurgeDM/Surge/internal/core"
-	"github.com/SurgeDM/Surge/internal/download"
 	"github.com/SurgeDM/Surge/internal/processing"
+	"github.com/SurgeDM/Surge/internal/scheduler"
 	"github.com/SurgeDM/Surge/internal/types"
 )
 
@@ -491,7 +491,7 @@ func TestGenerateUniqueFilename_IncompleteSuffixConstant(t *testing.T) {
 func TestUpdate_DownloadRequestMsg(t *testing.T) {
 	// Setup initial model
 	ch := make(chan any, 100)
-	pool := download.NewWorkerPool(ch, 1)
+	pool := scheduler.New(ch, 1)
 	svc := core.NewLocalDownloadServiceWithInput(pool, ch)
 	t.Cleanup(func() { _ = svc.Shutdown() })
 
@@ -663,7 +663,7 @@ func TestUpdate_BatchDownloadRequestMsg_QueuesWhileConfirmationActive(t *testing
 
 func TestStartDownload_UsesProvidedIDWhenServiceSupportsIt(t *testing.T) {
 	ch := make(chan any, 16)
-	pool := download.NewWorkerPool(ch, 1)
+	pool := scheduler.New(ch, 1)
 	svc := core.NewLocalDownloadServiceWithInput(pool, ch)
 	t.Cleanup(func() {
 		_ = svc.Shutdown()

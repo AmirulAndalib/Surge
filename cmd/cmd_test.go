@@ -16,7 +16,7 @@ import (
 
 	"github.com/SurgeDM/Surge/internal/config"
 	"github.com/SurgeDM/Surge/internal/core"
-	"github.com/SurgeDM/Surge/internal/download"
+	"github.com/SurgeDM/Surge/internal/scheduler"
 	"github.com/SurgeDM/Surge/internal/testutil"
 	"github.com/spf13/cobra"
 )
@@ -24,7 +24,7 @@ import (
 func init() {
 	// Initialize GlobalPool for tests
 	GlobalProgressCh = make(chan any, 100)
-	GlobalPool = download.NewWorkerPool(GlobalProgressCh, 4)
+	GlobalPool = scheduler.New(GlobalProgressCh, 4)
 }
 
 // =============================================================================

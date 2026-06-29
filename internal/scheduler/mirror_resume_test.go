@@ -1,4 +1,4 @@
-package download_test
+package scheduler_test
 
 import (
 	"context"
@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/SurgeDM/Surge/internal/download"
 	"github.com/SurgeDM/Surge/internal/processing"
 	"github.com/SurgeDM/Surge/internal/progress"
 	"github.com/SurgeDM/Surge/internal/store"
@@ -107,7 +106,7 @@ func TestIntegration_MirrorResume(t *testing.T) {
 	// Start download and interrupt
 	errCh := make(chan error)
 	go func() {
-		errCh <- download.RunDownload(ctx1, &cfg)
+		errCh <- RunDownload(ctx1, &cfg)
 	}()
 
 	// Wait until download really started so Pause() has an attached cancel func.
@@ -192,7 +191,7 @@ func TestIntegration_MirrorResume(t *testing.T) {
 	// We can't easily hook into RunDownload to verify it loaded mirrors without running it.
 	ctx2 := context.Background()
 	go func() {
-		errCh <- download.RunDownload(ctx2, &resumeCfg)
+		errCh <- RunDownload(ctx2, &resumeCfg)
 	}()
 
 	// Give it enough time to start and restore mirrors from saved state.

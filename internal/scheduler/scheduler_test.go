@@ -1,4 +1,4 @@
-package download
+package scheduler
 
 import (
 	"context"
@@ -14,12 +14,12 @@ import (
 	"github.com/SurgeDM/Surge/internal/types"
 )
 
-func TestNewWorkerPool(t *testing.T) {
+func TestNew(t *testing.T) {
 	ch := make(chan any, 10)
-	pool := NewWorkerPool(ch, 3)
+	pool := New(ch, 3)
 
 	if pool == nil {
-		t.Fatal("Expected non-nil WorkerPool")
+		t.Fatal("Expected non-nil Scheduler")
 	}
 
 	if pool.taskChan == nil {
@@ -39,7 +39,7 @@ func TestNewWorkerPool(t *testing.T) {
 	}
 }
 
-func TestNewWorkerPool_MaxDownloadsValidation(t *testing.T) {
+func TestNewScheduler_MaxDownloadsValidation(t *testing.T) {
 	ch := make(chan any, 10)
 
 	tests := []struct {
@@ -56,7 +56,7 @@ func TestNewWorkerPool_MaxDownloadsValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			pool := NewWorkerPool(ch, tt.maxDownloads)
+			pool := New(ch, tt.maxDownloads)
 			if pool.maxDownloads != tt.wantMax {
 				t.Errorf("maxDownloads = %d, want %d", pool.maxDownloads, tt.wantMax)
 			}
@@ -64,11 +64,11 @@ func TestNewWorkerPool_MaxDownloadsValidation(t *testing.T) {
 	}
 }
 
-func TestNewWorkerPool_NilChannel(t *testing.T) {
-	pool := NewWorkerPool(nil, 3)
+func TestNewScheduler_NilChannel(t *testing.T) {
+	pool := New(nil, 3)
 
 	if pool == nil {
-		t.Fatal("Expected non-nil WorkerPool even with nil channel")
+		t.Fatal("Expected non-nil Scheduler even with nil channel")
 	}
 
 	if pool.progressCh != nil {
@@ -76,9 +76,9 @@ func TestNewWorkerPool_NilChannel(t *testing.T) {
 	}
 }
 
-func TestWorkerPool_Add_QueuesToChannel(t *testing.T) {
+func TestScheduler_Add_QueuesToChannel(t *testing.T) {
 	ch := make(chan any, 10)
-	pool := NewWorkerPool(ch, 3)
+	pool := New(ch, 3)
 
 	cfg := types.DownloadConfig{
 		ID:  "test-id",
@@ -100,9 +100,9 @@ func TestWorkerPool_Add_QueuesToChannel(t *testing.T) {
 	}
 }
 
-func TestWorkerPool_Pause_NonExistentDownload(t *testing.T) {
+func TestScheduler_Pause_NonExistentDownload(t *testing.T) {
 	ch := make(chan any, 10)
-	pool := NewWorkerPool(ch, 3)
+	pool := New(ch, 3)
 
 	// Should not panic when pausing non-existent download
 	pool.Pause("non-existent-id")
@@ -116,9 +116,9 @@ func TestWorkerPool_Pause_NonExistentDownload(t *testing.T) {
 	}
 }
 
-func TestWorkerPool_Pause_ActiveDownload(t *testing.T) {
+func TestScheduler_Pause_ActiveDownload(t *testing.T) {
 	ch := make(chan any, 10)
-	pool := NewWorkerPool(ch, 3)
+	pool := New(ch, 3)
 
 	// Create a progress state
 	state := progress.New("test-id", 1000)
@@ -143,9 +143,9 @@ func TestWorkerPool_Pause_ActiveDownload(t *testing.T) {
 	}
 }
 
-func TestWorkerPool_Pause_NilState(t *testing.T) {
+func TestScheduler_Pause_NilState(t *testing.T) {
 	ch := make(chan any, 10)
-	pool := NewWorkerPool(ch, 3)
+	pool := New(ch, 3)
 	canceled := make(chan struct{}, 1)
 
 	// Add download with nil state
@@ -175,9 +175,9 @@ func TestWorkerPool_Pause_NilState(t *testing.T) {
 	}
 }
 
-func TestWorkerPool_PauseAll_NoDownloads(t *testing.T) {
+func TestScheduler_PauseAll_NoDownloads(t *testing.T) {
 	ch := make(chan any, 10)
-	pool := NewWorkerPool(ch, 3)
+	pool := New(ch, 3)
 
 	// Should not panic with no downloads
 	pool.PauseAll()
@@ -191,9 +191,9 @@ func TestWorkerPool_PauseAll_NoDownloads(t *testing.T) {
 	}
 }
 
-func TestWorkerPool_PauseAll_MultipleDownloads(t *testing.T) {
+func TestScheduler_PauseAll_MultipleDownloads(t *testing.T) {
 	ch := make(chan any, 10)
-	pool := NewWorkerPool(ch, 3)
+	pool := New(ch, 3)
 
 	// Add multiple active downloads
 	states := make([]*progress.DownloadProgress, 3)
@@ -220,9 +220,9 @@ func TestWorkerPool_PauseAll_MultipleDownloads(t *testing.T) {
 	}
 }
 
-func TestWorkerPool_PauseAll_SkipsAlreadyPaused(t *testing.T) {
+func TestScheduler_PauseAll_SkipsAlreadyPaused(t *testing.T) {
 	ch := make(chan any, 10)
-	pool := NewWorkerPool(ch, 3)
+	pool := New(ch, 3)
 
 	// Add one paused and one active download
 	activeState := progress.New("active", 1000)
@@ -241,9 +241,9 @@ func TestWorkerPool_PauseAll_SkipsAlreadyPaused(t *testing.T) {
 	pool.PauseAll()
 }
 
-func TestWorkerPool_PauseAll_SkipsCompletedDownloads(t *testing.T) {
+func TestScheduler_PauseAll_SkipsCompletedDownloads(t *testing.T) {
 	ch := make(chan any, 10)
-	pool := NewWorkerPool(ch, 3)
+	pool := New(ch, 3)
 
 	// Add one completed and one active download
 	activeState := progress.New("active", 1000)
@@ -262,17 +262,17 @@ func TestWorkerPool_PauseAll_SkipsCompletedDownloads(t *testing.T) {
 	pool.PauseAll()
 }
 
-func TestWorkerPool_Cancel_NonExistentDownload(t *testing.T) {
+func TestScheduler_Cancel_NonExistentDownload(t *testing.T) {
 	ch := make(chan any, 10)
-	pool := NewWorkerPool(ch, 3)
+	pool := New(ch, 3)
 
 	// Should not panic
 	pool.Cancel("non-existent-id")
 }
 
-func TestWorkerPool_Cancel_RemovesFromMap(t *testing.T) {
+func TestScheduler_Cancel_RemovesFromMap(t *testing.T) {
 	ch := make(chan any, 10)
-	pool := NewWorkerPool(ch, 3)
+	pool := New(ch, 3)
 
 	state := progress.New("test-id", 1000)
 
@@ -320,9 +320,9 @@ func TestWorkerPool_Cancel_RemovesFromMap(t *testing.T) {
 	}
 }
 
-func TestWorkerPool_Cancel_CallsCancelFunc(t *testing.T) {
+func TestScheduler_Cancel_CallsCancelFunc(t *testing.T) {
 	ch := make(chan any, 10)
-	pool := NewWorkerPool(ch, 3)
+	pool := New(ch, 3)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	state := progress.New("test-id", 1000)
@@ -359,9 +359,9 @@ func TestWorkerPool_Cancel_CallsCancelFunc(t *testing.T) {
 	}
 }
 
-func TestWorkerPool_Cancel_MarksDone(t *testing.T) {
+func TestScheduler_Cancel_MarksDone(t *testing.T) {
 	ch := make(chan any, 10)
-	pool := NewWorkerPool(ch, 3)
+	pool := New(ch, 3)
 
 	state := progress.New("test-id", 1000)
 
@@ -384,9 +384,9 @@ func TestWorkerPool_Cancel_MarksDone(t *testing.T) {
 	}
 }
 
-func TestWorkerPool_Cancel_DoesNotRemoveIncompleteFile(t *testing.T) {
+func TestScheduler_Cancel_DoesNotRemoveIncompleteFile(t *testing.T) {
 	ch := make(chan any, 10)
-	pool := NewWorkerPool(ch, 3)
+	pool := New(ch, 3)
 
 	tmpDir := t.TempDir()
 	destPath := filepath.Join(tmpDir, "cancel.bin")
@@ -417,9 +417,9 @@ func TestWorkerPool_Cancel_DoesNotRemoveIncompleteFile(t *testing.T) {
 	}
 }
 
-func TestWorkerPool_Cancel_QueuedDownload_RemovesFromQueueAndReturnsResult(t *testing.T) {
+func TestScheduler_Cancel_QueuedDownload_RemovesFromQueueAndReturnsResult(t *testing.T) {
 	ch := make(chan any, 10)
-	pool := &WorkerPool{
+	pool := &Scheduler{
 		progressCh: ch,
 		downloads:  make(map[string]*activeDownload),
 		queued: map[string]types.DownloadConfig{
@@ -463,9 +463,9 @@ func TestWorkerPool_Cancel_QueuedDownload_RemovesFromQueueAndReturnsResult(t *te
 // or types. Tests for pool-level extraction live below; LifecycleManager integration
 // tests live in internal/processing/manager_test.go (see TestLifecycleManager_Cancel_NotFound).
 
-func TestWorkerPool_GracefulShutdown_PausesAll(t *testing.T) {
+func TestScheduler_GracefulShutdown_PausesAll(t *testing.T) {
 	ch := make(chan any, 10)
-	pool := NewWorkerPool(ch, 3)
+	pool := New(ch, 3)
 
 	state := progress.New("test-id", 1000)
 
@@ -511,9 +511,9 @@ func TestWorkerPool_GracefulShutdown_PausesAll(t *testing.T) {
 	}
 }
 
-func TestWorkerPool_GracefulShutdown_WaitsPastSoftTimeout(t *testing.T) {
+func TestScheduler_GracefulShutdown_WaitsPastSoftTimeout(t *testing.T) {
 	ch := make(chan any, 10)
-	pool := NewWorkerPool(ch, 1)
+	pool := New(ch, 1)
 
 	ps := progress.New("wait-test-id", 1000)
 	pool.mu.Lock()
@@ -569,9 +569,9 @@ func TestWorkerPool_GracefulShutdown_WaitsPastSoftTimeout(t *testing.T) {
 	}
 }
 
-func TestWorkerPool_GracefulShutdown_ClearsStalePausingWithoutWorker(t *testing.T) {
+func TestScheduler_GracefulShutdown_ClearsStalePausingWithoutWorker(t *testing.T) {
 	ch := make(chan any, 10)
-	pool := NewWorkerPool(ch, 1)
+	pool := New(ch, 1)
 
 	ps := progress.New("stale-pausing-id", 1000)
 	ps.Pause()
@@ -612,9 +612,9 @@ func TestWorkerPool_GracefulShutdown_ClearsStalePausingWithoutWorker(t *testing.
 	}
 }
 
-func TestWorkerPool_ConcurrentPauseCancel(t *testing.T) {
+func TestScheduler_ConcurrentPauseCancel(t *testing.T) {
 	ch := make(chan any, 100)
-	pool := NewWorkerPool(ch, 3)
+	pool := New(ch, 3)
 
 	// Add multiple downloads
 	for i := 0; i < 10; i++ {
@@ -651,9 +651,9 @@ func TestWorkerPool_ConcurrentPauseCancel(t *testing.T) {
 	}
 }
 
-func TestWorkerPool_HasDownload(t *testing.T) {
+func TestScheduler_HasDownload(t *testing.T) {
 	ch := make(chan any, 10)
-	pool := NewWorkerPool(ch, 3)
+	pool := New(ch, 3)
 
 	// 1. Test Active Download
 	activeURL := "http://example.com/active.zip"
@@ -680,9 +680,9 @@ func TestWorkerPool_HasDownload(t *testing.T) {
 
 // --- ExtractPausedConfig Tests (replaces old pool.Resume tests) ---
 
-func TestWorkerPool_ExtractPausedConfig_NonExistent(t *testing.T) {
+func TestScheduler_ExtractPausedConfig_NonExistent(t *testing.T) {
 	ch := make(chan any, 10)
-	pool := NewWorkerPool(ch, 3)
+	pool := New(ch, 3)
 
 	// Should return nil for non-existent download
 	if cfg := pool.ExtractPausedConfig("non-existent-id"); cfg != nil {
@@ -690,9 +690,9 @@ func TestWorkerPool_ExtractPausedConfig_NonExistent(t *testing.T) {
 	}
 }
 
-func TestWorkerPool_ExtractPausedConfig_WhilePausing(t *testing.T) {
+func TestScheduler_ExtractPausedConfig_WhilePausing(t *testing.T) {
 	ch := make(chan any, 10)
-	pool := NewWorkerPool(ch, 3)
+	pool := New(ch, 3)
 
 	state := progress.New("test-id", 1000)
 	state.Paused.Store(true)
@@ -721,9 +721,9 @@ func TestWorkerPool_ExtractPausedConfig_WhilePausing(t *testing.T) {
 	}
 }
 
-func TestWorkerPool_ExtractPausedConfig_NotPaused(t *testing.T) {
+func TestScheduler_ExtractPausedConfig_NotPaused(t *testing.T) {
 	ch := make(chan any, 10)
-	pool := NewWorkerPool(ch, 3)
+	pool := New(ch, 3)
 
 	state := progress.New("test-id", 1000)
 	// NOT paused
@@ -742,9 +742,9 @@ func TestWorkerPool_ExtractPausedConfig_NotPaused(t *testing.T) {
 	}
 }
 
-func TestWorkerPool_ExtractPausedConfig_Success(t *testing.T) {
+func TestScheduler_ExtractPausedConfig_Success(t *testing.T) {
 	ch := make(chan any, 10)
-	pool := NewWorkerPool(ch, 3)
+	pool := New(ch, 3)
 
 	state := progress.New("test-id", 1000)
 	state.Paused.Store(true)
@@ -812,9 +812,9 @@ func TestWorkerPool_ExtractPausedConfig_Success(t *testing.T) {
 	}
 }
 
-func TestWorkerPool_PauseResume_Idempotency(t *testing.T) {
+func TestScheduler_PauseResume_Idempotency(t *testing.T) {
 	ch := make(chan any, 10)
-	pool := NewWorkerPool(ch, 3)
+	pool := New(ch, 3)
 
 	state := progress.New("idempotent-test", 1000)
 
@@ -857,9 +857,9 @@ func TestWorkerPool_PauseResume_Idempotency(t *testing.T) {
 	}
 }
 
-func TestWorkerPool_GetStatus_IncludesDestPath(t *testing.T) {
+func TestScheduler_GetStatus_IncludesDestPath(t *testing.T) {
 	ch := make(chan any, 10)
-	pool := NewWorkerPool(ch, 1)
+	pool := New(ch, 1)
 
 	destPath := "/tmp/status-dest.bin"
 	st := progress.New("status-id", 1024)
@@ -884,9 +884,9 @@ func TestWorkerPool_GetStatus_IncludesDestPath(t *testing.T) {
 	}
 }
 
-func TestWorkerPool_UpdateURL(t *testing.T) {
+func TestScheduler_UpdateURL(t *testing.T) {
 	ch := make(chan any, 10)
-	pool := NewWorkerPool(ch, 3)
+	pool := New(ch, 3)
 
 	activeState := progress.New("active-id", 1000)
 	pool.mu.Lock()
@@ -940,13 +940,13 @@ func TestWorkerPool_UpdateURL(t *testing.T) {
 
 // --- GracefulShutdown: queued download discard tests ---
 
-// TestWorkerPool_GracefulShutdown_ClearsQueuedMap verifies that GracefulShutdown
+// TestScheduler_GracefulShutdown_ClearsQueuedMap verifies that GracefulShutdown
 // removes all entries from p.queued so that idle workers skip any items they
 // drain from taskChan after shutdown has started.
-func TestWorkerPool_GracefulShutdown_ClearsQueuedMap(t *testing.T) {
+func TestScheduler_GracefulShutdown_ClearsQueuedMap(t *testing.T) {
 	ch := make(chan any, 10)
 	// Use a pool with no workers so nothing auto-starts.
-	pool := &WorkerPool{
+	pool := &Scheduler{
 		progressCh:   ch,
 		progressDone: make(chan struct{}),
 		taskChan:     make(chan string, 10),
@@ -984,11 +984,11 @@ func TestWorkerPool_GracefulShutdown_ClearsQueuedMap(t *testing.T) {
 	}
 }
 
-// TestWorkerPool_GracefulShutdown_DrainsTaskChan verifies that GracefulShutdown
+// TestScheduler_GracefulShutdown_DrainsTaskChan verifies that GracefulShutdown
 // drains buffered items from taskChan so no items remain for workers to consume.
-func TestWorkerPool_GracefulShutdown_DrainsTaskChan(t *testing.T) {
+func TestScheduler_GracefulShutdown_DrainsTaskChan(t *testing.T) {
 	ch := make(chan any, 20)
-	pool := &WorkerPool{
+	pool := &Scheduler{
 		progressCh:   ch,
 		progressDone: make(chan struct{}),
 		taskChan:     make(chan string, 10),
@@ -1027,13 +1027,13 @@ func TestWorkerPool_GracefulShutdown_DrainsTaskChan(t *testing.T) {
 	}
 }
 
-// TestWorkerPool_GracefulShutdown_WorkerSkipsQueuedAfterShutdown confirms the
+// TestScheduler_GracefulShutdown_WorkerSkipsQueuedAfterShutdown confirms the
 // worker-side guard: a worker that pulls a cfg from taskChan after shutdown has
 // cleared p.queued will skip the item without starting a download.
-func TestWorkerPool_GracefulShutdown_WorkerSkipsQueuedAfterShutdown(t *testing.T) {
+func TestScheduler_GracefulShutdown_WorkerSkipsQueuedAfterShutdown(t *testing.T) {
 	ch := make(chan any, 50)
 	// Single worker, small taskChan.
-	pool := NewWorkerPool(ch, 1)
+	pool := New(ch, 1)
 
 	// Add via public API to ensure correct internal state (WaitGroup, queued map).
 	id := "skip-me"

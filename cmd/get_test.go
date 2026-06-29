@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/SurgeDM/Surge/internal/core"
-	"github.com/SurgeDM/Surge/internal/download"
 	"github.com/SurgeDM/Surge/internal/processing"
+	"github.com/SurgeDM/Surge/internal/scheduler"
 	"github.com/SurgeDM/Surge/internal/store"
 	"github.com/SurgeDM/Surge/internal/types"
 )
@@ -38,7 +38,7 @@ func TestCLI_DeleteEndpoint_CleansPausedStateAndPartialFile(t *testing.T) {
 	}
 
 	GlobalProgressCh = make(chan any, 100)
-	GlobalPool = download.NewWorkerPool(GlobalProgressCh, 2)
+	GlobalPool = scheduler.New(GlobalProgressCh, 2)
 
 	// Start server
 	svc := core.NewLocalDownloadService(GlobalPool)

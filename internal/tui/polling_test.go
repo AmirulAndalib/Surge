@@ -10,8 +10,8 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/SurgeDM/Surge/internal/core"
-	"github.com/SurgeDM/Surge/internal/download"
 	"github.com/SurgeDM/Surge/internal/processing"
+	"github.com/SurgeDM/Surge/internal/scheduler"
 	"github.com/SurgeDM/Surge/internal/types"
 )
 
@@ -31,7 +31,7 @@ func TestStateSync(t *testing.T) {
 
 	// Provide a dummy pool to avoid panics if logic tries to use it
 	progressChan := make(chan any, 10)
-	pool := download.NewWorkerPool(progressChan, 1)
+	pool := scheduler.New(progressChan, 1)
 
 	// Initialize model with progress channel and service
 	m := InitialRootModel(1700, "test-version", core.NewLocalDownloadServiceWithInput(pool, progressChan), processing.NewLifecycleManager(nil, nil), false)

@@ -8,13 +8,13 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"github.com/SurgeDM/Surge/internal/config"
 	"github.com/SurgeDM/Surge/internal/core"
-	"github.com/SurgeDM/Surge/internal/download"
+	"github.com/SurgeDM/Surge/internal/scheduler"
 )
 
 func newCategoryTestModel(t *testing.T, settings *config.Settings) RootModel {
 	t.Helper()
 	ch := make(chan any, 16)
-	pool := download.NewWorkerPool(ch, 1)
+	pool := scheduler.New(ch, 1)
 	svc := core.NewLocalDownloadServiceWithInput(pool, ch)
 	t.Cleanup(func() { _ = svc.Shutdown() })
 	return RootModel{

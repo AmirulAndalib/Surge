@@ -14,9 +14,9 @@ import (
 
 	"github.com/SurgeDM/Surge/internal/config"
 	"github.com/SurgeDM/Surge/internal/core"
-	"github.com/SurgeDM/Surge/internal/download"
 	"github.com/SurgeDM/Surge/internal/processing"
 	"github.com/SurgeDM/Surge/internal/progress"
+	"github.com/SurgeDM/Surge/internal/scheduler"
 	"github.com/SurgeDM/Surge/internal/store"
 	"github.com/SurgeDM/Surge/internal/testutil"
 	"github.com/SurgeDM/Surge/internal/types"
@@ -131,7 +131,7 @@ func TestEnsureLocalLifecycle_StartsEventWorker(t *testing.T) {
 	GlobalLifecycle = nil
 	GlobalLifecycleCleanup = nil
 	GlobalProgressCh = make(chan any, 32)
-	GlobalPool = download.NewWorkerPool(GlobalProgressCh, 1)
+	GlobalPool = scheduler.New(GlobalProgressCh, 1)
 	GlobalService = core.NewLocalDownloadServiceWithInput(GlobalPool, GlobalProgressCh)
 	t.Cleanup(func() {
 		if GlobalLifecycleCleanup != nil {
@@ -228,7 +228,7 @@ func TestProcessDownloads_RoutesBinFilesToCustomCategory(t *testing.T) {
 	GlobalLifecycle = nil
 	GlobalLifecycleCleanup = nil
 	GlobalProgressCh = make(chan any, 32)
-	GlobalPool = download.NewWorkerPool(GlobalProgressCh, 1)
+	GlobalPool = scheduler.New(GlobalProgressCh, 1)
 	GlobalService = core.NewLocalDownloadServiceWithInput(GlobalPool, GlobalProgressCh)
 	t.Cleanup(func() {
 		if GlobalLifecycleCleanup != nil {
@@ -318,7 +318,7 @@ func TestProcessDownloads_UsesLatestSavedCategorySettings(t *testing.T) {
 	GlobalLifecycle = nil
 	GlobalLifecycleCleanup = nil
 	GlobalProgressCh = make(chan any, 32)
-	GlobalPool = download.NewWorkerPool(GlobalProgressCh, 1)
+	GlobalPool = scheduler.New(GlobalProgressCh, 1)
 	GlobalService = core.NewLocalDownloadServiceWithInput(GlobalPool, GlobalProgressCh)
 	t.Cleanup(func() {
 		if GlobalLifecycleCleanup != nil {
@@ -462,7 +462,7 @@ func TestProcessDownloads_UsesSharedEnqueueContext(t *testing.T) {
 	setupIsolatedCmdState(t)
 	service := &countingLifecycleService{}
 	GlobalService = service
-	GlobalPool = download.NewWorkerPool(nil, 1)
+	GlobalPool = scheduler.New(nil, 1)
 	GlobalLifecycleCleanup = nil
 	t.Cleanup(func() {
 		GlobalService = nil

@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/SurgeDM/Surge/internal/config"
-	"github.com/SurgeDM/Surge/internal/download"
 	"github.com/SurgeDM/Surge/internal/progress"
+	"github.com/SurgeDM/Surge/internal/scheduler"
 	"github.com/SurgeDM/Surge/internal/store"
 	"github.com/SurgeDM/Surge/internal/testutil"
 	"github.com/SurgeDM/Surge/internal/types"
@@ -161,7 +161,7 @@ func TestIntegration_PauseResume_HotPath_Aggregates(t *testing.T) {
 	defer state.CloseDB()
 
 	progressCh := make(chan any, 256)
-	pool := download.NewWorkerPool(progressCh, 1)
+	pool := scheduler.New(progressCh, 1)
 	svc := NewLocalDownloadServiceWithInput(pool, progressCh)
 	forceSingleConnectionRuntime(svc)
 	defer func() { _ = svc.Shutdown() }()
@@ -346,7 +346,7 @@ func TestIntegration_PauseResume_ColdPath_StateContinuity(t *testing.T) {
 
 	// Service instance #1: start and pause.
 	ch1 := make(chan any, 256)
-	pool1 := download.NewWorkerPool(ch1, 1)
+	pool1 := scheduler.New(ch1, 1)
 	svc1 := NewLocalDownloadServiceWithInput(pool1, ch1)
 	forceSingleConnectionRuntime(svc1)
 	evCleanup1 := startEventWorkerForTest(t, svc1)
@@ -385,7 +385,7 @@ func TestIntegration_PauseResume_ColdPath_StateContinuity(t *testing.T) {
 
 	// Service instance #2: cold resume from DB.
 	ch2 := make(chan any, 256)
-	pool2 := download.NewWorkerPool(ch2, 1)
+	pool2 := scheduler.New(ch2, 1)
 	svc2 := NewLocalDownloadServiceWithInput(pool2, ch2)
 	forceSingleConnectionRuntime(svc2)
 	defer func() { _ = svc2.Shutdown() }()
@@ -503,7 +503,7 @@ func TestIntegration_PauseResume_ResumeBatchRejectsPausing(t *testing.T) {
 	defer state.CloseDB()
 
 	progressCh := make(chan any, 16)
-	pool := download.NewWorkerPool(progressCh, 1)
+	pool := scheduler.New(progressCh, 1)
 	svc := NewLocalDownloadServiceWithInput(pool, progressCh)
 	defer func() { _ = svc.Shutdown() }()
 	evCleanup := startEventWorkerForTest(t, svc)
@@ -583,7 +583,7 @@ func TestIntegration_PauseResume_StatusFormulaInvariants(t *testing.T) {
 	defer state.CloseDB()
 
 	progressCh := make(chan any, 256)
-	pool := download.NewWorkerPool(progressCh, 1)
+	pool := scheduler.New(progressCh, 1)
 	svc := NewLocalDownloadServiceWithInput(pool, progressCh)
 	forceSingleConnectionRuntime(svc)
 	defer func() { _ = svc.Shutdown() }()
@@ -680,7 +680,7 @@ func TestIntegration_PauseResume_ConcreteSnapshotDebugString(t *testing.T) {
 	defer state.CloseDB()
 
 	progressCh := make(chan any, 256)
-	pool := download.NewWorkerPool(progressCh, 1)
+	pool := scheduler.New(progressCh, 1)
 	svc := NewLocalDownloadServiceWithInput(pool, progressCh)
 	forceSingleConnectionRuntime(svc)
 	defer func() { _ = svc.Shutdown() }()
@@ -765,7 +765,7 @@ func TestIntegration_PauseResumeBatch_ColdPath(t *testing.T) {
 
 	// 1. Setup downloads in service instance #1
 	ch1 := make(chan any, 256)
-	pool1 := download.NewWorkerPool(ch1, 2)
+	pool1 := scheduler.New(ch1, 2)
 	svc1 := NewLocalDownloadServiceWithInput(pool1, ch1)
 	forceSingleConnectionRuntime(svc1)
 	evCleanup1 := startEventWorkerForTest(t, svc1)
@@ -812,7 +812,7 @@ func TestIntegration_PauseResumeBatch_ColdPath(t *testing.T) {
 
 	// 2. Setup service instance #2 (Cold start)
 	ch2 := make(chan any, 256)
-	pool2 := download.NewWorkerPool(ch2, 3)
+	pool2 := scheduler.New(ch2, 3)
 	svc2 := NewLocalDownloadServiceWithInput(pool2, ch2)
 	forceSingleConnectionRuntime(svc2)
 	defer func() { _ = svc2.Shutdown() }()

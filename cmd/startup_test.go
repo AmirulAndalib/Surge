@@ -8,8 +8,8 @@ import (
 
 	"github.com/SurgeDM/Surge/internal/config"
 	"github.com/SurgeDM/Surge/internal/core"
-	"github.com/SurgeDM/Surge/internal/download"
 	"github.com/SurgeDM/Surge/internal/processing"
+	"github.com/SurgeDM/Surge/internal/scheduler"
 	"github.com/SurgeDM/Surge/internal/store"
 	"github.com/SurgeDM/Surge/internal/types"
 	"github.com/SurgeDM/Surge/internal/utils"
@@ -34,7 +34,7 @@ func TestServer_Startup_HandlesResume(t *testing.T) {
 
 	// 3. Initialize Global Pool (required for resumePausedDownloads)
 	GlobalProgressCh = make(chan any, 10)
-	GlobalPool = download.NewWorkerPool(GlobalProgressCh, 3)
+	GlobalPool = scheduler.New(GlobalProgressCh, 3)
 	GlobalService = core.NewLocalDownloadServiceWithInput(GlobalPool, GlobalProgressCh)
 
 	GlobalLifecycle = processing.NewLifecycleManager(nil, nil, nil)

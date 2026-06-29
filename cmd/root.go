@@ -16,9 +16,9 @@ import (
 
 	"github.com/SurgeDM/Surge/internal/config"
 	"github.com/SurgeDM/Surge/internal/core"
-	"github.com/SurgeDM/Surge/internal/download"
 	"github.com/SurgeDM/Surge/internal/processing"
 	"github.com/SurgeDM/Surge/internal/progress"
+	"github.com/SurgeDM/Surge/internal/scheduler"
 	"github.com/SurgeDM/Surge/internal/store"
 	"github.com/SurgeDM/Surge/internal/tui"
 	"github.com/SurgeDM/Surge/internal/types"
@@ -73,7 +73,7 @@ var (
 
 // Globals for Unified Backend
 var (
-	GlobalPool              *download.WorkerPool
+	GlobalPool              *scheduler.Scheduler
 	GlobalProgressCh        chan any
 	GlobalService           core.DownloadService
 	GlobalLifecycleCleanup  func()
@@ -470,7 +470,7 @@ var rootCmd = &cobra.Command{
 		}
 		GlobalProgressCh = make(chan any, 100)
 		globalSettings = getSettings()
-		GlobalPool = download.NewWorkerPool(GlobalProgressCh, config.Resolve[int](globalSettings.Network.MaxConcurrentDownloads))
+		GlobalPool = scheduler.New(GlobalProgressCh, config.Resolve[int](globalSettings.Network.MaxConcurrentDownloads))
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if ranRemote, err := maybeRunRemoteTUI(cmd, args); err != nil {

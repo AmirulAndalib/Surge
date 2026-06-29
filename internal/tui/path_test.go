@@ -7,7 +7,7 @@ import (
 
 	"github.com/SurgeDM/Surge/internal/config"
 	"github.com/SurgeDM/Surge/internal/core"
-	"github.com/SurgeDM/Surge/internal/download"
+	"github.com/SurgeDM/Surge/internal/scheduler"
 	"github.com/SurgeDM/Surge/internal/utils"
 )
 
@@ -18,7 +18,7 @@ func TestStartDownload_EnforcesAbsolutePath(t *testing.T) {
 	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	ch := make(chan any, 10)
-	pool := download.NewWorkerPool(ch, 1)
+	pool := scheduler.New(ch, 1)
 
 	m := RootModel{
 		Settings:  config.DefaultSettings(),

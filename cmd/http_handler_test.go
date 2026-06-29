@@ -15,8 +15,8 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"github.com/SurgeDM/Surge/internal/config"
 	"github.com/SurgeDM/Surge/internal/core"
-	"github.com/SurgeDM/Surge/internal/download"
 	"github.com/SurgeDM/Surge/internal/processing"
+	"github.com/SurgeDM/Surge/internal/scheduler"
 	"github.com/SurgeDM/Surge/internal/store"
 	"github.com/SurgeDM/Surge/internal/types"
 )
@@ -83,7 +83,7 @@ func TestHandleDownload_PathResolution(t *testing.T) {
 	}
 
 	// Initialize GlobalPool (required by handleDownload)
-	GlobalPool = download.NewWorkerPool(nil, 1)
+	GlobalPool = scheduler.New(nil, 1)
 
 	tests := []struct {
 		name               string
@@ -264,7 +264,7 @@ func TestHandleDownload_SkipApprovalUsesLifecycleEnqueue(t *testing.T) {
 
 	progressCh := make(chan any, 10)
 	GlobalProgressCh = progressCh
-	GlobalPool = download.NewWorkerPool(progressCh, 1)
+	GlobalPool = scheduler.New(progressCh, 1)
 
 	origLifecycle := GlobalLifecycle
 	origService := GlobalService
@@ -363,7 +363,7 @@ func TestHandleDownload_EnqueueError_RecordsPreflightError(t *testing.T) {
 
 	progressCh := make(chan any, 10)
 	GlobalProgressCh = progressCh
-	GlobalPool = download.NewWorkerPool(progressCh, 1)
+	GlobalPool = scheduler.New(progressCh, 1)
 
 	origLifecycle := GlobalLifecycle
 	origService := GlobalService
@@ -421,7 +421,7 @@ func TestHandleDownload_ForwardsPerTaskOverridesToLifecycle(t *testing.T) {
 
 	progressCh := make(chan any, 10)
 	GlobalProgressCh = progressCh
-	GlobalPool = download.NewWorkerPool(progressCh, 1)
+	GlobalPool = scheduler.New(progressCh, 1)
 
 	origLifecycle := GlobalLifecycle
 	origService := GlobalService
@@ -505,7 +505,7 @@ func TestHandleDownload_PublishError_RecordsPreflightError(t *testing.T) {
 		GlobalLifecycle = origLifecycle
 	})
 
-	GlobalPool = download.NewWorkerPool(nil, 1)
+	GlobalPool = scheduler.New(nil, 1)
 
 	origServerProgram := serverProgram
 	serverProgram = &tea.Program{}

@@ -8,8 +8,8 @@ import (
 
 	"github.com/SurgeDM/Surge/internal/config"
 	"github.com/SurgeDM/Surge/internal/core"
-	"github.com/SurgeDM/Surge/internal/download"
 	"github.com/SurgeDM/Surge/internal/processing"
+	"github.com/SurgeDM/Surge/internal/scheduler"
 	"github.com/SurgeDM/Surge/internal/store"
 	"github.com/SurgeDM/Surge/internal/types"
 )
@@ -75,7 +75,7 @@ func TestAutoResume_Enabled(t *testing.T) {
 
 	// 5. Initialize Model
 	ch := make(chan any, 10)
-	pool := download.NewWorkerPool(ch, 1)
+	pool := scheduler.New(ch, 1)
 
 	m := InitialRootModel(1700, "test-version", core.NewLocalDownloadServiceWithInput(pool, ch), processing.NewLifecycleManager(nil, nil), false)
 
@@ -155,7 +155,7 @@ func TestAutoResume_Disabled(t *testing.T) {
 
 	// 5. Initialize Model
 	ch := make(chan any, 10)
-	pool := download.NewWorkerPool(ch, 1)
+	pool := scheduler.New(ch, 1)
 
 	m := InitialRootModel(1700, "test-version", core.NewLocalDownloadServiceWithInput(pool, ch), processing.NewLifecycleManager(nil, nil), false)
 

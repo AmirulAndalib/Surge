@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/SurgeDM/Surge/internal/download"
 	"github.com/SurgeDM/Surge/internal/progress"
+	"github.com/SurgeDM/Surge/internal/scheduler"
 	"github.com/SurgeDM/Surge/internal/store"
 	"github.com/SurgeDM/Surge/internal/testutil"
 	"github.com/SurgeDM/Surge/internal/types"
@@ -26,7 +26,7 @@ func TestLocalDownloadService_Delete_DBOnlyBroadcastsRemoved(t *testing.T) {
 	defer state.CloseDB()
 
 	ch := make(chan interface{}, 20)
-	pool := download.NewWorkerPool(ch, 1)
+	pool := scheduler.New(ch, 1)
 	svc := NewLocalDownloadServiceWithInput(pool, ch)
 	defer func() { _ = svc.Shutdown() }()
 	evCleanup := startEventWorkerForTest(t, svc)
@@ -104,7 +104,7 @@ func TestLocalDownloadService_Delete_ActiveWithoutDB_RemovesPartialFile(t *testi
 	defer state.CloseDB()
 
 	ch := make(chan interface{}, 100)
-	pool := download.NewWorkerPool(ch, 1)
+	pool := scheduler.New(ch, 1)
 	svc := NewLocalDownloadServiceWithInput(pool, ch)
 	defer func() { _ = svc.Shutdown() }()
 	evCleanup := startEventWorkerForTest(t, svc)
@@ -273,7 +273,7 @@ func TestLocalDownloadService_StreamEvents_DrainAfterCancel(t *testing.T) {
 
 func TestLocalDownloadService_AddWithID_UsesProvidedID(t *testing.T) {
 	ch := make(chan interface{}, 8)
-	pool := download.NewWorkerPool(ch, 1)
+	pool := scheduler.New(ch, 1)
 	svc := NewLocalDownloadServiceWithInput(pool, ch)
 	defer func() { _ = svc.Shutdown() }()
 
@@ -299,7 +299,7 @@ func TestLocalDownloadService_Shutdown_PersistsPausedState(t *testing.T) {
 	defer state.CloseDB()
 
 	ch := make(chan interface{}, 100)
-	pool := download.NewWorkerPool(ch, 1)
+	pool := scheduler.New(ch, 1)
 	svc := NewLocalDownloadServiceWithInput(pool, ch)
 	evWait := startEventWorkerForTest(t, svc)
 
@@ -435,7 +435,7 @@ func TestLocalDownloadService_BatchProgress(t *testing.T) {
 	state.Configure(filepath.Join(tempDir, fmt.Sprintf("%s-surge.db", t.Name())))
 	defer state.CloseDB()
 
-	pool := download.NewWorkerPool(ch, 1)
+	pool := scheduler.New(ch, 1)
 	svc := NewLocalDownloadServiceWithInput(pool, ch)
 	defer func() { _ = svc.Shutdown() }()
 
@@ -479,7 +479,7 @@ func TestLocalDownloadService_ResumeRejectedWhilePausing(t *testing.T) {
 	defer state.CloseDB()
 
 	ch := make(chan interface{}, 100)
-	pool := download.NewWorkerPool(ch, 1)
+	pool := scheduler.New(ch, 1)
 	svc := NewLocalDownloadServiceWithInput(pool, ch)
 	defer func() { _ = svc.Shutdown() }()
 	evCleanup := startEventWorkerForTest(t, svc)
@@ -579,7 +579,7 @@ func TestLocalDownloadService_SetRateLimit_UpdatesPool(t *testing.T) {
 	defer state.CloseDB()
 
 	ch := make(chan interface{}, 10)
-	pool := download.NewWorkerPool(ch, 1)
+	pool := scheduler.New(ch, 1)
 	svc := NewLocalDownloadServiceWithInput(pool, ch)
 	defer func() { _ = svc.Shutdown() }()
 
@@ -629,7 +629,7 @@ func TestLocalDownloadService_ClearRateLimit_UpdatesPool(t *testing.T) {
 	defer state.CloseDB()
 
 	ch := make(chan interface{}, 10)
-	pool := download.NewWorkerPool(ch, 1)
+	pool := scheduler.New(ch, 1)
 	pool.SetDefaultDownloadRateLimit(512 * 1024)
 	svc := NewLocalDownloadServiceWithInput(pool, ch)
 	defer func() { _ = svc.Shutdown() }()
@@ -677,7 +677,7 @@ func TestLocalDownloadService_SetRateLimit_UnknownIDReturnsNotFound(t *testing.T
 	defer state.CloseDB()
 
 	ch := make(chan interface{}, 10)
-	pool := download.NewWorkerPool(ch, 1)
+	pool := scheduler.New(ch, 1)
 	svc := NewLocalDownloadServiceWithInput(pool, ch)
 	defer func() { _ = svc.Shutdown() }()
 
@@ -699,7 +699,7 @@ func TestLocalDownloadService_ClearRateLimit_UnknownIDReturnsNotFound(t *testing
 	defer state.CloseDB()
 
 	ch := make(chan interface{}, 10)
-	pool := download.NewWorkerPool(ch, 1)
+	pool := scheduler.New(ch, 1)
 	svc := NewLocalDownloadServiceWithInput(pool, ch)
 	defer func() { _ = svc.Shutdown() }()
 
@@ -709,7 +709,7 @@ func TestLocalDownloadService_ClearRateLimit_UnknownIDReturnsNotFound(t *testing
 	}
 }
 
-func findPoolConfig(pool *download.WorkerPool, id string) (types.DownloadConfig, bool) {
+func findPoolConfig(pool *scheduler.Scheduler, id string) (types.DownloadConfig, bool) {
 	for _, cfg := range pool.GetAll() {
 		if cfg.ID == id {
 			return cfg, true

@@ -1,4 +1,4 @@
-package download_test
+package scheduler_test
 
 import (
 	"context"
@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/SurgeDM/Surge/internal/download"
 	"github.com/SurgeDM/Surge/internal/processing"
 	"github.com/SurgeDM/Surge/internal/progress"
 	"github.com/SurgeDM/Surge/internal/store"
@@ -97,7 +96,7 @@ func TestIntegration_PauseResume(t *testing.T) {
 	// Start download
 	errCh := make(chan error)
 	go func() {
-		errCh <- download.RunDownload(ctx, &cfg)
+		errCh <- RunDownload(ctx, &cfg)
 	}()
 
 	// Wait for some progress
@@ -177,7 +176,7 @@ func TestIntegration_PauseResume(t *testing.T) {
 	// Reset pause flag before resume
 	progState.Resume()
 
-	err = download.RunDownload(resumeCtx, &cfg)
+	err = RunDownload(resumeCtx, &cfg)
 	if err != nil {
 		t.Fatalf("Resume failed: %v", err)
 	}

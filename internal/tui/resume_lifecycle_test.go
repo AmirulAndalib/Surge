@@ -10,7 +10,7 @@ import (
 
 	"github.com/SurgeDM/Surge/internal/config"
 	"github.com/SurgeDM/Surge/internal/core"
-	"github.com/SurgeDM/Surge/internal/download"
+	"github.com/SurgeDM/Surge/internal/scheduler"
 	"github.com/SurgeDM/Surge/internal/store"
 	"github.com/SurgeDM/Surge/internal/types"
 	"github.com/SurgeDM/Surge/internal/utils"
@@ -40,7 +40,7 @@ func TestResume_RespectsOriginalPath_WhenDefaultChanges(t *testing.T) {
 	state.Configure(dbPath)
 
 	ch := make(chan any, 10)
-	pool := download.NewWorkerPool(ch, 1)
+	pool := scheduler.New(ch, 1)
 
 	// 2. Initialize Model with DefaultDir = DirA
 	settings := config.DefaultSettings()

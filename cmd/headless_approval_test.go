@@ -9,8 +9,8 @@ import (
 
 	"github.com/SurgeDM/Surge/internal/config"
 	"github.com/SurgeDM/Surge/internal/core"
-	"github.com/SurgeDM/Surge/internal/download"
 	"github.com/SurgeDM/Surge/internal/processing"
+	"github.com/SurgeDM/Surge/internal/scheduler"
 	"github.com/SurgeDM/Surge/internal/store"
 	"github.com/SurgeDM/Surge/internal/types"
 )
@@ -51,7 +51,7 @@ func TestHandleDownload_HeadlessMode_AutoApprovesNonDuplicate(t *testing.T) {
 
 	progressCh := make(chan any, 10)
 	GlobalProgressCh = progressCh
-	GlobalPool = download.NewWorkerPool(progressCh, 1)
+	GlobalPool = scheduler.New(progressCh, 1)
 
 	// Mock lifecycle to bypass real downloads
 	GlobalLifecycle = processing.NewLifecycleManager(func(url, path, filename string, _ []string, headers map[string]string, explicit bool, workers int, minChunkSize int64, totalSize int64, supportsRange bool) (string, error) {
@@ -101,7 +101,7 @@ func TestHandleDownload_HeadlessMode_RejectsDuplicateWithWarn(t *testing.T) {
 
 	progressCh := make(chan any, 10)
 	GlobalProgressCh = progressCh
-	GlobalPool = download.NewWorkerPool(progressCh, 1)
+	GlobalPool = scheduler.New(progressCh, 1)
 
 	// Seed the DB with a "duplicate" entry
 	url := "http://example.com/duplicate.bin"
@@ -158,7 +158,7 @@ func TestHandleDownload_HeadlessMode_RejectsExtensionPromptDuplicate(t *testing.
 
 	progressCh := make(chan any, 10)
 	GlobalProgressCh = progressCh
-	GlobalPool = download.NewWorkerPool(progressCh, 1)
+	GlobalPool = scheduler.New(progressCh, 1)
 	svc := core.NewLocalDownloadService(GlobalPool)
 	GlobalService = svc
 

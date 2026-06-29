@@ -3,12 +3,12 @@ package core
 import (
 	"testing"
 
-	"github.com/SurgeDM/Surge/internal/download"
+	"github.com/SurgeDM/Surge/internal/scheduler"
 	"github.com/SurgeDM/Surge/internal/types"
 	"github.com/SurgeDM/Surge/internal/utils"
 )
 
-func findConfigByID(pool *download.WorkerPool, id string) *types.DownloadConfig {
+func findConfigByID(pool *scheduler.Scheduler, id string) *types.DownloadConfig {
 	for _, cfg := range pool.GetAll() {
 		if cfg.ID == id {
 			return &cfg
@@ -59,7 +59,7 @@ func TestAdd_PerTaskOverride(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ch := make(chan interface{}, 8)
-			pool := download.NewWorkerPool(ch, 1)
+			pool := scheduler.New(ch, 1)
 			svc := NewLocalDownloadServiceWithInput(pool, ch)
 			defer func() { _ = svc.Shutdown() }()
 

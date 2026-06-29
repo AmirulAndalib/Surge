@@ -1,4 +1,4 @@
-package download
+package scheduler
 
 import (
 	"context"
@@ -24,14 +24,14 @@ type activeDownload struct {
 	done chan struct{}
 }
 
-// WorkerPool manages the download workers and tasks.
+// Scheduler manages the download workers and tasks.
 //
 // Lock Ordering:
 // If a code path must acquire both the pool's main mutex (p.mu) and a limiter's internal
 // mutex (limiter.mu, via limiter.SetRate() or limiter.WaitN()), it MUST acquire p.mu first.
 // Examples: Add, SetDownloadRateLimit, SetDefaultDownloadRateLimit.
 // Never acquire p.mu while holding a limiter's internal mutex to prevent deadlocks.
-type WorkerPool struct {
+type Scheduler struct {
 	taskChan     chan string
 	progressCh   chan<- any
 	progressDone chan struct{}                   // closed when progressCh must no longer be sent to
@@ -60,11 +60,11 @@ var (
 	cancelStopWaitTimeout = 3 * time.Second
 )
 
-func NewWorkerPool(progressCh chan<- any, maxDownloads int) *WorkerPool {
+func New(progressCh chan<- any, maxDownloads int) *Scheduler {
 	if maxDownloads < 1 {
 		maxDownloads = 3 // Default to 3 if invalid
 	}
-	pool := &WorkerPool{
+	pool := &Scheduler{
 		taskChan:         make(chan string, 100), // We make it buffered to avoid blocking add
 		progressCh:       progressCh,
 		progressDone:     make(chan struct{}),
@@ -120,7 +120,7 @@ func resolveDestPath(cfg *types.DownloadConfig) string {
 
 // Add adds a new download task to the pool. The caller (LifecycleManager) is
 // responsible for emitting any lifecycle events (e.g. DownloadQueuedMsg).
-func (p *WorkerPool) Add(cfg types.DownloadConfig) {
+func (p *Scheduler) Add(cfg types.DownloadConfig) {
 	if cfg.ProgressCh == nil {
 		cfg.ProgressCh = p.progressCh
 	}
@@ -133,7 +133,7 @@ func (p *WorkerPool) Add(cfg types.DownloadConfig) {
 	p.taskChan <- cfg.ID
 }
 
-func (p *WorkerPool) ensureLimiterForConfigLocked(cfg *types.DownloadConfig) {
+func (p *Scheduler) ensureLimiterForConfigLocked(cfg *types.DownloadConfig) {
 	if cfg == nil || cfg.ID == "" {
 		return
 	}
@@ -183,7 +183,7 @@ func rateLimiterBurst(rate int64) int64 {
 }
 
 // HasDownload reports whether a download with the given URL is currently active or queued in the pool.
-func (p *WorkerPool) HasDownload(url string) bool {
+func (p *Scheduler) HasDownload(url string) bool {
 	p.mu.RLock()
 	for _, ad := range p.downloads {
 		if ad.config.URL == url {
@@ -203,7 +203,7 @@ func (p *WorkerPool) HasDownload(url string) bool {
 }
 
 // ActiveCount returns the number of currently active (downloading/pausing) downloads
-func (p *WorkerPool) ActiveCount() int {
+func (p *Scheduler) ActiveCount() int {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 
@@ -220,7 +220,7 @@ func (p *WorkerPool) ActiveCount() int {
 }
 
 // GetAll returns all active download configs (for listing)
-func (p *WorkerPool) GetAll() []types.DownloadConfig {
+func (p *Scheduler) GetAll() []types.DownloadConfig {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 
@@ -240,7 +240,7 @@ func (p *WorkerPool) GetAll() []types.DownloadConfig {
 
 // Pause pauses a specific download by ID. Returns true if found and pause initiated
 // (or already paused), false otherwise. Pure mechanical operation - no events emitted.
-func (p *WorkerPool) Pause(downloadID string) bool {
+func (p *Scheduler) Pause(downloadID string) bool {
 	p.mu.RLock()
 	ad, exists := p.downloads[downloadID]
 	p.mu.RUnlock()
@@ -276,7 +276,7 @@ func (p *WorkerPool) Pause(downloadID string) bool {
 }
 
 // SetGlobalRateLimit updates the global rate limiter (bytes/sec). Use 0 to disable.
-func (p *WorkerPool) SetGlobalRateLimit(rate int64) {
+func (p *Scheduler) SetGlobalRateLimit(rate int64) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	if p.globalLimiter == nil {
@@ -288,7 +288,7 @@ func (p *WorkerPool) SetGlobalRateLimit(rate int64) {
 }
 
 // SetDefaultDownloadRateLimit updates the default per-download rate limit (bytes/sec).
-func (p *WorkerPool) SetDefaultDownloadRateLimit(rate int64) {
+func (p *Scheduler) SetDefaultDownloadRateLimit(rate int64) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
@@ -335,7 +335,7 @@ func (p *WorkerPool) SetDefaultDownloadRateLimit(rate int64) {
 }
 
 // SetDownloadRateLimit updates a specific download's rate limit (bytes/sec).
-func (p *WorkerPool) SetDownloadRateLimit(downloadID string, rate int64) bool {
+func (p *Scheduler) SetDownloadRateLimit(downloadID string, rate int64) bool {
 	if downloadID == "" {
 		return false
 	}
@@ -379,7 +379,7 @@ func (p *WorkerPool) SetDownloadRateLimit(downloadID string, rate int64) bool {
 }
 
 // ClearDownloadRateLimit removes a specific download's override so it inherits the current default.
-func (p *WorkerPool) ClearDownloadRateLimit(downloadID string) bool {
+func (p *Scheduler) ClearDownloadRateLimit(downloadID string) bool {
 	if downloadID == "" {
 		return false
 	}
@@ -425,7 +425,7 @@ func (p *WorkerPool) ClearDownloadRateLimit(downloadID string) bool {
 }
 
 // PauseAll pauses all active downloads (for graceful shutdown)
-func (p *WorkerPool) PauseAll() {
+func (p *Scheduler) PauseAll() {
 	p.mu.RLock()
 	ids := make([]string, 0, len(p.downloads)) // This stores the uuids of the downloads to be paused
 	for id, ad := range p.downloads {
@@ -444,7 +444,7 @@ func (p *WorkerPool) PauseAll() {
 // Cancel cancels and removes a download by ID. Returns metadata about what was
 // removed so the caller (LifecycleManager) can emit events and handle cleanup.
 // No events are emitted by the pool itself.
-func (p *WorkerPool) Cancel(downloadID string) types.CancelResult {
+func (p *Scheduler) Cancel(downloadID string) types.CancelResult {
 	p.mu.Lock()
 	ad, activeExists := p.downloads[downloadID]
 	qCfg, queuedExists := p.queued[downloadID]
@@ -501,7 +501,7 @@ func (p *WorkerPool) Cancel(downloadID string) types.CancelResult {
 // ExtractPausedConfig atomically removes a paused download from the pool and returns
 // its config (with state cleared for re-enqueue) so the LifecycleManager can resume it.
 // Returns nil if the download is not found, not paused, or still transitioning (pausing).
-func (p *WorkerPool) ExtractPausedConfig(downloadID string) *types.DownloadConfig {
+func (p *Scheduler) ExtractPausedConfig(downloadID string) *types.DownloadConfig {
 	p.mu.Lock()
 	ad, exists := p.downloads[downloadID]
 	if !exists || ad == nil {
@@ -533,7 +533,7 @@ func (p *WorkerPool) ExtractPausedConfig(downloadID string) *types.DownloadConfi
 // UpdateURL updates the in-memory URL of a download by ID.
 // The caller (LifecycleManager) is responsible for persisting the change to the DB.
 // It fails if the download is actively downloading (not paused or errored).
-func (p *WorkerPool) UpdateURL(downloadID string, newURL string) error {
+func (p *Scheduler) UpdateURL(downloadID string, newURL string) error {
 	p.mu.Lock()
 	ad, exists := p.downloads[downloadID]
 	_, qExists := p.queued[downloadID]
@@ -560,7 +560,7 @@ func (p *WorkerPool) UpdateURL(downloadID string, newURL string) error {
 	return nil
 }
 
-func (p *WorkerPool) worker() {
+func (p *Scheduler) worker() {
 	for id := range p.taskChan {
 		p.mu.RLock()
 		cfg, stillQueued := p.queued[id]
@@ -630,7 +630,7 @@ func (p *WorkerPool) worker() {
 		}
 
 		if isPaused {
-			utils.Debug("WorkerPool: Download %s paused cleanly", localCfg.ID)
+			utils.Debug("Scheduler: Download %s paused cleanly", localCfg.ID)
 			// The concurrent downloader sends DownloadPausedMsg itself via handlePause()
 			// (which causes RunDownload to return nil). When a single-threaded download is
 			// paused, RunDownload returns a non-nil error, and the pool must fill the gap.
@@ -688,7 +688,7 @@ func (p *WorkerPool) worker() {
 }
 
 // GetStatus returns the status of an active download
-func (p *WorkerPool) GetStatus(id string) *types.DownloadStatus {
+func (p *Scheduler) GetStatus(id string) *types.DownloadStatus {
 	var adURL, adFilename, adDestPath string
 	var adRateLimitBps int64
 	var adRateLimitSet bool
@@ -786,7 +786,7 @@ func (p *WorkerPool) GetStatus(id string) *types.DownloadStatus {
 }
 
 // GracefulShutdown pauses all downloads and waits for them to save state
-func (p *WorkerPool) GracefulShutdown() {
+func (p *Scheduler) GracefulShutdown() {
 	p.PauseAll()
 
 	// Discard all queued-but-not-yet-started downloads so that idle workers
