@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"sync/atomic"
 
-	"github.com/SurgeDM/Surge/internal/core"
+	"github.com/SurgeDM/Surge/internal/service"
 	"github.com/SurgeDM/Surge/internal/types"
 	"github.com/SurgeDM/Surge/internal/utils"
 )
 
 // StartHeadlessConsumer starts a goroutine to consume progress messages and log to stdout
-func StartHeadlessConsumer(service core.DownloadService) {
+func StartHeadlessConsumer(service service.DownloadService) {
 	go func() {
 		if service == nil {
 			return

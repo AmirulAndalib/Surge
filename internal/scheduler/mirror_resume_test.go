@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/SurgeDM/Surge/internal/processing"
+	"github.com/SurgeDM/Surge/internal/orchestrator"
 	"github.com/SurgeDM/Surge/internal/progress"
 	"github.com/SurgeDM/Surge/internal/store"
 	"github.com/SurgeDM/Surge/internal/testutil"
@@ -63,7 +63,7 @@ func TestIntegration_MirrorResume(t *testing.T) {
 		MaxConnectionsPerDownload: 4,
 	}
 	// Wire event persistence worker because pause state is persisted in processing layer.
-	mgr := processing.NewLifecycleManager(nil, nil)
+	mgr := orchestrator.NewLifecycleManager(nil, nil)
 	var eventWG sync.WaitGroup
 	eventWG.Add(1)
 	go func() {

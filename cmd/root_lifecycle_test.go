@@ -13,10 +13,10 @@ import (
 	"time"
 
 	"github.com/SurgeDM/Surge/internal/config"
-	"github.com/SurgeDM/Surge/internal/core"
-	"github.com/SurgeDM/Surge/internal/processing"
+	"github.com/SurgeDM/Surge/internal/orchestrator"
 	"github.com/SurgeDM/Surge/internal/progress"
 	"github.com/SurgeDM/Surge/internal/scheduler"
+	"github.com/SurgeDM/Surge/internal/service"
 	"github.com/SurgeDM/Surge/internal/store"
 	"github.com/SurgeDM/Surge/internal/testutil"
 	"github.com/SurgeDM/Surge/internal/types"
@@ -30,7 +30,7 @@ type countingLifecycleService struct {
 	logs        []string
 }
 
-var _ core.DownloadService = (*countingLifecycleService)(nil)
+var _ service.DownloadService = (*countingLifecycleService)(nil)
 
 func (s *countingLifecycleService) List() ([]types.DownloadStatus, error)   { return nil, nil }
 func (s *countingLifecycleService) History() ([]types.DownloadEntry, error) { return nil, nil }
@@ -132,7 +132,7 @@ func TestEnsureLocalLifecycle_StartsEventWorker(t *testing.T) {
 	GlobalLifecycleCleanup = nil
 	GlobalProgressCh = make(chan any, 32)
 	GlobalPool = scheduler.New(GlobalProgressCh, 1)
-	GlobalService = core.NewLocalDownloadServiceWithInput(GlobalPool, GlobalProgressCh)
+	GlobalService = service.NewLocalDownloadServiceWithInput(GlobalPool, GlobalProgressCh)
 	t.Cleanup(func() {
 		if GlobalLifecycleCleanup != nil {
 			GlobalLifecycleCleanup()
@@ -229,7 +229,7 @@ func TestProcessDownloads_RoutesBinFilesToCustomCategory(t *testing.T) {
 	GlobalLifecycleCleanup = nil
 	GlobalProgressCh = make(chan any, 32)
 	GlobalPool = scheduler.New(GlobalProgressCh, 1)
-	GlobalService = core.NewLocalDownloadServiceWithInput(GlobalPool, GlobalProgressCh)
+	GlobalService = service.NewLocalDownloadServiceWithInput(GlobalPool, GlobalProgressCh)
 	t.Cleanup(func() {
 		if GlobalLifecycleCleanup != nil {
 			GlobalLifecycleCleanup()
@@ -319,7 +319,7 @@ func TestProcessDownloads_UsesLatestSavedCategorySettings(t *testing.T) {
 	GlobalLifecycleCleanup = nil
 	GlobalProgressCh = make(chan any, 32)
 	GlobalPool = scheduler.New(GlobalProgressCh, 1)
-	GlobalService = core.NewLocalDownloadServiceWithInput(GlobalPool, GlobalProgressCh)
+	GlobalService = service.NewLocalDownloadServiceWithInput(GlobalPool, GlobalProgressCh)
 	t.Cleanup(func() {
 		if GlobalLifecycleCleanup != nil {
 			GlobalLifecycleCleanup()
@@ -411,7 +411,7 @@ func TestEnsureLocalLifecycle_ConcurrentInitializationStartsOneStream(t *testing
 	service := &countingLifecycleService{}
 
 	const callers = 12
-	results := make(chan *processing.LifecycleManager, callers)
+	results := make(chan *orchestrator.LifecycleManager, callers)
 	errs := make(chan error, callers)
 
 	var wg sync.WaitGroup
@@ -435,7 +435,7 @@ func TestEnsureLocalLifecycle_ConcurrentInitializationStartsOneStream(t *testing
 		t.Fatalf("ensureLocalLifecycle returned error: %v", err)
 	}
 
-	var first *processing.LifecycleManager
+	var first *orchestrator.LifecycleManager
 	for mgr := range results {
 		if first == nil {
 			first = mgr
@@ -480,7 +480,7 @@ func TestProcessDownloads_UsesSharedEnqueueContext(t *testing.T) {
 	defer server.Close()
 
 	dispatchCalled := false
-	GlobalLifecycle = processing.NewLifecycleManager(
+	GlobalLifecycle = orchestrator.NewLifecycleManager(
 		func(string, string, string, []string, map[string]string, bool, int, int64, int64, bool) (string, error) {
 			dispatchCalled = true
 			return "", nil

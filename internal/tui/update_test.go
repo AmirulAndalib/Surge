@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"github.com/SurgeDM/Surge/internal/orchestrator"
 	engineprogress "github.com/SurgeDM/Surge/internal/progress"
 
 	"context"
@@ -15,9 +16,8 @@ import (
 	"charm.land/bubbles/v2/viewport"
 	tea "charm.land/bubbletea/v2"
 	"github.com/SurgeDM/Surge/internal/config"
-	"github.com/SurgeDM/Surge/internal/core"
-	"github.com/SurgeDM/Surge/internal/processing"
 	"github.com/SurgeDM/Surge/internal/scheduler"
+	"github.com/SurgeDM/Surge/internal/service"
 	"github.com/SurgeDM/Surge/internal/types"
 )
 
@@ -492,7 +492,7 @@ func TestUpdate_DownloadRequestMsg(t *testing.T) {
 	// Setup initial model
 	ch := make(chan any, 100)
 	pool := scheduler.New(ch, 1)
-	svc := core.NewLocalDownloadServiceWithInput(pool, ch)
+	svc := service.NewLocalDownloadServiceWithInput(pool, ch)
 	t.Cleanup(func() { _ = svc.Shutdown() })
 
 	m := RootModel{
@@ -664,7 +664,7 @@ func TestUpdate_BatchDownloadRequestMsg_QueuesWhileConfirmationActive(t *testing
 func TestStartDownload_UsesProvidedIDWhenServiceSupportsIt(t *testing.T) {
 	ch := make(chan any, 16)
 	pool := scheduler.New(ch, 1)
-	svc := core.NewLocalDownloadServiceWithInput(pool, ch)
+	svc := service.NewLocalDownloadServiceWithInput(pool, ch)
 	t.Cleanup(func() {
 		_ = svc.Shutdown()
 	})
@@ -689,7 +689,7 @@ func TestStartDownload_UsesProvidedIDWhenServiceSupportsIt(t *testing.T) {
 }
 
 func TestStartDownload_UsesModelEnqueueContext(t *testing.T) {
-	svc := core.NewLocalDownloadServiceWithInput(nil, nil)
+	svc := service.NewLocalDownloadServiceWithInput(nil, nil)
 	t.Cleanup(func() {
 		_ = svc.Shutdown()
 	})
@@ -697,7 +697,7 @@ func TestStartDownload_UsesModelEnqueueContext(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	orchestrator := processing.NewLifecycleManager(
+	orchestrator := orchestrator.NewLifecycleManager(
 		func(string, string, string, []string, map[string]string, bool, int, int64, int64, bool) (string, error) {
 			t.Fatal("enqueue dispatch should not run after context cancellation")
 			return "", nil
@@ -734,12 +734,12 @@ func TestStartDownload_UsesModelEnqueueContext(t *testing.T) {
 }
 
 func TestStartDownload_GuessesFilenameOptimisticallyWhenProvidedOrInferred(t *testing.T) {
-	svc := core.NewLocalDownloadServiceWithInput(nil, nil)
+	svc := service.NewLocalDownloadServiceWithInput(nil, nil)
 	t.Cleanup(func() {
 		_ = svc.Shutdown()
 	})
 
-	orchestrator := processing.NewLifecycleManager(
+	orchestrator := orchestrator.NewLifecycleManager(
 		func(string, string, string, []string, map[string]string, bool, int, int64, int64, bool) (string, error) {
 			return "real-id", nil
 		},
@@ -770,12 +770,12 @@ func TestStartDownload_GuessesFilenameOptimisticallyWhenProvidedOrInferred(t *te
 }
 
 func TestStartDownload_UsesGenericQueuedNameForExplicitFilenameUntilLifecycleConfirms(t *testing.T) {
-	svc := core.NewLocalDownloadServiceWithInput(nil, nil)
+	svc := service.NewLocalDownloadServiceWithInput(nil, nil)
 	t.Cleanup(func() {
 		_ = svc.Shutdown()
 	})
 
-	orchestrator := processing.NewLifecycleManager(
+	orchestrator := orchestrator.NewLifecycleManager(
 		func(string, string, string, []string, map[string]string, bool, int, int64, int64, bool) (string, error) {
 			return "real-id", nil
 		},
@@ -1049,7 +1049,7 @@ func TestQuitConfirm_UnrelatedKeyIgnored(t *testing.T) {
 }
 
 func TestWithEnqueueContext_OverridesStartDownloadContext(t *testing.T) {
-	svc := core.NewLocalDownloadServiceWithInput(nil, nil)
+	svc := service.NewLocalDownloadServiceWithInput(nil, nil)
 	t.Cleanup(func() {
 		_ = svc.Shutdown()
 	})
@@ -1057,7 +1057,7 @@ func TestWithEnqueueContext_OverridesStartDownloadContext(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	orchestrator := processing.NewLifecycleManager(
+	orchestrator := orchestrator.NewLifecycleManager(
 		func(string, string, string, []string, map[string]string, bool, int, int64, int64, bool) (string, error) {
 			t.Fatal("enqueue dispatch should not run after shared context cancellation")
 			return "", nil
@@ -1093,7 +1093,7 @@ func TestUpdate_RefreshShortcut(t *testing.T) {
 		state:          DashboardState,
 		keys:           config.DefaultKeyMap(),
 		urlUpdateInput: textinput.New(),
-		Service:        core.NewLocalDownloadServiceWithInput(nil, nil),
+		Service:        service.NewLocalDownloadServiceWithInput(nil, nil),
 	}
 	m.UpdateListItems()
 	m.list.Select(0) // Select the paused download

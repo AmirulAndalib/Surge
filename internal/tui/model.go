@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"github.com/SurgeDM/Surge/internal/orchestrator"
 	engineprogress "github.com/SurgeDM/Surge/internal/progress"
 
 	"context"
@@ -22,8 +23,7 @@ import (
 	"charm.land/lipgloss/v2"
 
 	"github.com/SurgeDM/Surge/internal/config"
-	"github.com/SurgeDM/Surge/internal/core"
-	"github.com/SurgeDM/Surge/internal/processing"
+	"github.com/SurgeDM/Surge/internal/service"
 	"github.com/SurgeDM/Surge/internal/tui/colors"
 	"github.com/SurgeDM/Surge/internal/tui/components"
 	"github.com/SurgeDM/Surge/internal/types"
@@ -128,8 +128,8 @@ type RootModel struct {
 	purgeTargetID string
 	// Service Interface
 	// Core
-	Service      core.DownloadService
-	Orchestrator *processing.LifecycleManager
+	Service      service.DownloadService
+	Orchestrator *orchestrator.LifecycleManager
 
 	// File picker for directory selection
 	filepicker             filepicker.Model
@@ -264,7 +264,7 @@ func NewDownloadModel(id string, url string, filename string, total int64) *Down
 	}
 }
 
-func InitialRootModel(serverPort int, currentVersion string, service core.DownloadService, orchestrator *processing.LifecycleManager, noResume bool, currentCommit ...string) RootModel {
+func InitialRootModel(serverPort int, currentVersion string, service service.DownloadService, orchestrator *orchestrator.LifecycleManager, noResume bool, currentCommit ...string) RootModel {
 	initialDarkBackground := true
 	if !IsTestMode {
 		initialDarkBackground = lipgloss.HasDarkBackground(os.Stdin, os.Stdout)
@@ -655,7 +655,7 @@ func (m RootModel) matchesCategoryFilter(d *DownloadModel) bool {
 		}
 	}
 	if filename == "" || filename == "Queued" {
-		filename = processing.InferFilenameFromURL(d.URL)
+		filename = orchestrator.InferFilenameFromURL(d.URL)
 	}
 
 	cat, err := config.GetCategoryForFile(filename, m.Settings.Categories.Categories)

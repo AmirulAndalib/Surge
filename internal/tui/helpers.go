@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"github.com/SurgeDM/Surge/internal/orchestrator"
 	engineprogress "github.com/SurgeDM/Surge/internal/progress"
 
 	"fmt"
@@ -14,7 +15,6 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	"github.com/SurgeDM/Surge/internal/config"
-	"github.com/SurgeDM/Surge/internal/processing"
 	"github.com/SurgeDM/Surge/internal/types"
 	"github.com/SurgeDM/Surge/internal/utils"
 )
@@ -155,7 +155,7 @@ func (m *RootModel) openDirectoryPicker(origin FilePickerOrigin, originalPath, b
 }
 
 // checkForDuplicate checks if a compatible download already exists
-func (m RootModel) checkForDuplicate(url string) *processing.DuplicateResult {
+func (m RootModel) checkForDuplicate(url string) *orchestrator.DuplicateResult {
 	activeDownloads := func() map[string]*types.DownloadConfig {
 		active := make(map[string]*types.DownloadConfig)
 		for _, d := range m.downloads {
@@ -171,7 +171,7 @@ func (m RootModel) checkForDuplicate(url string) *processing.DuplicateResult {
 		}
 		return active
 	}
-	return processing.CheckForDuplicate(url, activeDownloads)
+	return orchestrator.CheckForDuplicate(url, activeDownloads)
 }
 
 // renderEmptyMessage provides a consistent visual for "no data" states in dashboard panes.

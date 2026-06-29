@@ -8,9 +8,9 @@ import (
 	"testing"
 
 	"github.com/SurgeDM/Surge/internal/config"
-	"github.com/SurgeDM/Surge/internal/core"
-	"github.com/SurgeDM/Surge/internal/processing"
+	"github.com/SurgeDM/Surge/internal/orchestrator"
 	"github.com/SurgeDM/Surge/internal/scheduler"
+	"github.com/SurgeDM/Surge/internal/service"
 	"github.com/SurgeDM/Surge/internal/store"
 	"github.com/SurgeDM/Surge/internal/types"
 )
@@ -54,11 +54,11 @@ func TestHandleDownload_HeadlessMode_AutoApprovesNonDuplicate(t *testing.T) {
 	GlobalPool = scheduler.New(progressCh, 1)
 
 	// Mock lifecycle to bypass real downloads
-	GlobalLifecycle = processing.NewLifecycleManager(func(url, path, filename string, _ []string, headers map[string]string, explicit bool, workers int, minChunkSize int64, totalSize int64, supportsRange bool) (string, error) {
+	GlobalLifecycle = orchestrator.NewLifecycleManager(func(url, path, filename string, _ []string, headers map[string]string, explicit bool, workers int, minChunkSize int64, totalSize int64, supportsRange bool) (string, error) {
 		return "queued-id", nil
 	}, nil)
 
-	svc := core.NewLocalDownloadService(GlobalPool)
+	svc := service.NewLocalDownloadService(GlobalPool)
 	GlobalService = svc
 
 	// Verify it auto-approves even with ExtensionPrompt=true
@@ -112,7 +112,7 @@ func TestHandleDownload_HeadlessMode_RejectsDuplicateWithWarn(t *testing.T) {
 		Status:   "completed",
 	})
 
-	svc := core.NewLocalDownloadService(GlobalPool)
+	svc := service.NewLocalDownloadService(GlobalPool)
 	GlobalService = svc
 
 	// Verify it still rejects duplicates when WarnOnDuplicate is on
@@ -159,7 +159,7 @@ func TestHandleDownload_HeadlessMode_RejectsExtensionPromptDuplicate(t *testing.
 	progressCh := make(chan any, 10)
 	GlobalProgressCh = progressCh
 	GlobalPool = scheduler.New(progressCh, 1)
-	svc := core.NewLocalDownloadService(GlobalPool)
+	svc := service.NewLocalDownloadService(GlobalPool)
 	GlobalService = svc
 
 	body := fmt.Sprintf(`{"url": %q, "skip_approval": false}`, url)

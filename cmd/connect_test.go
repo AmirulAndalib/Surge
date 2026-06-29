@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/SurgeDM/Surge/internal/core"
+	"github.com/SurgeDM/Surge/internal/service"
 	"github.com/SurgeDM/Surge/internal/tui"
 	"github.com/SurgeDM/Surge/internal/types"
 )
@@ -17,7 +17,7 @@ type fakeRemoteDownloadService struct {
 	lastExplicit bool
 }
 
-var _ core.DownloadService = (*fakeRemoteDownloadService)(nil)
+var _ service.DownloadService = (*fakeRemoteDownloadService)(nil)
 
 func (f *fakeRemoteDownloadService) List() ([]types.DownloadStatus, error) {
 	return nil, nil

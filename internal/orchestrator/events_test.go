@@ -1,4 +1,4 @@
-package processing_test
+package orchestrator_test
 
 import (
 	"os"

@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/SurgeDM/Surge/internal/config"
-	"github.com/SurgeDM/Surge/internal/core"
-	"github.com/SurgeDM/Surge/internal/processing"
+	"github.com/SurgeDM/Surge/internal/orchestrator"
 	"github.com/SurgeDM/Surge/internal/scheduler"
+	"github.com/SurgeDM/Surge/internal/service"
 	"github.com/SurgeDM/Surge/internal/store"
 	"github.com/SurgeDM/Surge/internal/types"
 )
@@ -77,7 +77,7 @@ func TestAutoResume_Enabled(t *testing.T) {
 	ch := make(chan any, 10)
 	pool := scheduler.New(ch, 1)
 
-	m := InitialRootModel(1700, "test-version", core.NewLocalDownloadServiceWithInput(pool, ch), processing.NewLifecycleManager(nil, nil), false)
+	m := InitialRootModel(1700, "test-version", service.NewLocalDownloadServiceWithInput(pool, ch), orchestrator.NewLifecycleManager(nil, nil), false)
 
 	// 6. Verify Download is Resumed
 	found := false
@@ -157,7 +157,7 @@ func TestAutoResume_Disabled(t *testing.T) {
 	ch := make(chan any, 10)
 	pool := scheduler.New(ch, 1)
 
-	m := InitialRootModel(1700, "test-version", core.NewLocalDownloadServiceWithInput(pool, ch), processing.NewLifecycleManager(nil, nil), false)
+	m := InitialRootModel(1700, "test-version", service.NewLocalDownloadServiceWithInput(pool, ch), orchestrator.NewLifecycleManager(nil, nil), false)
 
 	// 6. Verify Download is Resumed
 	found := false

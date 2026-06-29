@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/SurgeDM/Surge/internal/config"
-	"github.com/SurgeDM/Surge/internal/core"
 	"github.com/SurgeDM/Surge/internal/scheduler"
+	"github.com/SurgeDM/Surge/internal/service"
 	"github.com/SurgeDM/Surge/internal/store"
 	"github.com/SurgeDM/Surge/internal/types"
 	"github.com/SurgeDM/Surge/internal/utils"
@@ -48,7 +48,7 @@ func TestResume_RespectsOriginalPath_WhenDefaultChanges(t *testing.T) {
 
 	m := RootModel{
 		Settings:  settings,
-		Service:   core.NewLocalDownloadServiceWithInput(pool, ch),
+		Service:   service.NewLocalDownloadServiceWithInput(pool, ch),
 		downloads: []*DownloadModel{},
 		list:      NewDownloadList(80, 20), // Initialize list to prevent panic
 	}

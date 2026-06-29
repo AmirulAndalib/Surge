@@ -1,11 +1,11 @@
-package core
+package service
 
 import (
 	"context"
 	"sync"
 	"testing"
 
-	"github.com/SurgeDM/Surge/internal/processing"
+	"github.com/SurgeDM/Surge/internal/orchestrator"
 )
 
 // startEventWorkerForTest wires up a LifecycleManager event worker to the
@@ -18,7 +18,7 @@ import (
 func startEventWorkerForTest(t *testing.T, svc *LocalDownloadService) func() {
 	t.Helper()
 
-	mgr := processing.NewLifecycleManager(nil, nil)
+	mgr := orchestrator.NewLifecycleManager(nil, nil)
 	stream, cleanup, err := svc.StreamEvents(context.Background())
 	if err != nil {
 		t.Fatalf("startEventWorkerForTest: failed to stream events: %v", err)
@@ -38,7 +38,7 @@ func startEventWorkerForTest(t *testing.T, svc *LocalDownloadService) func() {
 		Cancel:      mgr.Cancel,
 		UpdateURL:   mgr.UpdateURL,
 	})
-	mgr.SetEngineHooks(processing.EngineHooks{
+	mgr.SetEngineHooks(orchestrator.EngineHooks{
 		Pause:               svc.Pool.Pause,
 		ExtractPausedConfig: svc.Pool.ExtractPausedConfig,
 		GetStatus:           svc.Pool.GetStatus,

@@ -1,6 +1,6 @@
 //go:build !windows
 
-package processing
+package orchestrator
 
 import "os"
 

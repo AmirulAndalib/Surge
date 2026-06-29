@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/SurgeDM/Surge/internal/config"
-	"github.com/SurgeDM/Surge/internal/core"
 	"github.com/SurgeDM/Surge/internal/scheduler"
+	"github.com/SurgeDM/Surge/internal/service"
 	"github.com/SurgeDM/Surge/internal/utils"
 )
 
@@ -22,7 +22,7 @@ func TestStartDownload_EnforcesAbsolutePath(t *testing.T) {
 
 	m := RootModel{
 		Settings:  config.DefaultSettings(),
-		Service:   core.NewLocalDownloadServiceWithInput(pool, ch),
+		Service:   service.NewLocalDownloadServiceWithInput(pool, ch),
 		downloads: []*DownloadModel{},
 		list:      NewDownloadList(80, 20), // Initialize list
 	}

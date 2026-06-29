@@ -12,7 +12,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/SurgeDM/Surge/internal/config"
-	"github.com/SurgeDM/Surge/internal/core"
+	"github.com/SurgeDM/Surge/internal/service"
 	"github.com/SurgeDM/Surge/internal/types"
 )
 
@@ -456,7 +456,7 @@ func TestResolveDownloadDestPath(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			var service core.DownloadService
+			var service service.DownloadService
 			if !test.useNilService {
 				service = test.service
 			}
@@ -527,7 +527,7 @@ func TestOpenEndpoints_ReturnMappedResolveStatuses(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			mux := http.NewServeMux()
-			var service core.DownloadService
+			var service service.DownloadService
 			if !test.useNil {
 				service = test.service
 			}

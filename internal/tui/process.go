@@ -9,7 +9,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/SurgeDM/Surge/internal/config"
-	"github.com/SurgeDM/Surge/internal/processing"
+	"github.com/SurgeDM/Surge/internal/orchestrator"
 	"github.com/SurgeDM/Surge/internal/types"
 	"github.com/SurgeDM/Surge/internal/utils"
 )
@@ -94,7 +94,7 @@ func (m RootModel) startDownload(url string, mirrors []string, headers map[strin
 	resolvedPath := path
 	resolvedFilename := candidateFilename
 	optimisticFilename := candidateFilename
-	if p, f, err := processing.ResolveDestination(url, candidateFilename, path, isDefaultPath, m.Settings, nil, nil); err == nil {
+	if p, f, err := orchestrator.ResolveDestination(url, candidateFilename, path, isDefaultPath, m.Settings, nil, nil); err == nil {
 		resolvedPath = p
 		resolvedFilename = f
 		if candidateFilename != "" {
@@ -107,7 +107,7 @@ func (m RootModel) startDownload(url string, mirrors []string, headers map[strin
 	}
 
 	// Call Orchestrator Enqueue
-	req := &processing.DownloadRequest{
+	req := &orchestrator.DownloadRequest{
 		URL:                url,
 		Filename:           candidateFilename,
 		Path:               path,
@@ -125,7 +125,7 @@ func (m RootModel) startDownload(url string, mirrors []string, headers map[strin
 	}
 	displayName := optimisticFilename
 	if displayName == "" {
-		displayName = processing.InferFilenameFromURL(url)
+		displayName = orchestrator.InferFilenameFromURL(url)
 	}
 	if displayName == "" {
 		displayName = "Queued"

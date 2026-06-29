@@ -7,20 +7,20 @@ import (
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
 	"github.com/SurgeDM/Surge/internal/config"
-	"github.com/SurgeDM/Surge/internal/core"
-	"github.com/SurgeDM/Surge/internal/processing"
+	"github.com/SurgeDM/Surge/internal/orchestrator"
 	"github.com/SurgeDM/Surge/internal/scheduler"
+	"github.com/SurgeDM/Surge/internal/service"
 	"github.com/SurgeDM/Surge/internal/types"
 )
 
-func newOverrideTestModel(t *testing.T, addFunc processing.AddDownloadFunc) RootModel {
+func newOverrideTestModel(t *testing.T, addFunc orchestrator.AddDownloadFunc) RootModel {
 	t.Helper()
 	ch := make(chan any, 16)
 	pool := scheduler.New(ch, 1)
-	svc := core.NewLocalDownloadServiceWithInput(pool, ch)
+	svc := service.NewLocalDownloadServiceWithInput(pool, ch)
 	t.Cleanup(func() { _ = svc.Shutdown() })
 
-	orchestrator := processing.NewLifecycleManager(addFunc, nil)
+	orchestrator := orchestrator.NewLifecycleManager(addFunc, nil)
 	return RootModel{
 		Settings:      config.DefaultSettings(),
 		Service:       svc,

@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/SurgeDM/Surge/internal/processing"
+	"github.com/SurgeDM/Surge/internal/orchestrator"
 	"github.com/SurgeDM/Surge/internal/progress"
 	"github.com/SurgeDM/Surge/internal/store"
 	"github.com/SurgeDM/Surge/internal/testutil"
@@ -58,7 +58,7 @@ func TestIntegration_PauseResume(t *testing.T) {
 	progressCh := make(chan any, 100)
 	runtime := &types.RuntimeConfig{}
 	// DB/state persistence now lives in processing event worker.
-	mgr := processing.NewLifecycleManager(nil, nil)
+	mgr := orchestrator.NewLifecycleManager(nil, nil)
 	var eventWG sync.WaitGroup
 	eventWG.Add(1)
 	go func() {

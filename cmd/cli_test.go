@@ -14,8 +14,8 @@ import (
 	"testing"
 
 	"github.com/SurgeDM/Surge/internal/config"
-	"github.com/SurgeDM/Surge/internal/core"
 	"github.com/SurgeDM/Surge/internal/scheduler"
+	"github.com/SurgeDM/Surge/internal/service"
 	"github.com/SurgeDM/Surge/internal/store"
 	"github.com/SurgeDM/Surge/internal/testutil"
 	"github.com/SurgeDM/Surge/internal/types"
@@ -1040,7 +1040,7 @@ func TestProcessDownloads_RemoteAndLocal(t *testing.T) {
 
 		GlobalProgressCh = make(chan any, 10)
 		GlobalPool = scheduler.New(GlobalProgressCh, 2)
-		GlobalService = core.NewLocalDownloadService(GlobalPool)
+		GlobalService = service.NewLocalDownloadService(GlobalPool)
 
 		probeServer := testutil.NewHTTPServerT(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Length", "5")

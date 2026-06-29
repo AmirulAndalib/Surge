@@ -7,15 +7,15 @@ import (
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
 	"github.com/SurgeDM/Surge/internal/config"
-	"github.com/SurgeDM/Surge/internal/core"
 	"github.com/SurgeDM/Surge/internal/scheduler"
+	"github.com/SurgeDM/Surge/internal/service"
 )
 
 func newCategoryTestModel(t *testing.T, settings *config.Settings) RootModel {
 	t.Helper()
 	ch := make(chan any, 16)
 	pool := scheduler.New(ch, 1)
-	svc := core.NewLocalDownloadServiceWithInput(pool, ch)
+	svc := service.NewLocalDownloadServiceWithInput(pool, ch)
 	t.Cleanup(func() { _ = svc.Shutdown() })
 	return RootModel{
 		Settings: settings,

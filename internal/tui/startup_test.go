@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/SurgeDM/Surge/internal/config"
-	"github.com/SurgeDM/Surge/internal/core"
-	"github.com/SurgeDM/Surge/internal/processing"
+	"github.com/SurgeDM/Surge/internal/orchestrator"
 	"github.com/SurgeDM/Surge/internal/scheduler"
+	"github.com/SurgeDM/Surge/internal/service"
 	"github.com/SurgeDM/Surge/internal/store"
 	"github.com/SurgeDM/Surge/internal/types"
 )
@@ -37,7 +37,7 @@ func TestTUI_Startup_HandlesResume(t *testing.T) {
 	pool := scheduler.New(progressChan, 3)
 
 	// PASSING noResume=false (default)
-	m := InitialRootModel(1700, "test-version", core.NewLocalDownloadServiceWithInput(pool, progressChan), processing.NewLifecycleManager(nil, nil), false)
+	m := InitialRootModel(1700, "test-version", service.NewLocalDownloadServiceWithInput(pool, progressChan), orchestrator.NewLifecycleManager(nil, nil), false)
 
 	// 4. Verify Download is Active in Model
 	// InitialRootModel loads downloads and should set paused=false for "queued" items
@@ -99,7 +99,7 @@ func TestTUI_Startup_LoadsCompletedTiming(t *testing.T) {
 
 	progressChan := make(chan any, 10)
 	pool := scheduler.New(progressChan, 3)
-	m := InitialRootModel(1700, "test-version", core.NewLocalDownloadServiceWithInput(pool, progressChan), processing.NewLifecycleManager(nil, nil), false)
+	m := InitialRootModel(1700, "test-version", service.NewLocalDownloadServiceWithInput(pool, progressChan), orchestrator.NewLifecycleManager(nil, nil), false)
 
 	var found *DownloadModel
 	for _, d := range m.downloads {
@@ -148,7 +148,7 @@ func TestTUI_Startup_LoadsErroredDownloadsIntoDoneTab(t *testing.T) {
 
 	progressChan := make(chan any, 10)
 	pool := scheduler.New(progressChan, 3)
-	m := InitialRootModel(1700, "test-version", core.NewLocalDownloadServiceWithInput(pool, progressChan), processing.NewLifecycleManager(nil, nil), false)
+	m := InitialRootModel(1700, "test-version", service.NewLocalDownloadServiceWithInput(pool, progressChan), orchestrator.NewLifecycleManager(nil, nil), false)
 
 	var found *DownloadModel
 	for _, d := range m.downloads {

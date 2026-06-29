@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"github.com/SurgeDM/Surge/internal/orchestrator"
 	engineprogress "github.com/SurgeDM/Surge/internal/progress"
 
 	"os"
@@ -9,9 +10,8 @@ import (
 	"time"
 
 	tea "charm.land/bubbletea/v2"
-	"github.com/SurgeDM/Surge/internal/core"
-	"github.com/SurgeDM/Surge/internal/processing"
 	"github.com/SurgeDM/Surge/internal/scheduler"
+	"github.com/SurgeDM/Surge/internal/service"
 	"github.com/SurgeDM/Surge/internal/types"
 )
 
@@ -34,7 +34,7 @@ func TestStateSync(t *testing.T) {
 	pool := scheduler.New(progressChan, 1)
 
 	// Initialize model with progress channel and service
-	m := InitialRootModel(1700, "test-version", core.NewLocalDownloadServiceWithInput(pool, progressChan), processing.NewLifecycleManager(nil, nil), false)
+	m := InitialRootModel(1700, "test-version", service.NewLocalDownloadServiceWithInput(pool, progressChan), orchestrator.NewLifecycleManager(nil, nil), false)
 
 	downloadID := "external-id"
 	// Create the "worker" state - this is the source of truth

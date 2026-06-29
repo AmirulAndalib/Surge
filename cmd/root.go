@@ -15,10 +15,10 @@ import (
 	"time"
 
 	"github.com/SurgeDM/Surge/internal/config"
-	"github.com/SurgeDM/Surge/internal/core"
-	"github.com/SurgeDM/Surge/internal/processing"
+	"github.com/SurgeDM/Surge/internal/orchestrator"
 	"github.com/SurgeDM/Surge/internal/progress"
 	"github.com/SurgeDM/Surge/internal/scheduler"
+	"github.com/SurgeDM/Surge/internal/service"
 	"github.com/SurgeDM/Surge/internal/store"
 	"github.com/SurgeDM/Surge/internal/tui"
 	"github.com/SurgeDM/Surge/internal/types"
@@ -75,12 +75,12 @@ var (
 var (
 	GlobalPool              *scheduler.Scheduler
 	GlobalProgressCh        chan any
-	GlobalService           core.DownloadService
+	GlobalService           service.DownloadService
 	GlobalLifecycleCleanup  func()
 	serverProgram           *tea.Program
 	startupIntegrityMessage string
 	globalSettings          *config.Settings
-	GlobalLifecycle         *processing.LifecycleManager
+	GlobalLifecycle         *orchestrator.LifecycleManager
 	globalLifecycleMu       sync.Mutex
 	globalEnqueueCtx        context.Context
 	globalEnqueueCancel     context.CancelFunc
@@ -90,7 +90,7 @@ var (
 // buildActiveDownloadChecker bridges the lifecycle manager and the worker pool.
 // LifecycleManager has no direct reference to the pool, so we inject this closure
 // at construction time to let it detect file-name collisions with in-flight downloads.
-func buildActiveDownloadChecker(getAll func() []types.DownloadConfig) processing.IsNameActiveFunc {
+func buildActiveDownloadChecker(getAll func() []types.DownloadConfig) orchestrator.IsNameActiveFunc {
 	if getAll == nil {
 		return nil
 	}
@@ -133,18 +133,18 @@ func buildActiveDownloadChecker(getAll func() []types.DownloadConfig) processing
 	}
 }
 
-func newLocalLifecycleManager(service core.DownloadService, getAll func() []types.DownloadConfig) *processing.LifecycleManager {
-	var addFunc processing.AddDownloadFunc
-	var addWithIDFunc processing.AddDownloadWithIDFunc
+func newLocalLifecycleManager(service service.DownloadService, getAll func() []types.DownloadConfig) *orchestrator.LifecycleManager {
+	var addFunc orchestrator.AddDownloadFunc
+	var addWithIDFunc orchestrator.AddDownloadWithIDFunc
 	if service != nil {
 		addFunc = service.Add
 		addWithIDFunc = service.AddWithID
 	}
 
-	return processing.NewLifecycleManager(addFunc, addWithIDFunc, buildActiveDownloadChecker(getAll))
+	return orchestrator.NewLifecycleManager(addFunc, addWithIDFunc, buildActiveDownloadChecker(getAll))
 }
 
-func startLifecycleEventWorker(service core.DownloadService, mgr *processing.LifecycleManager) (func(), error) {
+func startLifecycleEventWorker(service service.DownloadService, mgr *orchestrator.LifecycleManager) (func(), error) {
 	if service == nil || mgr == nil {
 		return nil, nil
 	}
@@ -157,7 +157,7 @@ func startLifecycleEventWorker(service core.DownloadService, mgr *processing.Lif
 	return managerCleanup, nil
 }
 
-func currentLifecycle() *processing.LifecycleManager {
+func currentLifecycle() *orchestrator.LifecycleManager {
 	globalLifecycleMu.Lock()
 	defer globalLifecycleMu.Unlock()
 	return GlobalLifecycle
@@ -222,7 +222,7 @@ func currentPoolConfigs() []types.DownloadConfig {
 	return GlobalPool.GetAll()
 }
 
-func lifecycleForLocalService(service core.DownloadService) (*processing.LifecycleManager, error) {
+func lifecycleForLocalService(service service.DownloadService) (*orchestrator.LifecycleManager, error) {
 	lifecycle := currentLifecycle()
 	if service == nil || GlobalService == nil || service != GlobalService {
 		return lifecycle, nil
@@ -232,7 +232,7 @@ func lifecycleForLocalService(service core.DownloadService) (*processing.Lifecyc
 
 func ensureGlobalLocalServiceAndLifecycle() error {
 	if GlobalService == nil {
-		localService := core.NewLocalDownloadServiceWithInput(GlobalPool, GlobalProgressCh)
+		localService := service.NewLocalDownloadServiceWithInput(GlobalPool, GlobalProgressCh)
 		GlobalService = localService
 
 		lifecycle, err := ensureLocalLifecycle(localService, currentPoolConfigs)
@@ -240,7 +240,7 @@ func ensureGlobalLocalServiceAndLifecycle() error {
 			return err
 		}
 
-		lifecycle.SetEngineHooks(processing.EngineHooks{
+		lifecycle.SetEngineHooks(orchestrator.EngineHooks{
 			Pause:               GlobalPool.Pause,
 			ExtractPausedConfig: GlobalPool.ExtractPausedConfig,
 			GetStatus:           GlobalPool.GetStatus,
@@ -250,7 +250,7 @@ func ensureGlobalLocalServiceAndLifecycle() error {
 			PublishEvent:        localService.Publish,
 		})
 
-		localService.SetLifecycleHooks(core.LifecycleHooks{
+		localService.SetLifecycleHooks(service.LifecycleHooks{
 			Pause:       lifecycle.Pause,
 			Resume:      lifecycle.Resume,
 			ResumeBatch: lifecycle.ResumeBatch,
@@ -277,7 +277,7 @@ func recordPreflightDownloadError(url, outPath string, err error) {
 		return
 	}
 
-	filename := strings.TrimSpace(processing.InferFilenameFromURL(url))
+	filename := strings.TrimSpace(orchestrator.InferFilenameFromURL(url))
 	destPath := ""
 	if filename != "" && strings.TrimSpace(outPath) != "" {
 		destPath = filepath.Join(outPath, filename)
@@ -304,7 +304,7 @@ func recordPreflightDownloadError(url, outPath string, err error) {
 	}
 }
 
-func ensureLocalLifecycle(service core.DownloadService, getAll func() []types.DownloadConfig) (*processing.LifecycleManager, error) {
+func ensureLocalLifecycle(service service.DownloadService, getAll func() []types.DownloadConfig) (*orchestrator.LifecycleManager, error) {
 	globalLifecycleMu.Lock()
 	defer globalLifecycleMu.Unlock()
 

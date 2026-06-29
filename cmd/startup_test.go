@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/SurgeDM/Surge/internal/config"
-	"github.com/SurgeDM/Surge/internal/core"
-	"github.com/SurgeDM/Surge/internal/processing"
+	"github.com/SurgeDM/Surge/internal/orchestrator"
 	"github.com/SurgeDM/Surge/internal/scheduler"
+	"github.com/SurgeDM/Surge/internal/service"
 	"github.com/SurgeDM/Surge/internal/store"
 	"github.com/SurgeDM/Surge/internal/types"
 	"github.com/SurgeDM/Surge/internal/utils"
@@ -35,10 +35,10 @@ func TestServer_Startup_HandlesResume(t *testing.T) {
 	// 3. Initialize Global Pool (required for resumePausedDownloads)
 	GlobalProgressCh = make(chan any, 10)
 	GlobalPool = scheduler.New(GlobalProgressCh, 3)
-	GlobalService = core.NewLocalDownloadServiceWithInput(GlobalPool, GlobalProgressCh)
+	GlobalService = service.NewLocalDownloadServiceWithInput(GlobalPool, GlobalProgressCh)
 
-	GlobalLifecycle = processing.NewLifecycleManager(nil, nil, nil)
-	GlobalLifecycle.SetEngineHooks(processing.EngineHooks{
+	GlobalLifecycle = orchestrator.NewLifecycleManager(nil, nil, nil)
+	GlobalLifecycle.SetEngineHooks(orchestrator.EngineHooks{
 		Pause:               GlobalPool.Pause,
 		ExtractPausedConfig: GlobalPool.ExtractPausedConfig,
 		AddConfig:           GlobalPool.Add,
@@ -47,8 +47,8 @@ func TestServer_Startup_HandlesResume(t *testing.T) {
 		UpdateURL:           GlobalPool.UpdateURL,
 		PublishEvent:        GlobalService.Publish,
 	})
-	if svc, ok := GlobalService.(*core.LocalDownloadService); ok {
-		svc.SetLifecycleHooks(core.LifecycleHooks{
+	if svc, ok := GlobalService.(*service.LocalDownloadService); ok {
+		svc.SetLifecycleHooks(service.LifecycleHooks{
 			Pause:       GlobalLifecycle.Pause,
 			Resume:      GlobalLifecycle.Resume,
 			ResumeBatch: GlobalLifecycle.ResumeBatch,

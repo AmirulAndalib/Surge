@@ -10,14 +10,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/SurgeDM/Surge/internal/core"
-	"github.com/SurgeDM/Surge/internal/processing"
+	"github.com/SurgeDM/Surge/internal/orchestrator"
 	"github.com/SurgeDM/Surge/internal/scheduler"
+	"github.com/SurgeDM/Surge/internal/service"
 	"github.com/SurgeDM/Surge/internal/store"
 	"github.com/SurgeDM/Surge/internal/types"
 )
 
-func startAuthedTestServer(t *testing.T, service core.DownloadService, token string) string {
+func startAuthedTestServer(t *testing.T, service service.DownloadService, token string) string {
 	t.Helper()
 
 	mux := http.NewServeMux()
@@ -41,10 +41,10 @@ func TestCLI_DeleteEndpoint_CleansPausedStateAndPartialFile(t *testing.T) {
 	GlobalPool = scheduler.New(GlobalProgressCh, 2)
 
 	// Start server
-	svc := core.NewLocalDownloadService(GlobalPool)
+	svc := service.NewLocalDownloadService(GlobalPool)
 	t.Cleanup(func() { _ = svc.Shutdown() })
 
-	lifecycle := processing.NewLifecycleManager(nil, nil)
+	lifecycle := orchestrator.NewLifecycleManager(nil, nil)
 	stream, streamCleanup, err := svc.StreamEvents(context.Background())
 	if err != nil {
 		t.Fatalf("failed to open event stream: %v", err)

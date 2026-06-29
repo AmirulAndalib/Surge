@@ -14,9 +14,9 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/SurgeDM/Surge/internal/config"
-	"github.com/SurgeDM/Surge/internal/core"
-	"github.com/SurgeDM/Surge/internal/processing"
+	"github.com/SurgeDM/Surge/internal/orchestrator"
 	"github.com/SurgeDM/Surge/internal/scheduler"
+	"github.com/SurgeDM/Surge/internal/service"
 	"github.com/SurgeDM/Surge/internal/store"
 	"github.com/SurgeDM/Surge/internal/types"
 )
@@ -173,7 +173,7 @@ func TestHandleDownload_PathResolution(t *testing.T) {
 			body, _ := json.Marshal(tt.request)
 			req := httptest.NewRequest("POST", "/download", bytes.NewBuffer(body))
 			w := httptest.NewRecorder()
-			svc := core.NewLocalDownloadService(GlobalPool)
+			svc := service.NewLocalDownloadService(GlobalPool)
 
 			// We pass defaultDownloadDir as a fallback to handleDownload, but since we mocked settings,
 			// it should prioritize settings.General.DefaultDownloadDir
@@ -290,7 +290,7 @@ func TestHandleDownload_SkipApprovalUsesLifecycleEnqueue(t *testing.T) {
 	expectedFile := "from-extension.bin"
 
 	var addCalls int
-	GlobalLifecycle = processing.NewLifecycleManager(func(url, path, filename string, _ []string, headers map[string]string, explicit bool, workers int, minChunkSize int64, totalSize int64, supportsRange bool) (string, error) {
+	GlobalLifecycle = orchestrator.NewLifecycleManager(func(url, path, filename string, _ []string, headers map[string]string, explicit bool, workers int, minChunkSize int64, totalSize int64, supportsRange bool) (string, error) {
 		addCalls++
 		if url != probeServer.URL {
 			t.Fatalf("url = %q, want %q", url, probeServer.URL)
@@ -322,7 +322,7 @@ func TestHandleDownload_SkipApprovalUsesLifecycleEnqueue(t *testing.T) {
 		return "queued-id", nil
 	}, nil)
 
-	svc := core.NewLocalDownloadService(nil)
+	svc := service.NewLocalDownloadService(nil)
 	GlobalService = svc
 	t.Cleanup(func() {
 		_ = svc.Shutdown()
@@ -376,12 +376,12 @@ func TestHandleDownload_EnqueueError_RecordsPreflightError(t *testing.T) {
 
 	// Create a lifecycle manager whose addFunc should never be reached
 	// because the probe will fail first (invalid URL scheme).
-	GlobalLifecycle = processing.NewLifecycleManager(func(string, string, string, []string, map[string]string, bool, int, int64, int64, bool) (string, error) {
+	GlobalLifecycle = orchestrator.NewLifecycleManager(func(string, string, string, []string, map[string]string, bool, int, int64, int64, bool) (string, error) {
 		t.Fatal("addFunc should not be called when probe fails")
 		return "", nil
 	}, nil)
 
-	svc := core.NewLocalDownloadService(nil)
+	svc := service.NewLocalDownloadService(nil)
 	GlobalService = svc
 	t.Cleanup(func() {
 		_ = svc.Shutdown()
@@ -444,13 +444,13 @@ func TestHandleDownload_ForwardsPerTaskOverridesToLifecycle(t *testing.T) {
 
 	var gotWorkers int
 	var gotMinChunkSize int64
-	GlobalLifecycle = processing.NewLifecycleManager(func(_, _, _ string, _ []string, _ map[string]string, _ bool, workers int, minChunkSize int64, _ int64, _ bool) (string, error) {
+	GlobalLifecycle = orchestrator.NewLifecycleManager(func(_, _, _ string, _ []string, _ map[string]string, _ bool, workers int, minChunkSize int64, _ int64, _ bool) (string, error) {
 		gotWorkers = workers
 		gotMinChunkSize = minChunkSize
 		return "override-id", nil
 	}, nil)
 
-	svc := core.NewLocalDownloadService(nil)
+	svc := service.NewLocalDownloadService(nil)
 	GlobalService = svc
 	t.Cleanup(func() {
 		_ = svc.Shutdown()
