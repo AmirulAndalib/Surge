@@ -10,7 +10,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/SurgeDM/Surge/internal/engine"
+	"github.com/SurgeDM/Surge/internal/transport"
 	"github.com/SurgeDM/Surge/internal/types"
 	"github.com/SurgeDM/Surge/internal/utils"
 )
@@ -28,7 +28,7 @@ func (d *ConcurrentDownloader) worker(ctx context.Context, id int, mirrors []str
 
 	mirrorHosts := make([]string, len(mirrors))
 	for i, m := range mirrors {
-		mirrorHosts[i] = engine.MirrorHost(m)
+		mirrorHosts[i] = transport.MirrorHost(m)
 	}
 
 	for {
@@ -210,7 +210,7 @@ func (d *ConcurrentDownloader) downloadTask(ctx context.Context, rawurl string, 
 	// Handle rate limiting explicitly
 	if resp.StatusCode == http.StatusTooManyRequests ||
 		(resp.StatusCode == http.StatusServiceUnavailable && resp.Header.Get("Retry-After") != "") {
-		ra, ok := engine.ParseRetryAfter(resp.Header.Get("Retry-After"), time.Now())
+		ra, ok := transport.ParseRetryAfter(resp.Header.Get("Retry-After"), time.Now())
 		return &rateLimitError{retryAfter: ra, explicit: ok}
 	}
 

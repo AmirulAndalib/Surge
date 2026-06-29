@@ -14,9 +14,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/SurgeDM/Surge/internal/engine"
 	"github.com/SurgeDM/Surge/internal/progress"
 	"github.com/SurgeDM/Surge/internal/store"
+	"github.com/SurgeDM/Surge/internal/transport"
 	"github.com/SurgeDM/Surge/internal/types"
 	"github.com/SurgeDM/Surge/internal/utils"
 )
@@ -37,7 +37,7 @@ type ConcurrentDownloader struct {
 	TotalSize    int64
 	bufPool      sync.Pool
 	Headers      map[string]string // Custom HTTP headers from browser (cookies, auth, etc.)
-	hostLimiter  *engine.HostRateLimiter
+	hostLimiter  *transport.HostRateLimiter
 }
 
 // NewConcurrentDownloader creates a new concurrent downloader with all required parameters
@@ -52,7 +52,7 @@ func NewConcurrentDownloader(id string, progressCh chan<- any, progState *progre
 		State:        progState,
 		activeTasks:  make(map[int]*ActiveTask),
 		Runtime:      runtime,
-		hostLimiter:  engine.DefaultHostRateLimiter,
+		hostLimiter:  transport.DefaultHostRateLimiter,
 		bufPool: sync.Pool{
 			New: func() any {
 				// Use configured buffer size
@@ -232,7 +232,7 @@ func (d *ConcurrentDownloader) Download(ctx context.Context, rawurl string, cand
 	utils.Debug("ConcurrentDownloader.Download: %s -> %s (size: %d, mirrors: %d)", rawurl, destPath, fileSize, len(activeMirrors))
 
 	if d.hostLimiter == nil {
-		d.hostLimiter = engine.DefaultHostRateLimiter
+		d.hostLimiter = transport.DefaultHostRateLimiter
 	}
 
 	d.initMirrorStatus(rawurl, candidateMirrors, activeMirrors, destPath)
@@ -244,9 +244,9 @@ func (d *ConcurrentDownloader) Download(ctx context.Context, rawurl string, cand
 		d.State.SetCancelFunc(cancel)
 	}
 
-	client, transport := d.setupNetwork()
+	client, httpTransport := d.setupNetwork()
 	// Release transport back to the pool ONLY after all helpers and workers are joined (LIFO: runs last)
-	defer engine.DefaultNetworkPool.ReleaseTransport(transport)
+	defer transport.DefaultNetworkPool.ReleaseTransport(httpTransport)
 
 	// Helper synchronization for monitors and balancer
 	var wgHelpers sync.WaitGroup
@@ -370,10 +370,10 @@ func (d *ConcurrentDownloader) setupNetwork() (*http.Client, *http.Transport) {
 		customDNS = d.Runtime.CustomDNS
 	}
 
-	transport := engine.DefaultNetworkPool.AcquireTransport(proxyURL, customDNS, types.PoolMaxConnsPerHost)
-	client := &http.Client{Transport: transport}
+	httpTransport := transport.DefaultNetworkPool.AcquireTransport(proxyURL, customDNS, types.PoolMaxConnsPerHost)
+	client := &http.Client{Transport: httpTransport}
 	d.applyClientSettings(client)
-	return client, transport
+	return client, httpTransport
 }
 
 func (d *ConcurrentDownloader) getWorkerMirrors(activeMirrors []string) []string {

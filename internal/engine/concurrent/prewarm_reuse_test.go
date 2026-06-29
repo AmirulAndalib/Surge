@@ -7,8 +7,8 @@ import (
 	"net/http/httptrace"
 	"testing"
 
-	"github.com/SurgeDM/Surge/internal/engine"
 	"github.com/SurgeDM/Surge/internal/testutil"
+	"github.com/SurgeDM/Surge/internal/transport"
 	"github.com/SurgeDM/Surge/internal/types"
 	"github.com/SurgeDM/Surge/internal/utils"
 )
@@ -27,8 +27,8 @@ func TestPrewarmConnections_Reuse(t *testing.T) {
 	}
 
 	downloader := NewConcurrentDownloader("test-reuse", nil, nil, runtime)
-	transport := engine.DefaultNetworkPool.AcquireTransport(runtime.ProxyURL, runtime.CustomDNS, runtime.GetMaxConnectionsPerDownload())
-	defer engine.DefaultNetworkPool.ReleaseTransport(transport)
+	transport := transport.DefaultNetworkPool.AcquireTransport(runtime.ProxyURL, runtime.CustomDNS, runtime.GetMaxConnectionsPerDownload())
+	defer transport.DefaultNetworkPool.ReleaseTransport(transport)
 	client := &http.Client{Transport: transport}
 
 	ctx := context.Background()

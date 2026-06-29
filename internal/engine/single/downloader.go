@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/SurgeDM/Surge/internal/engine"
 	"github.com/SurgeDM/Surge/internal/progress"
+	"github.com/SurgeDM/Surge/internal/transport"
 	"github.com/SurgeDM/Surge/internal/types"
 	"github.com/SurgeDM/Surge/internal/utils"
 )
@@ -74,10 +74,10 @@ func (d *SingleDownloader) applyClientSettings(client *http.Client) {
 // This is used for servers that don't support Range requests.
 // If interrupted, the download cannot be resumed and must restart from the beginning.
 func (d *SingleDownloader) Download(ctx context.Context, rawurl, destPath string, fileSize int64, filename string) (err error) {
-	transport := engine.DefaultNetworkPool.AcquireTransport(d.Runtime.ProxyURL, d.Runtime.CustomDNS, types.PoolMaxConnsPerHost)
-	defer engine.DefaultNetworkPool.ReleaseTransport(transport)
+	httpTransport := transport.DefaultNetworkPool.AcquireTransport(d.Runtime.ProxyURL, d.Runtime.CustomDNS, types.PoolMaxConnsPerHost)
+	defer transport.DefaultNetworkPool.ReleaseTransport(httpTransport)
 
-	client := &http.Client{Transport: transport}
+	client := &http.Client{Transport: httpTransport}
 	d.applyClientSettings(client)
 
 	if d.State != nil {
@@ -137,7 +137,7 @@ func (d *SingleDownloader) Download(ctx context.Context, rawurl, destPath string
 				return fmt.Errorf("rate limited after %d retries: %d", maxRlRetries, resp.StatusCode)
 			}
 
-			ra, _ := engine.ParseRetryAfter(resp.Header.Get("Retry-After"), time.Now())
+			ra, _ := transport.ParseRetryAfter(resp.Header.Get("Retry-After"), time.Now())
 			if ra <= 0 {
 				ra = 5 * time.Second
 			}

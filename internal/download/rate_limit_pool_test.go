@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/SurgeDM/Surge/internal/engine"
 	"github.com/SurgeDM/Surge/internal/progress"
+	"github.com/SurgeDM/Surge/internal/transport"
 	"github.com/SurgeDM/Surge/internal/types"
 )
 
@@ -108,7 +108,7 @@ func TestWorkerPool_RateLimit_DefaultChangeUpdatesInheritedActiveLimiter(t *test
 	id := "active-inherited"
 	oldRate := int64(1)
 	newRate := int64(10 * 1024 * 1024)
-	limiter := engine.NewRateLimiter(oldRate, rateLimiterBurst(oldRate))
+	limiter := transport.NewRateLimiter(oldRate, rateLimiterBurst(oldRate))
 	state := progress.New(id, 0)
 	state.SetRateLimit(oldRate, false)
 
@@ -177,7 +177,7 @@ func TestWorkerPool_RateLimit_DefaultChangeLeavesExplicitActiveLimiter(t *testin
 	id := "active-explicit"
 	explicitRate := int64(1)
 	newDefaultRate := int64(10 * 1024 * 1024)
-	limiter := engine.NewRateLimiter(explicitRate, rateLimiterBurst(explicitRate))
+	limiter := transport.NewRateLimiter(explicitRate, rateLimiterBurst(explicitRate))
 	state := progress.New(id, 0)
 	state.SetRateLimit(explicitRate, true)
 
@@ -347,9 +347,9 @@ func TestWorkerPool_RateLimit_SetDownloadHonorsWaiter(t *testing.T) {
 // TestWorkerPool_RateLimit_MultiLimiterComposition verifies that the
 // MultiLimiter blocks until all component limiters are satisfied.
 func TestWorkerPool_RateLimit_MultiLimiterComposition(t *testing.T) {
-	global := engine.NewRateLimiter(10000, 10000)
-	perDl := engine.NewRateLimiter(10000, 10000)
-	ml := engine.NewMultiLimiter(global, perDl)
+	global := transport.NewRateLimiter(10000, 10000)
+	perDl := transport.NewRateLimiter(10000, 10000)
+	ml := transport.NewMultiLimiter(global, perDl)
 
 	// Both limiters have 10000 tokens; requesting 20000 should block
 	done := make(chan error, 1)

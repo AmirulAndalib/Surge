@@ -7,8 +7,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/SurgeDM/Surge/internal/engine"
 	"github.com/SurgeDM/Surge/internal/progress"
+	"github.com/SurgeDM/Surge/internal/transport"
 	"github.com/SurgeDM/Surge/internal/types"
 	"github.com/SurgeDM/Surge/internal/utils"
 )
@@ -41,8 +41,8 @@ type WorkerPool struct {
 	wg           sync.WaitGroup // We use this to wait for all active downloads to pause before exiting the program
 	maxDownloads int
 
-	globalLimiter               *engine.RateLimiter
-	downloadLimiters            map[string]*engine.RateLimiter
+	globalLimiter               *transport.RateLimiter
+	downloadLimiters            map[string]*transport.RateLimiter
 	defaultDownloadRateLimitBps int64
 }
 
@@ -71,8 +71,8 @@ func NewWorkerPool(progressCh chan<- any, maxDownloads int) *WorkerPool {
 		downloads:        make(map[string]*activeDownload),
 		queued:           make(map[string]types.DownloadConfig),
 		maxDownloads:     maxDownloads,
-		globalLimiter:    engine.NewRateLimiter(0, 0),
-		downloadLimiters: make(map[string]*engine.RateLimiter),
+		globalLimiter:    transport.NewRateLimiter(0, 0),
+		downloadLimiters: make(map[string]*transport.RateLimiter),
 	}
 	for i := 0; i < maxDownloads; i++ {
 		go pool.worker()
@@ -139,10 +139,10 @@ func (p *WorkerPool) ensureLimiterForConfigLocked(cfg *types.DownloadConfig) {
 	}
 
 	if p.globalLimiter == nil {
-		p.globalLimiter = engine.NewRateLimiter(0, 0)
+		p.globalLimiter = transport.NewRateLimiter(0, 0)
 	}
 	if p.downloadLimiters == nil {
-		p.downloadLimiters = make(map[string]*engine.RateLimiter)
+		p.downloadLimiters = make(map[string]*transport.RateLimiter)
 	}
 
 	// If state already carries an explicit rate, prefer it over cfg default.
@@ -164,14 +164,14 @@ func (p *WorkerPool) ensureLimiterForConfigLocked(cfg *types.DownloadConfig) {
 
 	limiter := p.downloadLimiters[cfg.ID]
 	if limiter == nil {
-		limiter = engine.NewRateLimiter(rate, rateLimiterBurst(rate))
+		limiter = transport.NewRateLimiter(rate, rateLimiterBurst(rate))
 		p.downloadLimiters[cfg.ID] = limiter
 	} else {
 		limiter.SetRate(rate, rateLimiterBurst(rate))
 	}
 
 	if cfg.Limiter == nil {
-		cfg.Limiter = engine.NewMultiLimiter(p.globalLimiter, limiter)
+		cfg.Limiter = transport.NewMultiLimiter(p.globalLimiter, limiter)
 	}
 }
 
@@ -280,7 +280,7 @@ func (p *WorkerPool) SetGlobalRateLimit(rate int64) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	if p.globalLimiter == nil {
-		p.globalLimiter = engine.NewRateLimiter(0, 0)
+		p.globalLimiter = transport.NewRateLimiter(0, 0)
 	}
 	// All per-download MultiLimiters hold a pointer to this globalLimiter,
 	// so updating the rate here propagates to all active downloads instantly.
@@ -294,7 +294,7 @@ func (p *WorkerPool) SetDefaultDownloadRateLimit(rate int64) {
 
 	p.defaultDownloadRateLimitBps = rate
 	if p.downloadLimiters == nil {
-		p.downloadLimiters = make(map[string]*engine.RateLimiter)
+		p.downloadLimiters = make(map[string]*transport.RateLimiter)
 	}
 
 	for id, cfg := range p.queued {
@@ -310,7 +310,7 @@ func (p *WorkerPool) SetDefaultDownloadRateLimit(rate int64) {
 		if limiter == nil {
 			// Note: ensureLimiterForConfigLocked guarantees all active/queued downloads have a limiter.
 			// This nil branch is defensive and should be unreachable in practice.
-			p.downloadLimiters[id] = engine.NewRateLimiter(rate, rateLimiterBurst(rate))
+			p.downloadLimiters[id] = transport.NewRateLimiter(rate, rateLimiterBurst(rate))
 		} else {
 			limiter.SetRate(rate, rateLimiterBurst(rate))
 		}
@@ -327,7 +327,7 @@ func (p *WorkerPool) SetDefaultDownloadRateLimit(rate int64) {
 		if limiter == nil {
 			// Note: ensureLimiterForConfigLocked guarantees all active/queued downloads have a limiter.
 			// This nil branch is defensive and should be unreachable in practice.
-			p.downloadLimiters[id] = engine.NewRateLimiter(rate, rateLimiterBurst(rate))
+			p.downloadLimiters[id] = transport.NewRateLimiter(rate, rateLimiterBurst(rate))
 		} else {
 			limiter.SetRate(rate, rateLimiterBurst(rate))
 		}
@@ -367,11 +367,11 @@ func (p *WorkerPool) SetDownloadRateLimit(downloadID string, rate int64) bool {
 	}
 
 	if p.downloadLimiters == nil {
-		p.downloadLimiters = make(map[string]*engine.RateLimiter)
+		p.downloadLimiters = make(map[string]*transport.RateLimiter)
 	}
 	limiter := p.downloadLimiters[downloadID]
 	if limiter == nil {
-		p.downloadLimiters[downloadID] = engine.NewRateLimiter(rate, rateLimiterBurst(rate))
+		p.downloadLimiters[downloadID] = transport.NewRateLimiter(rate, rateLimiterBurst(rate))
 	} else {
 		limiter.SetRate(rate, rateLimiterBurst(rate))
 	}
@@ -413,11 +413,11 @@ func (p *WorkerPool) ClearDownloadRateLimit(downloadID string) bool {
 	}
 
 	if p.downloadLimiters == nil {
-		p.downloadLimiters = make(map[string]*engine.RateLimiter)
+		p.downloadLimiters = make(map[string]*transport.RateLimiter)
 	}
 	limiter := p.downloadLimiters[downloadID]
 	if limiter == nil {
-		p.downloadLimiters[downloadID] = engine.NewRateLimiter(defaultRate, rateLimiterBurst(defaultRate))
+		p.downloadLimiters[downloadID] = transport.NewRateLimiter(defaultRate, rateLimiterBurst(defaultRate))
 	} else {
 		limiter.SetRate(defaultRate, rateLimiterBurst(defaultRate))
 	}
