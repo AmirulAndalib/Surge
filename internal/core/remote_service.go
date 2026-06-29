@@ -12,8 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/SurgeDM/Surge/internal/engine/events"
-	"github.com/SurgeDM/Surge/internal/engine/types"
+	"github.com/SurgeDM/Surge/internal/types"
 	"github.com/SurgeDM/Surge/internal/utils"
 )
 
@@ -436,7 +435,7 @@ func (s *RemoteDownloadService) connectSSE(ctx context.Context, ch chan interfac
 		}
 		jsonData := strings.Join(dataLines, "\n")
 
-		msg, ok, err := events.DecodeSSEMessage(eventType, []byte(jsonData))
+		msg, ok, err := types.DecodeSSEMessage(eventType, []byte(jsonData))
 		if err != nil {
 			utils.Debug("SSE decode error for event=%s payload_bytes=%d: %v", eventType, len(jsonData), err)
 			continue

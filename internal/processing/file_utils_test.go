@@ -8,9 +8,9 @@ import (
 	"testing"
 
 	"github.com/SurgeDM/Surge/internal/config"
-	"github.com/SurgeDM/Surge/internal/engine/types"
 	"github.com/SurgeDM/Surge/internal/probe"
 	"github.com/SurgeDM/Surge/internal/processing"
+	"github.com/SurgeDM/Surge/internal/types"
 )
 
 func TestInferFilenameFromURL(t *testing.T) {

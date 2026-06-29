@@ -11,10 +11,9 @@ import (
 	"time"
 
 	"github.com/SurgeDM/Surge/internal/engine/concurrent"
-	"github.com/SurgeDM/Surge/internal/engine/events"
 	"github.com/SurgeDM/Surge/internal/engine/single"
-	"github.com/SurgeDM/Surge/internal/engine/types"
 	"github.com/SurgeDM/Surge/internal/probe"
+	"github.com/SurgeDM/Surge/internal/types"
 	"github.com/SurgeDM/Surge/internal/utils"
 )
 
@@ -137,7 +136,7 @@ func RunDownload(ctx context.Context, cfg *types.DownloadConfig) error {
 	// Send download started message
 	if cfg.ProgressCh != nil {
 		rateLimit, rateLimitSet := currentRateLimit()
-		safeSendProgress(cfg.ProgressCh, events.DownloadStartedMsg{
+		safeSendProgress(cfg.ProgressCh, types.DownloadStartedMsg{
 			DownloadID:   cfg.ID,
 			URL:          cfg.URL,
 			Filename:     finalFilename,
@@ -270,7 +269,7 @@ func RunDownload(ctx context.Context, cfg *types.DownloadConfig) error {
 
 		if cfg.ProgressCh != nil {
 			rateLimit, rateLimitSet := currentRateLimit()
-			safeSendProgress(cfg.ProgressCh, events.DownloadCompleteMsg{
+			safeSendProgress(cfg.ProgressCh, types.DownloadCompleteMsg{
 				DownloadID:   cfg.ID,
 				Filename:     finalFilename,
 				Elapsed:      elapsed,
@@ -289,7 +288,7 @@ func RunDownload(ctx context.Context, cfg *types.DownloadConfig) error {
 
 		// Send error event
 		if cfg.ProgressCh != nil {
-			safeSendProgress(cfg.ProgressCh, events.DownloadErrorMsg{
+			safeSendProgress(cfg.ProgressCh, types.DownloadErrorMsg{
 				DownloadID: cfg.ID,
 				Filename:   finalFilename,
 				DestPath:   finalDestPath,

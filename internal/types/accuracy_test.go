@@ -2,12 +2,10 @@ package types_test
 
 import (
 	"testing"
-
-	"github.com/SurgeDM/Surge/internal/engine/types"
 )
 
 func TestChunkAccuracy(t *testing.T) {
-	state := types.NewProgressState("test", 100*1024*1024) // 100MB
+	state := NewProgressState("test", 100*1024*1024) // 100MB
 
 	// Init 200 chunks -> 500KB per chunk
 	// 10 MB total, 1 MB chunks
@@ -16,10 +14,10 @@ func TestChunkAccuracy(t *testing.T) {
 	// Simulate downloading a small part of the first chunk (e.g. 1KB)
 	// UpdateChunkStatus(offset=0, length=1024, status=ChunkCompleted)
 	// Update first 500KB (half of first chunk)
-	state.UpdateChunkStatus(0, 500*1024, types.ChunkDownloading)
+	state.UpdateChunkStatus(0, 500*1024, ChunkDownloading)
 
 	// Verify
-	if state.GetChunkState(0) != types.ChunkDownloading {
+	if state.GetChunkState(0) != ChunkDownloading {
 		t.Errorf("Expected chunk 0 to be Downloading")
 	}
 
@@ -33,7 +31,7 @@ func TestChunkAccuracy(t *testing.T) {
 		byteIndex := idx / 4
 		bitOffset := (idx % 4) * 2
 		val := (bitmap[byteIndex] >> bitOffset) & 3
-		return types.ChunkStatus(val) == types.ChunkDownloading || types.ChunkStatus(val) == types.ChunkCompleted
+		return ChunkStatus(val) == ChunkDownloading || ChunkStatus(val) == ChunkCompleted
 	}
 
 	for i := 0; i < width; i++ {
@@ -52,7 +50,7 @@ func TestChunkAccuracy(t *testing.T) {
 }
 
 func TestRestoreBitmap(t *testing.T) {
-	state := types.NewProgressState("test-restore", 100*1024*1024) // 100MB
+	state := NewProgressState("test-restore", 100*1024*1024) // 100MB
 
 	// Create a bitmap manually
 	// 100MB / 1MB chunks = 100 chunks.
@@ -77,11 +75,11 @@ func TestRestoreBitmap(t *testing.T) {
 		t.Errorf("Expected BitmapWidth 100, got %d", state.BitmapWidth)
 	}
 
-	if state.GetChunkState(0) != types.ChunkCompleted {
+	if state.GetChunkState(0) != ChunkCompleted {
 		t.Errorf("Expected chunk 0 to be completed")
 	}
 
-	if state.GetChunkState(1) != types.ChunkPending {
+	if state.GetChunkState(1) != ChunkPending {
 		t.Errorf("Expected chunk 1 to be pending")
 	}
 }
@@ -92,7 +90,7 @@ func TestRestoreBitmap_ShortBitmapRecoversWithoutPanic(t *testing.T) {
 		chunkSize = 1 * 1024 * 1024
 	)
 
-	state := types.NewProgressState("test-short-restore", totalSize)
+	state := NewProgressState("test-short-restore", totalSize)
 	malformed := []byte{0x02} // Too short: only enough storage for 4 chunks.
 	expectedBytes := 25       // 100 chunks * 2 bits = 25 bytes.
 
@@ -115,29 +113,29 @@ func TestRestoreBitmap_ShortBitmapRecoversWithoutPanic(t *testing.T) {
 		t.Fatalf("bitmap len = %d, want %d after normalization", len(bitmap), expectedBytes)
 	}
 
-	if got := state.GetChunkState(0); got != types.ChunkCompleted {
+	if got := state.GetChunkState(0); got != ChunkCompleted {
 		t.Fatalf("chunk 0 state = %v, want Completed after copying available bits", got)
 	}
-	if got := state.GetChunkState(99); got != types.ChunkPending {
+	if got := state.GetChunkState(99); got != ChunkPending {
 		t.Fatalf("chunk 99 state = %v, want Pending", got)
 	}
 
-	state.RecalculateProgress([]types.Task{{Offset: 0, Length: chunkSize}})
+	state.RecalculateProgress([]Task{{Offset: 0, Length: chunkSize}})
 
-	if got := state.GetChunkState(0); got != types.ChunkPending {
+	if got := state.GetChunkState(0); got != ChunkPending {
 		t.Fatalf("chunk 0 state after recalc = %v, want Pending", got)
 	}
-	if got := state.GetChunkState(1); got != types.ChunkCompleted {
+	if got := state.GetChunkState(1); got != ChunkCompleted {
 		t.Fatalf("chunk 1 state after recalc = %v, want Completed", got)
 	}
-	if got := state.GetChunkState(99); got != types.ChunkCompleted {
+	if got := state.GetChunkState(99); got != ChunkCompleted {
 		t.Fatalf("chunk 99 state after recalc = %v, want Completed", got)
 	}
 }
 
 func TestRecalculateProgress(t *testing.T) {
 	// 30MB total, 10MB chunks -> 3 chunks
-	state := types.NewProgressState("test-recalc", 30*1024*1024)
+	state := NewProgressState("test-recalc", 30*1024*1024)
 	chunkSize := int64(10 * 1024 * 1024)
 	state.InitBitmap(30*1024*1024, chunkSize)
 
@@ -146,7 +144,7 @@ func TestRecalculateProgress(t *testing.T) {
 	// Chunk 1: Missing all 10MB (Offset 10MB, Len 10MB) -> 0MB downloaded
 	// Chunk 2: Missing nothing -> 10MB downloaded
 
-	tasks := []types.Task{
+	tasks := []Task{
 		{Offset: 0, Length: 5 * 1024 * 1024},
 		{Offset: 10 * 1024 * 1024, Length: 10 * 1024 * 1024},
 	}
@@ -154,15 +152,15 @@ func TestRecalculateProgress(t *testing.T) {
 	state.RecalculateProgress(tasks)
 
 	// Verify Chunk 0 (Partial -> Downloading)
-	if state.GetChunkState(0) != types.ChunkDownloading {
+	if state.GetChunkState(0) != ChunkDownloading {
 		t.Errorf("Expected Chunk 0 to be Downloading (Partial), got %v", state.GetChunkState(0))
 	}
 	// Verify Chunk 1 (Empty -> Pending)
-	if state.GetChunkState(1) != types.ChunkPending {
+	if state.GetChunkState(1) != ChunkPending {
 		t.Errorf("Expected Chunk 1 to be Pending (Empty), got %v", state.GetChunkState(1))
 	}
 	// Verify Chunk 2 (Full -> Completed)
-	if state.GetChunkState(2) != types.ChunkCompleted {
+	if state.GetChunkState(2) != ChunkCompleted {
 		t.Errorf("Expected Chunk 2 to be Completed (Full), got %v", state.GetChunkState(2))
 	}
 }

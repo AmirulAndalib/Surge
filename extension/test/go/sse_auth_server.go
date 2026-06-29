@@ -9,7 +9,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/SurgeDM/Surge/internal/engine/events"
+	"github.com/SurgeDM/Surge/internal/types"
 )
 
 func main() {
@@ -25,7 +25,7 @@ func main() {
 			return
 		}
 
-		frames, err := events.EncodeSSEMessages(events.DownloadQueuedMsg{
+		frames, err := types.EncodeSSEMessages(types.DownloadQueuedMsg{
 			DownloadID: "queue-1",
 			Filename:   "archive.zip",
 			URL:        "https://example.com/archive.zip",

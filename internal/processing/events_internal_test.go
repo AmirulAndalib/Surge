@@ -9,10 +9,9 @@ import (
 	"time"
 
 	"github.com/SurgeDM/Surge/internal/config"
-	"github.com/SurgeDM/Surge/internal/engine/events"
 	"github.com/SurgeDM/Surge/internal/engine/state"
-	"github.com/SurgeDM/Surge/internal/engine/types"
 	"github.com/SurgeDM/Surge/internal/testutil"
+	"github.com/SurgeDM/Surge/internal/types"
 	"github.com/SurgeDM/Surge/internal/utils"
 )
 
@@ -115,7 +114,7 @@ func TestStartEventWorker_MarksCompletionAsErrorWhenFinalizationFails(t *testing
 
 	mgr := NewLifecycleManager(nil, nil)
 	ch := make(chan interface{}, 1)
-	ch <- events.DownloadCompleteMsg{
+	ch <- types.DownloadCompleteMsg{
 		DownloadID: "download-1",
 		Filename:   "video.mp4",
 		Elapsed:    2 * time.Second,
@@ -169,7 +168,7 @@ func TestStartEventWorker_RemovesIncompleteFileOnErrorWithoutDBEntry(t *testing.
 
 	mgr := NewLifecycleManager(nil, nil)
 	ch := make(chan interface{}, 1)
-	ch <- events.DownloadErrorMsg{
+	ch <- types.DownloadErrorMsg{
 		DownloadID: "download-no-db",
 		Filename:   "video.mp4",
 		DestPath:   destPath,
@@ -219,7 +218,7 @@ func TestStartEventWorker_SuppressesNotificationWhenSettingDisabled(t *testing.T
 
 	mgr := NewLifecycleManager(nil, nil)
 	ch := make(chan interface{}, 1)
-	ch <- events.DownloadCompleteMsg{
+	ch <- types.DownloadCompleteMsg{
 		DownloadID: "download-1",
 		Filename:   "video.mp4",
 		Elapsed:    1 * time.Second,
@@ -277,7 +276,7 @@ func TestStartEventWorker_CompletionNotificationUsesGenericMessageWhenElapsedZer
 
 	mgr := NewLifecycleManager(nil, nil)
 	ch := make(chan interface{}, 1)
-	ch <- events.DownloadCompleteMsg{
+	ch <- types.DownloadCompleteMsg{
 		DownloadID: "download-1",
 		Filename:   "video.mp4",
 		Elapsed:    0,
@@ -322,7 +321,7 @@ func TestStartEventWorker_ErrorNotificationFallsBackToDownloadID(t *testing.T) {
 
 	mgr := NewLifecycleManager(nil, nil)
 	ch := make(chan interface{}, 1)
-	ch <- events.DownloadErrorMsg{
+	ch <- types.DownloadErrorMsg{
 		DownloadID: "download-42",
 		Filename:   "",
 		DestPath:   "",

@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/SurgeDM/Surge/internal/engine/types"
+	"github.com/SurgeDM/Surge/internal/types"
 )
 
 func TestParseRetryAfter_Seconds(t *testing.T) {

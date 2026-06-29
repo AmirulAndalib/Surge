@@ -15,9 +15,8 @@ import (
 	"github.com/SurgeDM/Surge/internal/config"
 	"github.com/SurgeDM/Surge/internal/core"
 	"github.com/SurgeDM/Surge/internal/download"
-	"github.com/SurgeDM/Surge/internal/engine/events"
-	"github.com/SurgeDM/Surge/internal/engine/types"
 	"github.com/SurgeDM/Surge/internal/processing"
+	"github.com/SurgeDM/Surge/internal/types"
 )
 
 var errTest = errors.New("test error")
@@ -88,7 +87,7 @@ func TestUpdate_DownloadStartedKeepsResuming(t *testing.T) {
 		logViewport: viewport.New(viewport.WithWidth(40), viewport.WithHeight(5)),
 	}
 
-	msg := events.DownloadStartedMsg{
+	msg := types.DownloadStartedMsg{
 		DownloadID: "id-1",
 		URL:        "http://example.com/file",
 		Filename:   "file",
@@ -123,7 +122,7 @@ func TestUpdate_DownloadStartedPropagatesRateLimit(t *testing.T) {
 		logViewport: viewport.New(viewport.WithWidth(40), viewport.WithHeight(5)),
 	}
 
-	updated, _ := m.Update(events.DownloadStartedMsg{
+	updated, _ := m.Update(types.DownloadStartedMsg{
 		DownloadID:   "id-1",
 		URL:          "http://example.com/file",
 		Filename:     "file",
@@ -146,7 +145,7 @@ func TestUpdate_DownloadStartedNewDownloadPropagatesRateLimit(t *testing.T) {
 		logViewport: viewport.New(viewport.WithWidth(40), viewport.WithHeight(5)),
 	}
 
-	updated, _ := m.Update(events.DownloadStartedMsg{
+	updated, _ := m.Update(types.DownloadStartedMsg{
 		DownloadID:   "id-1",
 		URL:          "http://example.com/file",
 		Filename:     "file",
@@ -178,7 +177,7 @@ func TestUpdate_EnqueueSuccessMergesOptimisticEntryAfterStart(t *testing.T) {
 		logViewport:        viewport.New(viewport.WithWidth(40), viewport.WithHeight(5)),
 	}
 
-	updated, _ := m.Update(events.DownloadStartedMsg{
+	updated, _ := m.Update(types.DownloadStartedMsg{
 		DownloadID: "real-1",
 		URL:        "http://example.com/file",
 		Filename:   "file.bin",
@@ -221,7 +220,7 @@ func TestUpdate_PauseResumeEventsNormalizeFlags(t *testing.T) {
 		logViewport: viewport.New(viewport.WithWidth(40), viewport.WithHeight(5)),
 	}
 
-	updated, _ := m.Update(events.DownloadPausedMsg{
+	updated, _ := m.Update(types.DownloadPausedMsg{
 		DownloadID: "id-1",
 		Filename:   "file",
 		Downloaded: 50,
@@ -232,7 +231,7 @@ func TestUpdate_PauseResumeEventsNormalizeFlags(t *testing.T) {
 		t.Fatalf("Expected paused=true and others false after DownloadPausedMsg, got paused=%v pausing=%v resuming=%v", d.paused, d.pausing, d.resuming)
 	}
 
-	updated, _ = m2.Update(events.DownloadResumedMsg{
+	updated, _ = m2.Update(types.DownloadResumedMsg{
 		DownloadID: "id-1",
 		Filename:   "file",
 	})
@@ -252,7 +251,7 @@ func TestUpdate_DownloadPausedPropagatesRateLimit(t *testing.T) {
 		logViewport: viewport.New(viewport.WithWidth(40), viewport.WithHeight(5)),
 	}
 
-	updated, _ := m.Update(events.DownloadPausedMsg{
+	updated, _ := m.Update(types.DownloadPausedMsg{
 		DownloadID:   "id-1",
 		Filename:     "file",
 		Downloaded:   50,
@@ -272,7 +271,7 @@ func TestUpdate_DownloadQueuedPropagatesRateLimit(t *testing.T) {
 		logViewport: viewport.New(viewport.WithWidth(40), viewport.WithHeight(5)),
 	}
 
-	updated, _ := m.Update(events.DownloadQueuedMsg{
+	updated, _ := m.Update(types.DownloadQueuedMsg{
 		DownloadID:   "id-1",
 		Filename:     "file",
 		URL:          "http://example.com/file",
@@ -298,7 +297,7 @@ func TestUpdate_DownloadQueuedExistingDownloadPropagatesRateLimit(t *testing.T) 
 		logViewport: viewport.New(viewport.WithWidth(40), viewport.WithHeight(5)),
 	}
 
-	updated, _ := m.Update(events.DownloadQueuedMsg{
+	updated, _ := m.Update(types.DownloadQueuedMsg{
 		DownloadID:   "id-1",
 		Filename:     "file",
 		URL:          "http://example.com/file",
@@ -323,7 +322,7 @@ func TestProcessProgressMsg_ClearsResumingOnTransfer(t *testing.T) {
 	}
 
 	// No transfer yet: keep resuming.
-	m.processProgressMsg(events.ProgressMsg{
+	m.processProgressMsg(types.ProgressMsg{
 		DownloadID: "id-1",
 		Downloaded: 50,
 		Total:      100,
@@ -334,7 +333,7 @@ func TestProcessProgressMsg_ClearsResumingOnTransfer(t *testing.T) {
 	}
 
 	// Transfer observed: clear resuming.
-	m.processProgressMsg(events.ProgressMsg{
+	m.processProgressMsg(types.ProgressMsg{
 		DownloadID: "id-1",
 		Downloaded: 60,
 		Total:      100,
@@ -356,7 +355,7 @@ func TestUpdate_DownloadComplete_UsesAverageSpeed(t *testing.T) {
 
 	elapsed := 4 * time.Second
 	avgSpeed := float64(26400000) / elapsed.Seconds()
-	updated, _ := m.Update(events.DownloadCompleteMsg{
+	updated, _ := m.Update(types.DownloadCompleteMsg{
 		DownloadID: "id-1",
 		Filename:   "file.bin",
 		Elapsed:    elapsed,
@@ -424,7 +423,7 @@ func TestUpdate_DownloadRemovedRemovesFromModelAndList(t *testing.T) {
 	}
 	m.UpdateListItems()
 
-	updated, _ := m.Update(events.DownloadRemovedMsg{
+	updated, _ := m.Update(types.DownloadRemovedMsg{
 		DownloadID: "id-1",
 		Filename:   "file",
 	})
@@ -448,7 +447,7 @@ func TestUpdate_DownloadRemoved_NoOpWhenUnknownID(t *testing.T) {
 	}
 	m.UpdateListItems()
 
-	updated, _ := m.Update(events.DownloadRemovedMsg{
+	updated, _ := m.Update(types.DownloadRemovedMsg{
 		DownloadID: "id-unknown",
 		Filename:   "file",
 	})
@@ -467,7 +466,7 @@ func TestProcessProgressMsg_UpdatesElapsed(t *testing.T) {
 	}
 
 	elapsed := 12 * time.Second
-	m.processProgressMsg(events.ProgressMsg{
+	m.processProgressMsg(types.ProgressMsg{
 		DownloadID: "id-1",
 		Downloaded: 400,
 		Total:      1000,
@@ -506,7 +505,7 @@ func TestUpdate_DownloadRequestMsg(t *testing.T) {
 	m.Settings.Extension.ExtensionPrompt.Value = true
 	m.Settings.General.WarnOnDuplicate.Value = true
 
-	msg := events.DownloadRequestMsg{
+	msg := types.DownloadRequestMsg{
 		URL:      "http://example.com/test.zip",
 		Filename: "test.zip",
 		Path:     "/tmp/downloads",
@@ -573,12 +572,12 @@ func TestUpdate_DownloadRequestMsg_QueuesWhileConfirmationActive(t *testing.T) {
 	}
 	m.Settings.Extension.ExtensionPrompt.Value = true
 
-	first := events.DownloadRequestMsg{
+	first := types.DownloadRequestMsg{
 		URL:      "https://example.com/first.zip",
 		Filename: "first.zip",
 		Path:     "/tmp/downloads",
 	}
-	second := events.DownloadRequestMsg{
+	second := types.DownloadRequestMsg{
 		URL:      "https://example.com/second.zip",
 		Filename: "second.zip",
 		Path:     "/tmp/downloads",
@@ -619,14 +618,14 @@ func TestUpdate_BatchDownloadRequestMsg_QueuesWhileConfirmationActive(t *testing
 	}
 	m.Settings.Extension.ExtensionPrompt.Value = true
 
-	first := events.DownloadRequestMsg{
+	first := types.DownloadRequestMsg{
 		URL:      "https://example.com/first.zip",
 		Filename: "first.zip",
 		Path:     "/tmp/downloads",
 	}
-	batch := events.BatchDownloadRequestMsg{
+	batch := types.BatchDownloadRequestMsg{
 		Path: "/tmp/batch",
-		Requests: []events.DownloadRequestMsg{
+		Requests: []types.DownloadRequestMsg{
 			{URL: "https://example.com/one.zip", Path: "/tmp/batch"},
 			{URL: "https://example.com/two.zip", Path: "/tmp/batch"},
 		},

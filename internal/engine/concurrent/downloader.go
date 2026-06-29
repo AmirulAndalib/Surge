@@ -15,9 +15,8 @@ import (
 	"time"
 
 	"github.com/SurgeDM/Surge/internal/engine"
-	"github.com/SurgeDM/Surge/internal/engine/events"
 	"github.com/SurgeDM/Surge/internal/engine/state"
-	"github.com/SurgeDM/Surge/internal/engine/types"
+	"github.com/SurgeDM/Surge/internal/types"
 	"github.com/SurgeDM/Surge/internal/utils"
 )
 
@@ -621,7 +620,7 @@ func (d *ConcurrentDownloader) handlePause(destPath string, fileSize int64, queu
 		MinChunkSize:    d.Runtime.MinChunkSize,
 	}
 	if d.ProgressChan != nil {
-		d.ProgressChan <- events.DownloadPausedMsg{
+		d.ProgressChan <- types.DownloadPausedMsg{
 			DownloadID:   d.ID,
 			Filename:     filepath.Base(destPath),
 			Downloaded:   computedDownloaded,

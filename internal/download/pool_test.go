@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/SurgeDM/Surge/internal/engine"
-	"github.com/SurgeDM/Surge/internal/engine/types"
+	"github.com/SurgeDM/Surge/internal/types"
 )
 
 func TestNewWorkerPool(t *testing.T) {
@@ -459,7 +459,7 @@ func TestWorkerPool_Cancel_QueuedDownload_RemovesFromQueueAndReturnsResult(t *te
 
 // Resume orchestration (hot/cold path, DB hydration, event emission) was promoted to
 // LifecycleManager so the pool remains a pure executor with no knowledge of persistence
-// or events. Tests for pool-level extraction live below; LifecycleManager integration
+// or types. Tests for pool-level extraction live below; LifecycleManager integration
 // tests live in internal/processing/manager_test.go (see TestLifecycleManager_Cancel_NotFound).
 
 func TestWorkerPool_GracefulShutdown_PausesAll(t *testing.T) {

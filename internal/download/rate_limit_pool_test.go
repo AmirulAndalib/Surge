@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/SurgeDM/Surge/internal/engine"
-	"github.com/SurgeDM/Surge/internal/engine/types"
+	"github.com/SurgeDM/Surge/internal/types"
 )
 
 // TestWorkerPool_RateLimit_QueuedUpdateHonored ensures that a per-download

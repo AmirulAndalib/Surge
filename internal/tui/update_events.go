@@ -7,8 +7,8 @@ import (
 
 	"charm.land/bubbles/v2/spinner"
 	tea "charm.land/bubbletea/v2"
-	"github.com/SurgeDM/Surge/internal/engine/events"
 	"github.com/SurgeDM/Surge/internal/tui/components"
+	"github.com/SurgeDM/Surge/internal/types"
 	"github.com/SurgeDM/Surge/internal/utils"
 )
 
@@ -102,13 +102,13 @@ func (m RootModel) updateEvents(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.addLogEntry(LogStyleError.Render("\u2716 Failed to enqueue download: " + msg.err.Error()))
 		return m, nil
 
-	case events.DownloadRequestMsg:
+	case types.DownloadRequestMsg:
 		return m.handleDownloadRequestMsg(msg, true)
 
-	case events.BatchDownloadRequestMsg:
+	case types.BatchDownloadRequestMsg:
 		return m.handleBatchDownloadRequestMsg(msg, true)
 
-	case events.DownloadStartedMsg:
+	case types.DownloadStartedMsg:
 
 		found := false
 		if d := m.FindDownloadByID(msg.DownloadID); d != nil {
@@ -155,11 +155,11 @@ func (m RootModel) updateEvents(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.addLogEntry(LogStyleStarted.Render("\u2b07 Started: " + msg.Filename))
 			return m, m.spinner.Tick
 		}
-	case events.ProgressMsg:
+	case types.ProgressMsg:
 		cmd := m.processProgressMsg(msg)
 		return m, cmd
 
-	case events.BatchProgressMsg:
+	case types.BatchProgressMsg:
 		var cmds []tea.Cmd
 		for _, bm := range msg {
 			cmds = append(cmds, m.processProgressMsg(bm))
@@ -167,7 +167,7 @@ func (m RootModel) updateEvents(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Only update UI once per batch
 		return m, tea.Batch(cmds...)
 
-	case events.DownloadCompleteMsg:
+	case types.DownloadCompleteMsg:
 
 		var cmds []tea.Cmd
 
@@ -192,7 +192,7 @@ func (m RootModel) updateEvents(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.UpdateListItems()
 		return m, tea.Batch(cmds...)
 
-	case events.DownloadErrorMsg:
+	case types.DownloadErrorMsg:
 		found := false
 		if d := m.FindDownloadByID(msg.DownloadID); d != nil {
 			d.err = msg.Err
@@ -210,7 +210,7 @@ func (m RootModel) updateEvents(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.UpdateListItems()
 		return m, nil
 
-	case events.DownloadPausedMsg:
+	case types.DownloadPausedMsg:
 		if d := m.FindDownloadByID(msg.DownloadID); d != nil {
 			d.paused = true
 			d.pausing = false
@@ -224,7 +224,7 @@ func (m RootModel) updateEvents(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.UpdateListItems()
 		return m, nil
 
-	case events.DownloadResumedMsg:
+	case types.DownloadResumedMsg:
 		if d := m.FindDownloadByID(msg.DownloadID); d != nil {
 			d.paused = false
 			d.pausing = false
@@ -234,7 +234,7 @@ func (m RootModel) updateEvents(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.UpdateListItems()
 		return m, m.spinner.Tick
 
-	case events.DownloadQueuedMsg:
+	case types.DownloadQueuedMsg:
 		// We optimistically added it, but if it came from elsewhere, handle it
 		found := false
 		if d := m.FindDownloadByID(msg.DownloadID); d != nil {
@@ -255,7 +255,7 @@ func (m RootModel) updateEvents(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 
-	case events.DownloadRemovedMsg:
+	case types.DownloadRemovedMsg:
 		if m.removeDownloadByID(msg.DownloadID) {
 			if msg.Filename != "" {
 				m.addLogEntry(LogStyleError.Render("\u2716 Removed: " + msg.Filename))
@@ -264,7 +264,7 @@ func (m RootModel) updateEvents(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 
-	case events.SystemLogMsg:
+	case types.SystemLogMsg:
 		if msg.Message != "" {
 			m.addLogEntry(LogStyleStarted.Render("\u2139 " + msg.Message))
 		}

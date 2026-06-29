@@ -21,11 +21,10 @@ import (
 
 	"github.com/SurgeDM/Surge/internal/config"
 	"github.com/SurgeDM/Surge/internal/core"
-	"github.com/SurgeDM/Surge/internal/engine/events"
-	"github.com/SurgeDM/Surge/internal/engine/types"
 	"github.com/SurgeDM/Surge/internal/processing"
 	"github.com/SurgeDM/Surge/internal/tui/colors"
 	"github.com/SurgeDM/Surge/internal/tui/components"
+	"github.com/SurgeDM/Surge/internal/types"
 	"github.com/SurgeDM/Surge/internal/version"
 )
 
@@ -191,9 +190,9 @@ type RootModel struct {
 
 	// Batch import
 	pendingBatchURLs         []string // URLs pending batch import
-	pendingBatchRequests     []events.DownloadRequestMsg
-	pendingRequestQueue      []events.DownloadRequestMsg
-	pendingBatchRequestQueue []events.BatchDownloadRequestMsg
+	pendingBatchRequests     []types.DownloadRequestMsg
+	pendingRequestQueue      []types.DownloadRequestMsg
+	pendingBatchRequestQueue []types.BatchDownloadRequestMsg
 	batchFilePath            string // Path to the batch file
 
 	// URL Refresh

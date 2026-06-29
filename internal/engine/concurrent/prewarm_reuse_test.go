@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	"github.com/SurgeDM/Surge/internal/engine"
-	"github.com/SurgeDM/Surge/internal/engine/types"
 	"github.com/SurgeDM/Surge/internal/testutil"
+	"github.com/SurgeDM/Surge/internal/types"
 	"github.com/SurgeDM/Surge/internal/utils"
 )
 

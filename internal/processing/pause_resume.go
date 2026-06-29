@@ -5,9 +5,8 @@ import (
 	"time"
 
 	"github.com/SurgeDM/Surge/internal/config"
-	"github.com/SurgeDM/Surge/internal/engine/events"
 	"github.com/SurgeDM/Surge/internal/engine/state"
-	"github.com/SurgeDM/Surge/internal/engine/types"
+	"github.com/SurgeDM/Surge/internal/types"
 	"github.com/SurgeDM/Surge/internal/utils"
 )
 
@@ -49,7 +48,7 @@ func (mgr *LifecycleManager) Pause(id string) error {
 	entry, err := state.GetDownload(id)
 	if err == nil && entry != nil {
 		if hooks.PublishEvent != nil {
-			_ = hooks.PublishEvent(events.DownloadPausedMsg{
+			_ = hooks.PublishEvent(types.DownloadPausedMsg{
 				DownloadID:   id,
 				Filename:     entry.Filename,
 				Downloaded:   entry.Downloaded,
@@ -106,7 +105,7 @@ func (mgr *LifecycleManager) Resume(id string) error {
 				hooks.AddConfig(*cfg)
 			}
 			if hooks.PublishEvent != nil {
-				_ = hooks.PublishEvent(events.DownloadResumedMsg{
+				_ = hooks.PublishEvent(types.DownloadResumedMsg{
 					DownloadID: id,
 					Filename:   cfg.Filename,
 				})
@@ -143,7 +142,7 @@ func (mgr *LifecycleManager) Resume(id string) error {
 		hooks.AddConfig(cfg)
 	}
 	if hooks.PublishEvent != nil {
-		_ = hooks.PublishEvent(events.DownloadResumedMsg{
+		_ = hooks.PublishEvent(types.DownloadResumedMsg{
 			DownloadID: id,
 			Filename:   entry.Filename,
 		})
@@ -184,7 +183,7 @@ func (mgr *LifecycleManager) ResumeBatch(ids []string) []error {
 					hooks.AddConfig(*cfg)
 				}
 				if hooks.PublishEvent != nil {
-					_ = hooks.PublishEvent(events.DownloadResumedMsg{
+					_ = hooks.PublishEvent(types.DownloadResumedMsg{
 						DownloadID: id,
 						Filename:   cfg.Filename,
 					})
@@ -225,7 +224,7 @@ func (mgr *LifecycleManager) ResumeBatch(ids []string) []error {
 			hooks.AddConfig(cfg)
 		}
 		if hooks.PublishEvent != nil {
-			_ = hooks.PublishEvent(events.DownloadResumedMsg{
+			_ = hooks.PublishEvent(types.DownloadResumedMsg{
 				DownloadID: id,
 				Filename:   savedState.Filename,
 			})
@@ -280,7 +279,7 @@ func (mgr *LifecycleManager) Cancel(id string) error {
 
 	// Emit removal event - event worker handles DB deletion and file cleanup.
 	if hooks.PublishEvent != nil {
-		_ = hooks.PublishEvent(events.DownloadRemovedMsg{
+		_ = hooks.PublishEvent(types.DownloadRemovedMsg{
 			DownloadID: id,
 			Filename:   filename,
 			DestPath:   destPath,

@@ -14,9 +14,8 @@ import (
 	"net/url"
 
 	"github.com/SurgeDM/Surge/internal/config"
-	"github.com/SurgeDM/Surge/internal/engine/events"
-	"github.com/SurgeDM/Surge/internal/engine/types"
 	probing "github.com/SurgeDM/Surge/internal/probe"
+	"github.com/SurgeDM/Surge/internal/types"
 
 	"github.com/SurgeDM/Surge/internal/utils"
 )
@@ -351,7 +350,7 @@ func (mgr *LifecycleManager) enqueueResolved(ctx context.Context, req *DownloadR
 					rateLimit = parsed
 				}
 			}
-			_ = hooks.PublishEvent(events.DownloadQueuedMsg{
+			_ = hooks.PublishEvent(types.DownloadQueuedMsg{
 				DownloadID:   newID,
 				Filename:     finalFilename,
 				URL:          req.URL,

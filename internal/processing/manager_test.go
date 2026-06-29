@@ -14,10 +14,9 @@ import (
 	"time"
 
 	"github.com/SurgeDM/Surge/internal/config"
-	"github.com/SurgeDM/Surge/internal/engine/events"
 	"github.com/SurgeDM/Surge/internal/engine/state"
-	"github.com/SurgeDM/Surge/internal/engine/types"
 	"github.com/SurgeDM/Surge/internal/testutil"
+	"github.com/SurgeDM/Surge/internal/types"
 )
 
 func newProbeTestServer(t *testing.T, size int64) *httptest.Server {
@@ -685,7 +684,7 @@ func TestLifecycleManager_Resume_HotPath(t *testing.T) {
 	if publishedEvent == nil {
 		t.Fatal("Expected PublishEvent to be called")
 	}
-	msg, ok := publishedEvent.(events.DownloadResumedMsg)
+	msg, ok := publishedEvent.(types.DownloadResumedMsg)
 	if !ok {
 		t.Fatalf("Expected DownloadResumedMsg, got %T", publishedEvent)
 	}
@@ -866,7 +865,7 @@ func TestLifecycleManager_Cancel_FromPool(t *testing.T) {
 	if publishedMsg == nil {
 		t.Fatal("Expected DownloadRemovedMsg to be published")
 	}
-	removed, ok := publishedMsg.(events.DownloadRemovedMsg)
+	removed, ok := publishedMsg.(types.DownloadRemovedMsg)
 	if !ok {
 		t.Fatalf("Expected DownloadRemovedMsg, got %T", publishedMsg)
 	}
@@ -903,7 +902,7 @@ func TestLifecycleManager_Cancel_DBOnly(t *testing.T) {
 		t.Fatalf("Cancel failed: %v", err)
 	}
 
-	removed, ok := publishedMsg.(events.DownloadRemovedMsg)
+	removed, ok := publishedMsg.(types.DownloadRemovedMsg)
 	if !ok {
 		t.Fatalf("Expected DownloadRemovedMsg, got %T", publishedMsg)
 	}
@@ -940,7 +939,7 @@ func TestLifecycleManager_Cancel_Completed(t *testing.T) {
 		t.Fatalf("Cancel failed: %v", err)
 	}
 
-	removed, ok := publishedMsg.(events.DownloadRemovedMsg)
+	removed, ok := publishedMsg.(types.DownloadRemovedMsg)
 	if !ok {
 		t.Fatalf("Expected DownloadRemovedMsg, got %T", publishedMsg)
 	}

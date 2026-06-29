@@ -8,9 +8,8 @@ import (
 	"time"
 
 	"github.com/SurgeDM/Surge/internal/config"
-	"github.com/SurgeDM/Surge/internal/engine/events"
 	"github.com/SurgeDM/Surge/internal/engine/state"
-	"github.com/SurgeDM/Surge/internal/engine/types"
+	"github.com/SurgeDM/Surge/internal/types"
 	"github.com/SurgeDM/Surge/internal/utils"
 )
 
@@ -77,7 +76,7 @@ func (mgr *LifecycleManager) StartEventWorker(ch <-chan interface{}) {
 	for msg := range ch {
 		switch m := msg.(type) {
 
-		case events.DownloadStartedMsg:
+		case types.DownloadStartedMsg:
 			// Persist the started record immediately so crash recovery and later lifecycle
 			// events have a stable destination record even before the first pause snapshot.
 			entry := types.DownloadEntry{
@@ -107,7 +106,7 @@ func (mgr *LifecycleManager) StartEventWorker(ch <-chan interface{}) {
 				utils.Debug("Lifecycle: Failed to save initial download state: %v", err)
 			}
 
-		case events.DownloadPausedMsg:
+		case types.DownloadPausedMsg:
 			if m.State == nil {
 				existing, _ := state.GetDownload(m.DownloadID)
 				if existing == nil {
@@ -210,7 +209,7 @@ func (mgr *LifecycleManager) StartEventWorker(ch <-chan interface{}) {
 				utils.Debug("Lifecycle: Skipping SaveState for %s: destPath=%q url=%q", m.DownloadID, destPath, url)
 			}
 
-		case events.DownloadCompleteMsg:
+		case types.DownloadCompleteMsg:
 			var avgSpeed float64
 			if m.Elapsed.Seconds() > 0 {
 				avgSpeed = float64(m.Total) / m.Elapsed.Seconds()
@@ -312,7 +311,7 @@ func (mgr *LifecycleManager) StartEventWorker(ch <-chan interface{}) {
 				}
 			}
 
-		case events.DownloadErrorMsg:
+		case types.DownloadErrorMsg:
 			existing, _ := state.GetDownload(m.DownloadID)
 			destPath := m.DestPath
 			if existing != nil {
@@ -347,7 +346,7 @@ func (mgr *LifecycleManager) StartEventWorker(ch <-chan interface{}) {
 				notify(fmt.Sprintf("Download failed: %s", filename), msg)
 			}
 
-		case events.DownloadRemovedMsg:
+		case types.DownloadRemovedMsg:
 			// Remove resume metadata before touching files so a deleted download does not
 			// come back during startup recovery. DeleteState atomically removes both the
 			// detail gob and the master list entry, so no separate RemoveFromMasterList call
@@ -364,7 +363,7 @@ func (mgr *LifecycleManager) StartEventWorker(ch <-chan interface{}) {
 				}
 			}
 
-		case events.DownloadQueuedMsg:
+		case types.DownloadQueuedMsg:
 			// Queue persistence is what lets downloads survive shutdown before any worker
 			// has emitted a started event.
 			if err := state.AddToMasterList(types.DownloadEntry{
@@ -383,7 +382,7 @@ func (mgr *LifecycleManager) StartEventWorker(ch <-chan interface{}) {
 				utils.Debug("Lifecycle: Failed to persist queued download: %v", err)
 			}
 
-		case events.BatchProgressMsg, events.ProgressMsg:
+		case types.BatchProgressMsg, types.ProgressMsg:
 			// Progress ticks are intentionally transient; persisting them would add
 			// file I/O churn without improving resume or history recovery.
 		}

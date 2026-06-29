@@ -15,11 +15,10 @@ import (
 	"github.com/SurgeDM/Surge/internal/config"
 	"github.com/SurgeDM/Surge/internal/core"
 	"github.com/SurgeDM/Surge/internal/download"
-	"github.com/SurgeDM/Surge/internal/engine/events"
 	"github.com/SurgeDM/Surge/internal/engine/state"
-	"github.com/SurgeDM/Surge/internal/engine/types"
 	"github.com/SurgeDM/Surge/internal/processing"
 	"github.com/SurgeDM/Surge/internal/testutil"
+	"github.com/SurgeDM/Surge/internal/types"
 )
 
 type countingLifecycleService struct {
@@ -47,7 +46,7 @@ func (s *countingLifecycleService) UpdateURL(string, string) error { return nil 
 func (s *countingLifecycleService) Delete(string) error            { return nil }
 func (s *countingLifecycleService) Purge(string) error             { return nil }
 func (s *countingLifecycleService) Publish(msg interface{}) error {
-	if log, ok := msg.(events.SystemLogMsg); ok {
+	if log, ok := msg.(types.SystemLogMsg); ok {
 		s.cleanupMu.Lock()
 		s.logs = append(s.logs, log.Message)
 		s.cleanupMu.Unlock()

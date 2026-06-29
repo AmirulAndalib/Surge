@@ -9,8 +9,8 @@ import (
 	"github.com/SurgeDM/Surge/internal/config"
 	"github.com/SurgeDM/Surge/internal/core"
 	"github.com/SurgeDM/Surge/internal/download"
-	"github.com/SurgeDM/Surge/internal/engine/events"
 	"github.com/SurgeDM/Surge/internal/processing"
+	"github.com/SurgeDM/Surge/internal/types"
 )
 
 func newOverrideTestModel(t *testing.T, addFunc processing.AddDownloadFunc) RootModel {
@@ -59,7 +59,7 @@ func TestOverride_ExtensionConfirmPreservesWorkersAndMinChunkSize(t *testing.T) 
 	m.Settings.Extension.ExtensionPrompt.Value = true
 	m.Settings.General.WarnOnDuplicate.Value = false
 
-	msg := events.DownloadRequestMsg{
+	msg := types.DownloadRequestMsg{
 		URL:          "http://example.com/file.zip",
 		Filename:     "file.zip",
 		Path:         t.TempDir(),
@@ -114,7 +114,7 @@ func TestOverride_DuplicateContinuePreservesWorkersAndMinChunkSize(t *testing.T)
 		Filename: "file.zip",
 	})
 
-	msg := events.DownloadRequestMsg{
+	msg := types.DownloadRequestMsg{
 		URL:          "http://example.com/file.zip",
 		Filename:     "file.zip",
 		Path:         t.TempDir(),
@@ -218,9 +218,9 @@ func TestOverride_BatchConfirmPreservesWorkersAndMinChunkSize(t *testing.T) {
 	m.Settings.General.WarnOnDuplicate.Value = false
 
 	batchPath := t.TempDir()
-	batchMsg := events.BatchDownloadRequestMsg{
+	batchMsg := types.BatchDownloadRequestMsg{
 		Path: batchPath,
-		Requests: []events.DownloadRequestMsg{
+		Requests: []types.DownloadRequestMsg{
 			{URL: "http://example.com/one.zip", Filename: "one.zip", Path: batchPath, Workers: 2, MinChunkSize: 256 * 1024},
 			{URL: "http://example.com/two.zip", Filename: "two.zip", Path: batchPath, Workers: 6, MinChunkSize: 1 << 20},
 		},

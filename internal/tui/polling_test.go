@@ -9,10 +9,9 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"github.com/SurgeDM/Surge/internal/core"
 	"github.com/SurgeDM/Surge/internal/download"
-	"github.com/SurgeDM/Surge/internal/engine/events"
 	"github.com/SurgeDM/Surge/internal/engine/state"
-	"github.com/SurgeDM/Surge/internal/engine/types"
 	"github.com/SurgeDM/Surge/internal/processing"
+	"github.com/SurgeDM/Surge/internal/types"
 )
 
 // TestStateSync verifies that the TUI uses the shared state object
@@ -47,7 +46,7 @@ func TestStateSync(t *testing.T) {
 		// Current implementation of DownloadStartedMsg doesn't carry state
 		// So TUI will create its own state (BUG).
 		time.Sleep(200 * time.Millisecond)
-		p.Send(events.DownloadStartedMsg{
+		p.Send(types.DownloadStartedMsg{
 			DownloadID: downloadID,
 			Filename:   "external.file",
 			Total:      1000,
@@ -60,7 +59,7 @@ func TestStateSync(t *testing.T) {
 		// Note: The ProgressReporter reads from VerifiedProgress (via GetProgress)
 		time.Sleep(300 * time.Millisecond)
 		workerState.VerifiedProgress.Store(500)
-		p.Send(events.ProgressMsg{
+		p.Send(types.ProgressMsg{
 			DownloadID: downloadID,
 			Downloaded: 500,
 			Total:      1000,

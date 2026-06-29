@@ -1,11 +1,9 @@
-package events
+package types
 
 import (
 	"encoding/json"
 	"errors"
 	"time"
-
-	"github.com/SurgeDM/Surge/internal/engine/types"
 )
 
 // ProgressMsg represents a progress update from the downloader
@@ -105,8 +103,8 @@ type DownloadStartedMsg struct {
 	URL          string
 	Filename     string
 	Total        int64
-	DestPath     string               // Full path to the destination file
-	State        *types.ProgressState `json:"-"`
+	DestPath     string         // Full path to the destination file
+	State        *ProgressState `json:"-"`
 	RateLimit    int64
 	RateLimitSet bool
 	Workers      int
@@ -117,7 +115,7 @@ type DownloadPausedMsg struct {
 	DownloadID   string
 	Filename     string
 	Downloaded   int64
-	State        *types.DownloadState `json:"-"`
+	State        *DownloadState `json:"-"`
 	RateLimit    int64
 	RateLimitSet bool
 	Workers      int
@@ -197,7 +195,7 @@ type SSEMessage struct {
 }
 
 // EncodeSSEMessages converts an event payload into one or more SSE messages.
-// BatchProgressMsg is flattened into multiple "progress" events.
+// BatchProgressMsg is flattened into multiple "progress" types.
 func EncodeSSEMessages(msg interface{}) ([]SSEMessage, error) {
 	switch m := msg.(type) {
 	case BatchProgressMsg:

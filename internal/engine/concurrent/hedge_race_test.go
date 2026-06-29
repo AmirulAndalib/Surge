@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/SurgeDM/Surge/internal/engine/types"
+	"github.com/SurgeDM/Surge/internal/types"
 )
 
 // TestHedgeSharedMaxOffsetRace exercises concurrent hedging and pointer reads.

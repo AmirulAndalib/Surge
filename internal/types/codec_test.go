@@ -1,4 +1,4 @@
-package events
+package types
 
 import (
 	"encoding/json"

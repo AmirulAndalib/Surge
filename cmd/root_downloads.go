@@ -11,9 +11,8 @@ import (
 
 	"github.com/SurgeDM/Surge/internal/config"
 	"github.com/SurgeDM/Surge/internal/core"
-	"github.com/SurgeDM/Surge/internal/engine/events"
-	"github.com/SurgeDM/Surge/internal/engine/types"
 	"github.com/SurgeDM/Surge/internal/processing"
+	"github.com/SurgeDM/Surge/internal/types"
 	"github.com/SurgeDM/Surge/internal/utils"
 	"github.com/google/uuid"
 )
@@ -174,7 +173,7 @@ func handleBatchDownload(w http.ResponseWriter, r *http.Request, defaultOutputDi
 
 	settings := getSettings()
 	sharedPath := utils.EnsureAbsPath(resolveOutputDir(req.Path, false, defaultOutputDir, settings))
-	requests := make([]events.DownloadRequestMsg, 0, len(req.Downloads))
+	requests := make([]types.DownloadRequestMsg, 0, len(req.Downloads))
 
 	for _, item := range req.Downloads {
 		if item.Path == "" {
@@ -188,7 +187,7 @@ func handleBatchDownload(w http.ResponseWriter, r *http.Request, defaultOutputDi
 		}
 		urlForAdd, mirrorsForAdd := normalizeDownloadTargets(validated.URL, validated.Mirrors)
 		itemPath := utils.EnsureAbsPath(resolveOutputDir(validated.Path, validated.RelativeToDefaultDir, defaultOutputDir, settings))
-		requests = append(requests, events.DownloadRequestMsg{
+		requests = append(requests, types.DownloadRequestMsg{
 			ID:           uuid.New().String(),
 			URL:          urlForAdd,
 			Filename:     validated.Filename,
@@ -209,7 +208,7 @@ func handleBatchDownload(w http.ResponseWriter, r *http.Request, defaultOutputDi
 			return
 		}
 		batchID := uuid.New().String()
-		if err := service.Publish(events.BatchDownloadRequestMsg{
+		if err := service.Publish(types.BatchDownloadRequestMsg{
 			ID:       batchID,
 			Path:     sharedPath,
 			Requests: requests,
@@ -352,7 +351,7 @@ func maybeRequireDownloadApproval(w http.ResponseWriter, service core.DownloadSe
 		utils.Debug("Requesting TUI confirmation for: %s (Duplicate: %v)", req.URL, resolved.isDuplicate)
 
 		downloadID := uuid.New().String()
-		if err := service.Publish(events.DownloadRequestMsg{
+		if err := service.Publish(types.DownloadRequestMsg{
 			ID:           downloadID,
 			URL:          resolved.urlForAdd,
 			Filename:     req.Filename,

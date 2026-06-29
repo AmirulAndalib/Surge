@@ -13,8 +13,7 @@ import (
 
 	"github.com/SurgeDM/Surge/internal/config"
 	"github.com/SurgeDM/Surge/internal/core"
-	"github.com/SurgeDM/Surge/internal/engine/events"
-	"github.com/SurgeDM/Surge/internal/engine/types"
+	"github.com/SurgeDM/Surge/internal/types"
 	"github.com/SurgeDM/Surge/internal/utils"
 )
 
@@ -322,7 +321,7 @@ func eventsHandler(service core.DownloadService) http.HandlerFunc {
 					return
 				}
 
-				frames, err := events.EncodeSSEMessages(msg)
+				frames, err := types.EncodeSSEMessages(msg)
 				if err != nil {
 					utils.Debug("Error encoding SSE event: %v", err)
 					continue

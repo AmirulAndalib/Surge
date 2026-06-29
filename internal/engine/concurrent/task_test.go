@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/SurgeDM/Surge/internal/engine/types"
+	"github.com/SurgeDM/Surge/internal/types"
 )
 
 func TestActiveTask_RemainingBytes(t *testing.T) {

@@ -4,8 +4,7 @@ import (
 	"testing"
 
 	"charm.land/bubbles/v2/viewport"
-	"github.com/SurgeDM/Surge/internal/engine/events"
-	"github.com/SurgeDM/Surge/internal/engine/types"
+	"github.com/SurgeDM/Surge/internal/types"
 )
 
 func TestAutoFollow_BrandNewDownload(t *testing.T) {
@@ -16,7 +15,7 @@ func TestAutoFollow_BrandNewDownload(t *testing.T) {
 		logViewport: viewport.New(viewport.WithWidth(40), viewport.WithHeight(5)),
 	}
 
-	msg := events.DownloadStartedMsg{
+	msg := types.DownloadStartedMsg{
 		DownloadID: "new-1",
 		Filename:   "new-file",
 		Total:      100,
@@ -46,7 +45,7 @@ func TestAutoFollow_ExistingDownloadRestart(t *testing.T) {
 		logViewport: viewport.New(viewport.WithWidth(40), viewport.WithHeight(5)),
 	}
 
-	msg := events.DownloadStartedMsg{
+	msg := types.DownloadStartedMsg{
 		DownloadID: "existing-1",
 		Filename:   "file",
 		Total:      100,
@@ -69,7 +68,7 @@ func TestAutoFollow_SuppressedByPin(t *testing.T) {
 		logViewport: viewport.New(viewport.WithWidth(40), viewport.WithHeight(5)),
 	}
 
-	msg := events.DownloadStartedMsg{
+	msg := types.DownloadStartedMsg{
 		DownloadID: "new-1",
 		Filename:   "new-file",
 		Total:      100,
@@ -101,7 +100,7 @@ func TestAutoFollow_QueuedToActiveTransition(t *testing.T) {
 	// Update list to reflect initial state
 	m.UpdateListItems()
 
-	msg := events.DownloadStartedMsg{
+	msg := types.DownloadStartedMsg{
 		DownloadID: "id-1",
 		Filename:   "file",
 		Total:      100,

@@ -9,12 +9,12 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/SurgeDM/Surge/internal/config"
-	"github.com/SurgeDM/Surge/internal/engine/events"
 	"github.com/SurgeDM/Surge/internal/processing"
+	"github.com/SurgeDM/Surge/internal/types"
 	"github.com/SurgeDM/Surge/internal/utils"
 )
 
-func (m *RootModel) processProgressMsg(msg events.ProgressMsg) tea.Cmd {
+func (m *RootModel) processProgressMsg(msg types.ProgressMsg) tea.Cmd {
 	d := m.FindDownloadByID(msg.DownloadID)
 	if d == nil || d.done || d.paused {
 		return nil

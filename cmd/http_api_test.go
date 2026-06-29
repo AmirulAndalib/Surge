@@ -13,8 +13,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"github.com/SurgeDM/Surge/internal/config"
 	"github.com/SurgeDM/Surge/internal/core"
-	"github.com/SurgeDM/Surge/internal/engine/events"
-	"github.com/SurgeDM/Surge/internal/engine/types"
+	"github.com/SurgeDM/Surge/internal/types"
 )
 
 type httpAPITestService struct {
@@ -244,7 +243,7 @@ func TestHistoryEndpoint_SortsMostRecentFirst(t *testing.T) {
 func TestEventsEndpoint_RequiresAuthAndStreamsSSE(t *testing.T) {
 	service := &httpAPITestService{
 		streamMsgs: []interface{}{
-			events.DownloadQueuedMsg{
+			types.DownloadQueuedMsg{
 				DownloadID: "queue-1",
 				Filename:   "archive.zip",
 				URL:        "https://example.com/archive.zip",
@@ -329,7 +328,7 @@ func TestHandleBatchDownload_ConfirmPublishesSingleBatchRequest(t *testing.T) {
 	if len(service.published) != 1 {
 		t.Fatalf("expected 1 published message, got %d", len(service.published))
 	}
-	msg, ok := service.published[0].(events.BatchDownloadRequestMsg)
+	msg, ok := service.published[0].(types.BatchDownloadRequestMsg)
 	if !ok {
 		t.Fatalf("expected BatchDownloadRequestMsg, got %T", service.published[0])
 	}

@@ -8,8 +8,7 @@ import (
 	"time"
 
 	"github.com/SurgeDM/Surge/internal/engine"
-	"github.com/SurgeDM/Surge/internal/engine/events"
-	"github.com/SurgeDM/Surge/internal/engine/types"
+	"github.com/SurgeDM/Surge/internal/types"
 	"github.com/SurgeDM/Surge/internal/utils"
 )
 
@@ -648,7 +647,7 @@ func (p *WorkerPool) worker() {
 					minChunkSize = localCfg.Runtime.MinChunkSize
 				}
 				rateLimit, rateLimitSet = localCfg.RateLimitBps, localCfg.RateLimitSet
-				safeSendProgress(localCfg.ProgressCh, events.DownloadPausedMsg{
+				safeSendProgress(localCfg.ProgressCh, types.DownloadPausedMsg{
 					DownloadID:   localCfg.ID,
 					Filename:     localCfg.Filename,
 					Downloaded:   downloaded,

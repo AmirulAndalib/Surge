@@ -10,9 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/SurgeDM/Surge/internal/engine/events"
-	"github.com/SurgeDM/Surge/internal/engine/types"
 	"github.com/SurgeDM/Surge/internal/testutil"
+	"github.com/SurgeDM/Surge/internal/types"
 )
 
 func TestUniqueFilePath(t *testing.T) {
@@ -182,7 +181,7 @@ func TestRunDownload_StartedEventUsesFullDestPath(t *testing.T) {
 	for {
 		select {
 		case msg := <-progressCh:
-			started, ok := msg.(events.DownloadStartedMsg)
+			started, ok := msg.(types.DownloadStartedMsg)
 			if !ok {
 				continue
 			}
@@ -242,7 +241,7 @@ func TestRunDownload_ConcurrentBootstrapWithoutProbeMetadata(t *testing.T) {
 	foundComplete := false
 	for len(progressCh) > 0 {
 		msg := <-progressCh
-		complete, ok := msg.(events.DownloadCompleteMsg)
+		complete, ok := msg.(types.DownloadCompleteMsg)
 		if !ok {
 			continue
 		}
@@ -310,7 +309,7 @@ func TestRunDownload_OptimisticConcurrentFallsBackToSingle(t *testing.T) {
 	foundComplete := false
 	for len(progressCh) > 0 {
 		msg := <-progressCh
-		complete, ok := msg.(events.DownloadCompleteMsg)
+		complete, ok := msg.(types.DownloadCompleteMsg)
 		if !ok {
 			continue
 		}

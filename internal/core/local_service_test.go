@@ -13,10 +13,9 @@ import (
 	"time"
 
 	"github.com/SurgeDM/Surge/internal/download"
-	"github.com/SurgeDM/Surge/internal/engine/events"
 	"github.com/SurgeDM/Surge/internal/engine/state"
-	"github.com/SurgeDM/Surge/internal/engine/types"
 	"github.com/SurgeDM/Surge/internal/testutil"
+	"github.com/SurgeDM/Surge/internal/types"
 )
 
 func TestLocalDownloadService_Delete_DBOnlyBroadcastsRemoved(t *testing.T) {
@@ -70,7 +69,7 @@ func TestLocalDownloadService_Delete_DBOnlyBroadcastsRemoved(t *testing.T) {
 	for !gotRemoved {
 		select {
 		case msg := <-streamCh:
-			if m, ok := msg.(events.DownloadRemovedMsg); ok && m.DownloadID == id {
+			if m, ok := msg.(types.DownloadRemovedMsg); ok && m.DownloadID == id {
 				gotRemoved = true
 			}
 		case <-deadline:
@@ -206,7 +205,7 @@ func TestLocalDownloadService_Shutdown_WaitsForBroadcastDrain(t *testing.T) {
 	defer cleanup()
 
 	for range 101 {
-		if err := svc.Publish(events.SystemLogMsg{Message: "queued"}); err != nil {
+		if err := svc.Publish(types.SystemLogMsg{Message: "queued"}); err != nil {
 			t.Fatalf("failed to publish event: %v", err)
 		}
 	}
@@ -463,7 +462,7 @@ func TestLocalDownloadService_BatchProgress(t *testing.T) {
 	for !gotBatch {
 		select {
 		case msg := <-streamCh:
-			if _, ok := msg.(events.BatchProgressMsg); ok {
+			if _, ok := msg.(types.BatchProgressMsg); ok {
 				gotBatch = true
 			}
 		case <-deadline:

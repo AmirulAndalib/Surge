@@ -6,7 +6,7 @@ import (
 	"sync/atomic"
 
 	"github.com/SurgeDM/Surge/internal/core"
-	"github.com/SurgeDM/Surge/internal/engine/events"
+	"github.com/SurgeDM/Surge/internal/types"
 	"github.com/SurgeDM/Surge/internal/utils"
 )
 
@@ -25,21 +25,21 @@ func StartHeadlessConsumer(service core.DownloadService) {
 
 		for msg := range stream {
 			switch m := msg.(type) {
-			case events.DownloadStartedMsg:
+			case types.DownloadStartedMsg:
 				fmt.Printf("Started: %s [%s]\n", m.Filename, truncateID(m.DownloadID))
-			case events.DownloadCompleteMsg:
+			case types.DownloadCompleteMsg:
 				atomic.AddInt32(&activeDownloads, -1)
 				fmt.Printf("Completed: %s [%s] (in %s)\n", m.Filename, truncateID(m.DownloadID), m.Elapsed)
-			case events.DownloadErrorMsg:
+			case types.DownloadErrorMsg:
 				atomic.AddInt32(&activeDownloads, -1)
 				fmt.Printf("Error: %s [%s]: %v\n", m.Filename, truncateID(m.DownloadID), m.Err)
-			case events.DownloadQueuedMsg:
+			case types.DownloadQueuedMsg:
 				fmt.Printf("Queued: %s [%s]\n", m.Filename, truncateID(m.DownloadID))
-			case events.DownloadPausedMsg:
+			case types.DownloadPausedMsg:
 				fmt.Printf("Paused: %s [%s]\n", m.Filename, truncateID(m.DownloadID))
-			case events.DownloadResumedMsg:
+			case types.DownloadResumedMsg:
 				fmt.Printf("Resumed: %s [%s]\n", m.Filename, truncateID(m.DownloadID))
-			case events.DownloadRemovedMsg:
+			case types.DownloadRemovedMsg:
 				fmt.Printf("Removed: %s [%s]\n", m.Filename, truncateID(m.DownloadID))
 			}
 		}

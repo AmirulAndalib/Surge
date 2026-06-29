@@ -6,11 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/SurgeDM/Surge/internal/engine/events"
 	"github.com/SurgeDM/Surge/internal/engine/state"
-	"github.com/SurgeDM/Surge/internal/engine/types"
 	"github.com/SurgeDM/Surge/internal/processing"
 	"github.com/SurgeDM/Surge/internal/testutil"
+	"github.com/SurgeDM/Surge/internal/types"
 	"github.com/SurgeDM/Surge/internal/utils"
 )
 
@@ -48,7 +47,7 @@ func TestStartEventWorker_FinalizesCompletedFileUsingDestPath(t *testing.T) {
 
 	mgr := processing.NewLifecycleManager(nil, nil)
 	ch := make(chan interface{}, 1)
-	ch <- events.DownloadCompleteMsg{
+	ch <- types.DownloadCompleteMsg{
 		DownloadID: "download-1",
 		Filename:   "video.mp4",
 		Elapsed:    2 * time.Second,
@@ -110,7 +109,7 @@ func TestStartEventWorker_CompletionPreservesOverrideMetadata(t *testing.T) {
 
 	mgr := processing.NewLifecycleManager(nil, nil)
 	ch := make(chan interface{}, 1)
-	ch <- events.DownloadCompleteMsg{
+	ch <- types.DownloadCompleteMsg{
 		DownloadID: "download-1",
 		Filename:   "video.mp4",
 		Elapsed:    2 * time.Second,
@@ -144,7 +143,7 @@ func TestStartEventWorker_PersistsQueuedMirrorsForResume(t *testing.T) {
 
 	mgr := processing.NewLifecycleManager(nil, nil)
 	ch := make(chan interface{}, 1)
-	ch <- events.DownloadQueuedMsg{
+	ch <- types.DownloadQueuedMsg{
 		DownloadID: "download-queued",
 		URL:        "https://example.com/video.mp4",
 		Filename:   "video.mp4",
@@ -177,21 +176,21 @@ func TestStartEventWorker_PreservesQueuedMirrorsAcrossStartedThenError(t *testin
 
 	mgr := processing.NewLifecycleManager(nil, nil)
 	ch := make(chan interface{}, 3)
-	ch <- events.DownloadQueuedMsg{
+	ch <- types.DownloadQueuedMsg{
 		DownloadID: "download-queued",
 		URL:        "https://example.com/video.mp4",
 		Filename:   "video.mp4",
 		DestPath:   finalPath,
 		Mirrors:    []string{"https://mirror-1.example/video.mp4", "https://mirror-2.example/video.mp4"},
 	}
-	ch <- events.DownloadStartedMsg{
+	ch <- types.DownloadStartedMsg{
 		DownloadID: "download-queued",
 		URL:        "https://example.com/video.mp4",
 		Filename:   "video.mp4",
 		Total:      1024,
 		DestPath:   finalPath,
 	}
-	ch <- events.DownloadErrorMsg{
+	ch <- types.DownloadErrorMsg{
 		DownloadID: "download-queued",
 		Filename:   "video.mp4",
 		DestPath:   finalPath,

@@ -17,11 +17,10 @@ import (
 	"github.com/SurgeDM/Surge/internal/config"
 	"github.com/SurgeDM/Surge/internal/core"
 	"github.com/SurgeDM/Surge/internal/download"
-	"github.com/SurgeDM/Surge/internal/engine/events"
 	"github.com/SurgeDM/Surge/internal/engine/state"
-	"github.com/SurgeDM/Surge/internal/engine/types"
 	"github.com/SurgeDM/Surge/internal/processing"
 	"github.com/SurgeDM/Surge/internal/tui"
+	"github.com/SurgeDM/Surge/internal/types"
 	"github.com/SurgeDM/Surge/internal/utils"
 
 	tea "charm.land/bubbletea/v2"
@@ -266,7 +265,7 @@ func ensureGlobalLocalServiceAndLifecycle() error {
 
 func publishSystemLog(message string) {
 	if GlobalService != nil {
-		_ = GlobalService.Publish(events.SystemLogMsg{Message: message})
+		_ = GlobalService.Publish(types.SystemLogMsg{Message: message})
 		return
 	}
 	fmt.Fprintln(os.Stderr, message)
@@ -295,7 +294,7 @@ func recordPreflightDownloadError(url, outPath string, err error) {
 		utils.Debug("Failed to persist preflight download error for %s: %v", url, addErr)
 	}
 	if GlobalService != nil {
-		_ = GlobalService.Publish(events.DownloadErrorMsg{
+		_ = GlobalService.Publish(types.DownloadErrorMsg{
 			DownloadID: entry.ID,
 			Filename:   filename,
 			DestPath:   destPath,
@@ -558,7 +557,7 @@ func startTUI(port int, exitWhenDone bool, noResume bool) error {
 	}()
 
 	if startupIntegrityMessage != "" && GlobalService != nil {
-		_ = GlobalService.Publish(events.SystemLogMsg{
+		_ = GlobalService.Publish(types.SystemLogMsg{
 			Message: startupIntegrityMessage,
 		})
 		startupIntegrityMessage = ""

@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/SurgeDM/Surge/internal/engine/types"
+	"github.com/SurgeDM/Surge/internal/types"
 )
 
 var DefaultHostRateLimiter = NewHostRateLimiter()

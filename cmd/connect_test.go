@@ -5,9 +5,8 @@ import (
 	"testing"
 
 	"github.com/SurgeDM/Surge/internal/core"
-	"github.com/SurgeDM/Surge/internal/engine/events"
-	"github.com/SurgeDM/Surge/internal/engine/types"
 	"github.com/SurgeDM/Surge/internal/tui"
+	"github.com/SurgeDM/Surge/internal/types"
 )
 
 type fakeRemoteDownloadService struct {
@@ -96,7 +95,7 @@ func TestNewRemoteRootModel_DownloadRequestUsesServiceAdd(t *testing.T) {
 	m.Settings.Extension.ExtensionPrompt.Value = false
 	m.Settings.General.WarnOnDuplicate.Value = false
 
-	updated, cmd := m.Update(events.DownloadRequestMsg{
+	updated, cmd := m.Update(types.DownloadRequestMsg{
 		URL:      "https://example.com/file.bin",
 		Filename: "file.bin",
 		Path:     ".",

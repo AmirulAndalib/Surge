@@ -5,9 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/SurgeDM/Surge/internal/engine/events"
 	"github.com/SurgeDM/Surge/internal/engine/state"
-	"github.com/SurgeDM/Surge/internal/engine/types"
+	"github.com/SurgeDM/Surge/internal/types"
 )
 
 func TestHandlePause_CompletionBoundary(t *testing.T) {
@@ -85,7 +84,7 @@ func TestHandlePause_UsesLiveRateLimitFromState(t *testing.T) {
 		t.Fatalf("Expected ErrPaused, got %v", err)
 	}
 
-	msg, ok := (<-progressCh).(events.DownloadPausedMsg)
+	msg, ok := (<-progressCh).(types.DownloadPausedMsg)
 	if !ok {
 		t.Fatalf("expected DownloadPausedMsg, got %T", msg)
 	}

@@ -16,9 +16,9 @@ import (
 
 	"charm.land/bubbles/v2/list"
 	"charm.land/lipgloss/v2"
-	"github.com/SurgeDM/Surge/internal/engine/types"
 	"github.com/SurgeDM/Surge/internal/processing"
 	"github.com/SurgeDM/Surge/internal/tui/components"
+	"github.com/SurgeDM/Surge/internal/types"
 	"github.com/SurgeDM/Surge/internal/version"
 )
 

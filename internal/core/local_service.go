@@ -12,9 +12,8 @@ import (
 
 	"github.com/SurgeDM/Surge/internal/config"
 	"github.com/SurgeDM/Surge/internal/download"
-	"github.com/SurgeDM/Surge/internal/engine/events"
 	"github.com/SurgeDM/Surge/internal/engine/state"
-	"github.com/SurgeDM/Surge/internal/engine/types"
+	"github.com/SurgeDM/Surge/internal/types"
 	"github.com/SurgeDM/Surge/internal/utils"
 	"github.com/google/uuid"
 )
@@ -154,9 +153,9 @@ func (s *LocalDownloadService) broadcastLoop() {
 			// Check message type
 			isProgress := false
 			switch msg.(type) {
-			case events.ProgressMsg:
+			case types.ProgressMsg:
 				isProgress = true
-			case events.BatchProgressMsg:
+			case types.BatchProgressMsg:
 				isProgress = true
 			}
 
@@ -214,7 +213,7 @@ func (s *LocalDownloadService) reportProgressLoop() {
 		}
 		alpha := s.getSpeedEmaAlpha()
 
-		var batch events.BatchProgressMsg
+		var batch types.BatchProgressMsg
 
 		activeConfigs := s.Pool.GetAll()
 		for _, cfg := range activeConfigs {
@@ -245,7 +244,7 @@ func (s *LocalDownloadService) reportProgressLoop() {
 			lastSpeeds[cfg.ID] = currentSpeed
 
 			// Create Message
-			msg := events.ProgressMsg{
+			msg := types.ProgressMsg{
 				DownloadID:        cfg.ID,
 				Downloaded:        downloaded,
 				Total:             total,
@@ -300,7 +299,7 @@ func (s *LocalDownloadService) getSpeedEmaAlpha() float64 {
 	return alpha
 }
 
-// StreamEvents returns a channel that receives real-time download events.
+// StreamEvents returns a channel that receives real-time download types.
 func (s *LocalDownloadService) StreamEvents(ctx context.Context) (<-chan interface{}, func(), error) {
 	if ctx == nil {
 		ctx = context.Background()
@@ -352,7 +351,7 @@ func (s *LocalDownloadService) StreamEvents(ctx context.Context) (<-chan interfa
 	}
 
 	// Callers own listener lifetime; service shutdown closes listeners after the
-	// broadcaster drains InputCh so lifecycle persistence can observe final events.
+	// broadcaster drains InputCh so lifecycle persistence can observe final types.
 	go func() {
 		select {
 		case <-ctx.Done():
@@ -664,7 +663,7 @@ func (s *LocalDownloadService) Delete(id string) error {
 	s.Pool.Cancel(id)
 	if entry, err := state.GetDownload(id); err == nil && entry != nil {
 		if s.InputCh != nil {
-			s.InputCh <- events.DownloadRemovedMsg{
+			s.InputCh <- types.DownloadRemovedMsg{
 				DownloadID: id,
 				Filename:   entry.Filename,
 				DestPath:   entry.DestPath,

@@ -3,7 +3,7 @@ package core
 import (
 	"context"
 
-	"github.com/SurgeDM/Surge/internal/engine/types"
+	"github.com/SurgeDM/Surge/internal/types"
 )
 
 // DownloadService defines the interface for interacting with the download engine.
@@ -40,7 +40,7 @@ type DownloadService interface {
 	// Purge cancels and removes a download, and deletes its files from disk.
 	Purge(id string) error
 
-	// StreamEvents returns a channel that receives real-time download events.
+	// StreamEvents returns a channel that receives real-time download types.
 	// For local mode, this is a direct channel.
 	// For remote mode, this is sourced from SSE.
 	StreamEvents(ctx context.Context) (<-chan interface{}, func(), error)

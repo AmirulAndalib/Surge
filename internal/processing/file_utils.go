@@ -10,8 +10,8 @@ import (
 	"strings"
 
 	"github.com/SurgeDM/Surge/internal/config"
-	"github.com/SurgeDM/Surge/internal/engine/types"
 	probing "github.com/SurgeDM/Surge/internal/probe"
+	"github.com/SurgeDM/Surge/internal/types"
 	"github.com/SurgeDM/Surge/internal/utils"
 )
 
