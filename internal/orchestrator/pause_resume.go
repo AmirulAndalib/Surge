@@ -11,36 +11,15 @@ import (
 	"github.com/SurgeDM/Surge/internal/utils"
 )
 
-// EngineHooks defines the minimal callbacks Processing needs to orchestrate the worker pool.
-// All management decisions (event emission, DB persistence, state loading) live here in
-// LifecycleManager; the pool itself is a pure executor.
-type EngineHooks struct {
-	// Pause signals the pool to mechanically pause a download (cancel context, set state).
-	Pause func(id string) bool
-	// ExtractPausedConfig atomically removes a paused download from the pool and returns
-	// its config so LifecycleManager can re-enqueue it after hydration from saved state.
-	// Returns nil when not found / not paused / still transitioning.
-	ExtractPausedConfig func(id string) *types.DownloadConfig
-	// GetStatus returns the in-memory status for a download.
-	GetStatus func(id string) *types.DownloadStatus
-	// AddConfig enqueues a DownloadConfig. The pool sets cfg.ProgressCh when nil.
-	AddConfig func(cfg types.DownloadConfig)
-	// Cancel mechanically removes a download from the pool and returns removal metadata.
-	Cancel func(id string) types.CancelResult
-	// UpdateURL updates the in-memory URL only; LifecycleManager persists to DB.
-	UpdateURL func(id, newURL string) error
-	// PublishEvent sends an event into the service's broadcast channel.
-	PublishEvent func(msg interface{}) error
-}
+// removed EngineHooks
 
 // Pause pauses an active download.
 func (mgr *LifecycleManager) Pause(id string) error {
-	hooks := mgr.getEngineHooks()
-	if hooks.Pause == nil {
+	if mgr.pool == nil {
 		return types.ErrEngineNotInit
 	}
 
-	if hooks.Pause(id) {
+	if mgr.pool.Pause(id) {
 		return nil
 	}
 
@@ -48,8 +27,8 @@ func (mgr *LifecycleManager) Pause(id string) error {
 	// synthesize a paused event so the UI can clear any transient "pausing" spinner.
 	entry, err := store.GetDownload(id)
 	if err == nil && entry != nil {
-		if hooks.PublishEvent != nil {
-			_ = hooks.PublishEvent(types.DownloadPausedMsg{
+		if mgr.eventBus != nil {
+			_ = mgr.eventBus.Publish(types.DownloadPausedMsg{
 				DownloadID:   id,
 				Filename:     entry.Filename,
 				Downloaded:   entry.Downloaded,
@@ -88,31 +67,33 @@ func hydrateConfigFromDisk(cfg *types.DownloadConfig) {
 // Hot path: download is still in pool memory (same session) - extract config directly.
 // Cold path: download was paused in a prior session, only stored in DB.
 func (mgr *LifecycleManager) Resume(id string) error {
-	hooks := mgr.getEngineHooks()
+	if mgr.pool == nil {
+		return types.ErrEngineNotInit
+	}
 
 	// Guard: still transitioning to paused
-	if hooks.GetStatus != nil {
-		if st := hooks.GetStatus(id); st != nil && st.Status == "pausing" {
-			return types.ErrPausing
-		}
+	if st := mgr.pool.GetStatus(id); st != nil && st.Status == "pausing" {
+		return types.ErrPausing
 	}
 
 	// Hot path: pool still holds the paused download in memory.
-	if hooks.ExtractPausedConfig != nil {
-		if cfg := hooks.ExtractPausedConfig(id); cfg != nil {
-			hydrateConfigFromDisk(cfg)
-			cfg.IsResume = true
-			if hooks.AddConfig != nil {
-				hooks.AddConfig(*cfg)
-			}
-			if hooks.PublishEvent != nil {
-				_ = hooks.PublishEvent(types.DownloadResumedMsg{
-					DownloadID: id,
-					Filename:   cfg.Filename,
-				})
-			}
-			return nil
+	if cfg := mgr.pool.ExtractPausedConfig(id); cfg != nil {
+		hydrateConfigFromDisk(cfg)
+		cfg.IsResume = true
+		
+		if mgr.eventBus != nil {
+			cfg.ProgressCh = mgr.eventBus.InputCh
 		}
+
+		mgr.pool.Add(*cfg)
+		
+		if mgr.eventBus != nil {
+			_ = mgr.eventBus.Publish(types.DownloadResumedMsg{
+				DownloadID: id,
+				Filename:   cfg.Filename,
+			})
+		}
+		return nil
 	}
 
 	// Cold path: download from a prior session (only in DB).
@@ -139,11 +120,13 @@ func (mgr *LifecycleManager) Resume(id string) error {
 
 	cfg := buildResumeConfig(id, outputPath, entry, savedState, settings)
 
-	if hooks.AddConfig != nil {
-		hooks.AddConfig(cfg)
+	if mgr.eventBus != nil {
+		cfg.ProgressCh = mgr.eventBus.InputCh
 	}
-	if hooks.PublishEvent != nil {
-		_ = hooks.PublishEvent(types.DownloadResumedMsg{
+	mgr.pool.Add(cfg)
+	
+	if mgr.eventBus != nil {
+		_ = mgr.eventBus.Publish(types.DownloadResumedMsg{
 			DownloadID: id,
 			Filename:   entry.Filename,
 		})
@@ -155,7 +138,12 @@ func (mgr *LifecycleManager) Resume(id string) error {
 func (mgr *LifecycleManager) ResumeBatch(ids []string) []error {
 	errs := make([]error, len(ids))
 
-	hooks := mgr.getEngineHooks()
+	if mgr.pool == nil {
+		for i := range errs {
+			errs[i] = types.ErrEngineNotInit
+		}
+		return errs
+	}
 
 	settings := mgr.GetSettings()
 	outputPath := config.Resolve[string](settings.General.DefaultDownloadDir)
@@ -168,30 +156,30 @@ func (mgr *LifecycleManager) ResumeBatch(ids []string) []error {
 	coldIdx := make(map[string]int)
 
 	for i, id := range ids {
-		if hooks.GetStatus != nil {
-			if st := hooks.GetStatus(id); st != nil && st.Status == "pausing" {
-				errs[i] = types.ErrPausing
-				continue
-			}
+		if st := mgr.pool.GetStatus(id); st != nil && st.Status == "pausing" {
+			errs[i] = types.ErrPausing
+			continue
 		}
 
 		// Try hot path first
-		if hooks.ExtractPausedConfig != nil {
-			if cfg := hooks.ExtractPausedConfig(id); cfg != nil {
-				hydrateConfigFromDisk(cfg)
-				cfg.IsResume = true
-				if hooks.AddConfig != nil {
-					hooks.AddConfig(*cfg)
-				}
-				if hooks.PublishEvent != nil {
-					_ = hooks.PublishEvent(types.DownloadResumedMsg{
-						DownloadID: id,
-						Filename:   cfg.Filename,
-					})
-				}
-				errs[i] = nil
-				continue
+		if cfg := mgr.pool.ExtractPausedConfig(id); cfg != nil {
+			hydrateConfigFromDisk(cfg)
+			cfg.IsResume = true
+			
+			if mgr.eventBus != nil {
+				cfg.ProgressCh = mgr.eventBus.InputCh
 			}
+			
+			mgr.pool.Add(*cfg)
+			
+			if mgr.eventBus != nil {
+				_ = mgr.eventBus.Publish(types.DownloadResumedMsg{
+					DownloadID: id,
+					Filename:   cfg.Filename,
+				})
+			}
+			errs[i] = nil
+			continue
 		}
 
 		// Tag for cold-path batch load
@@ -221,11 +209,15 @@ func (mgr *LifecycleManager) ResumeBatch(ids []string) []error {
 		}
 
 		cfg := buildResumeConfig(id, outputPath, nil, savedState, settings)
-		if hooks.AddConfig != nil {
-			hooks.AddConfig(cfg)
+		
+		if mgr.eventBus != nil {
+			cfg.ProgressCh = mgr.eventBus.InputCh
 		}
-		if hooks.PublishEvent != nil {
-			_ = hooks.PublishEvent(types.DownloadResumedMsg{
+		
+		mgr.pool.Add(cfg)
+
+		if mgr.eventBus != nil {
+			_ = mgr.eventBus.Publish(types.DownloadResumedMsg{
 				DownloadID: id,
 				Filename:   savedState.Filename,
 			})
@@ -239,15 +231,13 @@ func (mgr *LifecycleManager) ResumeBatch(ids []string) []error {
 // Cancel stops a download (both pool in-memory and DB) and emits a removal event.
 // The event worker handles file cleanup and DB removal via DownloadRemovedMsg.
 func (mgr *LifecycleManager) Cancel(id string) error {
-	hooks := mgr.getEngineHooks()
-
 	var filename, destPath string
 	var completed bool
 	var found bool
 
 	// Mechanical cancel via pool
-	if hooks.Cancel != nil {
-		result := hooks.Cancel(id)
+	if mgr.pool != nil {
+		result := mgr.pool.Cancel(id)
 		if result.Found {
 			found = true
 			filename = result.Filename
@@ -279,8 +269,8 @@ func (mgr *LifecycleManager) Cancel(id string) error {
 	}
 
 	// Emit removal event - event worker handles DB deletion and file cleanup.
-	if hooks.PublishEvent != nil {
-		_ = hooks.PublishEvent(types.DownloadRemovedMsg{
+	if mgr.eventBus != nil {
+		_ = mgr.eventBus.Publish(types.DownloadRemovedMsg{
 			DownloadID: id,
 			Filename:   filename,
 			DestPath:   destPath,
@@ -292,11 +282,9 @@ func (mgr *LifecycleManager) Cancel(id string) error {
 
 // UpdateURL updates the URL of a download in both the pool (in-memory) and the DB.
 func (mgr *LifecycleManager) UpdateURL(id string, newURL string) error {
-	hooks := mgr.getEngineHooks()
-
 	// Update in-memory state via pool (validates download state too)
-	if hooks.UpdateURL != nil {
-		if err := hooks.UpdateURL(id, newURL); err != nil {
+	if mgr.pool != nil {
+		if err := mgr.pool.UpdateURL(id, newURL); err != nil {
 			return err
 		}
 		// Pool update succeeded; persist to DB.

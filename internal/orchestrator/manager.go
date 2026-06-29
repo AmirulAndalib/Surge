@@ -10,21 +10,18 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"github.com/google/uuid"
 
 	"net/url"
 
 	"github.com/SurgeDM/Surge/internal/config"
 	probing "github.com/SurgeDM/Surge/internal/probe"
+	"github.com/SurgeDM/Surge/internal/progress"
 	"github.com/SurgeDM/Surge/internal/types"
 
+	"github.com/SurgeDM/Surge/internal/scheduler"
 	"github.com/SurgeDM/Surge/internal/utils"
 )
-
-// AddDownloadFunc is the lifecycle's handoff into the engine-facing queue layer.
-type AddDownloadFunc func(string, string, string, []string, map[string]string, bool, int, int64, int64, bool) (string, error)
-
-// AddDownloadWithIDFunc preserves caller-chosen ids when a remote/UI layer already owns them.
-type AddDownloadWithIDFunc func(string, string, string, []string, map[string]string, string, int, int64, int64, bool) (string, error)
 
 // IsNameActiveFunc lets routing treat in-flight downloads as filename conflicts within a directory.
 type IsNameActiveFunc func(dir, name string) bool
@@ -33,11 +30,11 @@ type LifecycleManager struct {
 	settings            *config.Settings
 	settingsMu          sync.RWMutex
 	settingsRefreshedAt time.Time
-	addFunc             AddDownloadFunc
-	addWithIDFunc       AddDownloadWithIDFunc
+	pool                *scheduler.Scheduler
+	eventBus            *EventBus
+	aggregator          *ProgressAggregator
 	isNameActive        IsNameActiveFunc
-	engineHooks         EngineHooks
-	hooksMu             sync.RWMutex
+
 	// probeSem caps the number of simultaneous server probes so adding a
 	// large batch of downloads does not flood the network with HEAD requests.
 	probeSem chan struct{}
@@ -83,7 +80,7 @@ func (mgr *LifecycleManager) buildIsNameActive() func(string, string) bool {
 	return func(string, string) bool { return false }
 }
 
-func NewLifecycleManager(addFunc AddDownloadFunc, addWithIDFunc AddDownloadWithIDFunc, isNameActive ...IsNameActiveFunc) *LifecycleManager {
+func NewLifecycleManager(pool *scheduler.Scheduler, eventBus *EventBus, isNameActive ...IsNameActiveFunc) *LifecycleManager {
 	// Snapshot settings once so enqueue can still make routing decisions even if
 	// a later disk read fails or the caller never opens the settings UI.
 	settings, err := config.LoadSettings()
@@ -105,29 +102,42 @@ func NewLifecycleManager(addFunc AddDownloadFunc, addWithIDFunc AddDownloadWithI
 		sem <- struct{}{}
 	}
 
+	var aggregator *ProgressAggregator
+	if pool != nil && eventBus != nil {
+		aggregator = NewProgressAggregator(pool, eventBus, settings)
+	}
+
 	return &LifecycleManager{
 		settings:            settings,
 		settingsRefreshedAt: time.Now(),
-		addFunc:             addFunc,
-		addWithIDFunc:       addWithIDFunc,
+		pool:                pool,
+		eventBus:            eventBus,
+		aggregator:          aggregator,
 		isNameActive:        activeCheck,
 		probeSem:            sem,
 	}
 }
 
-// SetEngineHooks injects dependencies the manager needs to interact with the broader system
-// (like the download worker pool or the event system) without causing cyclic dependency graphs.
-func (mgr *LifecycleManager) SetEngineHooks(hooks EngineHooks) {
-	mgr.hooksMu.Lock()
-	defer mgr.hooksMu.Unlock()
-	mgr.engineHooks = hooks
+// GetScheduler returns the underlying scheduler
+func (mgr *LifecycleManager) GetScheduler() *scheduler.Scheduler {
+	return mgr.pool
 }
 
-// getEngineHooks safely returns the current engine hooks.
-func (mgr *LifecycleManager) getEngineHooks() EngineHooks {
-	mgr.hooksMu.RLock()
-	defer mgr.hooksMu.RUnlock()
-	return mgr.engineHooks
+// GetEventBus returns the event bus
+func (mgr *LifecycleManager) GetEventBus() *EventBus {
+	return mgr.eventBus
+}
+
+func (mgr *LifecycleManager) Shutdown() {
+	if mgr.aggregator != nil {
+		mgr.aggregator.Shutdown()
+	}
+	if mgr.eventBus != nil {
+		mgr.eventBus.Shutdown()
+	}
+	if mgr.pool != nil {
+		mgr.pool.GracefulShutdown()
+	}
 }
 
 // GetSettings reloads disk-backed routing rules opportunistically so a long-lived
@@ -197,53 +207,25 @@ type DownloadRequest struct {
 
 // Enqueue probes and reserves a stable destination before dispatching to the queue layer.
 func (mgr *LifecycleManager) Enqueue(ctx context.Context, req *DownloadRequest) (string, string, error) {
-	if mgr.addFunc == nil {
+	if mgr.pool == nil {
 		return "", "", types.ErrServiceUnavailable
 	}
 
 	utils.Debug("Lifecycle: Enqueue %s (Filename: %s)", req.URL, req.Filename)
-	return mgr.enqueueResolved(ctx, req, func(finalPath, finalFilename string, probeResult *probing.ProbeResult) (string, error) {
-		return mgr.addFunc(
-			req.URL,
-			finalPath,
-			finalFilename,
-			req.Mirrors,
-			req.Headers,
-			req.IsExplicitCategory,
-			req.Workers,
-			req.MinChunkSize,
-			probeResult.FileSize,
-			probeResult.SupportsRange,
-		)
-	})
+	return mgr.enqueueResolved(ctx, req, "")
 }
 
 // EnqueueWithID does the same lifecycle work as Enqueue while preserving a caller-owned id.
 func (mgr *LifecycleManager) EnqueueWithID(ctx context.Context, req *DownloadRequest, requestID string) (string, string, error) {
-	if mgr.addWithIDFunc == nil {
+	if mgr.pool == nil {
 		return "", "", types.ErrServiceUnavailable
 	}
 
 	utils.Debug("Lifecycle: EnqueueWithID %s (%s)", req.URL, requestID)
-	return mgr.enqueueResolved(ctx, req, func(finalPath, finalFilename string, probeResult *probing.ProbeResult) (string, error) {
-		return mgr.addWithIDFunc(
-			req.URL,
-			finalPath,
-			finalFilename,
-			req.Mirrors,
-			req.Headers,
-			requestID,
-			req.Workers,
-			req.MinChunkSize,
-			probeResult.FileSize,
-			probeResult.SupportsRange,
-		)
-	})
+	return mgr.enqueueResolved(ctx, req, requestID)
 }
 
-// enqueueResolved prepares the final path and working file before handing the
-// download to the engine, so workers and lifecycle events agree on one stable destination.
-func (mgr *LifecycleManager) enqueueResolved(ctx context.Context, req *DownloadRequest, dispatch func(string, string, *probing.ProbeResult) (string, error)) (string, string, error) {
+func (mgr *LifecycleManager) enqueueResolved(ctx context.Context, req *DownloadRequest, requestID string) (string, string, error) {
 	if req.URL == "" {
 		return "", "", types.ErrURLRequired
 	}
@@ -327,30 +309,25 @@ func (mgr *LifecycleManager) enqueueResolved(ctx context.Context, req *DownloadR
 		}
 
 		surgePath := filepath.Join(finalPath, finalFilename) + types.IncompleteSuffix
-		newID, err := dispatch(finalPath, finalFilename, probeResult)
+
+		newID, err := mgr.dispatchToScheduler(req, requestID, finalPath, finalFilename, probeResult)
 		if err != nil {
 			_ = os.Remove(surgePath)
 			return "", "", err
 		}
 
-		// Emit queued event now that the pool has accepted the download.
-		// The event worker persists this to DB so it survives a crash before the
-		// worker emits a started event.
-		hooks := mgr.getEngineHooks()
-		if hooks.PublishEvent != nil {
+		if mgr.eventBus != nil {
 			var rateLimit int64
 			var rateLimitSet bool
-			if hooks.GetStatus != nil {
-				if st := hooks.GetStatus(newID); st != nil {
-					rateLimit = st.RateLimit
-					rateLimitSet = st.RateLimitSet
-				}
+			if st := mgr.pool.GetStatus(newID); st != nil {
+				rateLimit = st.RateLimit
+				rateLimitSet = st.RateLimitSet
 			} else if settings != nil && settings.Network.DefaultDownloadRateLimit != nil {
 				if parsed, err := utils.ParseRateLimitValue(settings.Network.DefaultDownloadRateLimit.Value); err == nil {
 					rateLimit = parsed
 				}
 			}
-			_ = hooks.PublishEvent(types.DownloadQueuedMsg{
+			_ = mgr.eventBus.Publish(types.DownloadQueuedMsg{
 				DownloadID:   newID,
 				Filename:     finalFilename,
 				URL:          req.URL,
@@ -373,4 +350,67 @@ func (mgr *LifecycleManager) enqueueResolved(ctx context.Context, req *DownloadR
 // treat the given directory/name pair as an in-flight conflict.
 func (mgr *LifecycleManager) IsNameActive(dir, name string) bool {
 	return mgr.buildIsNameActive()(dir, name)
+}
+
+func (mgr *LifecycleManager) dispatchToScheduler(req *DownloadRequest, requestID string, finalPath string, finalFilename string, probeResult *probing.ProbeResult) (string, error) {
+	if mgr.pool == nil {
+		return "", types.ErrPoolNotInit
+	}
+
+	settings := mgr.GetSettings()
+	id := strings.TrimSpace(requestID)
+	if id == "" {
+		id = uuid.New().String()
+	}
+
+	if st := mgr.pool.GetStatus(id); st != nil {
+		return "", types.ErrIDExists
+	}
+
+	state := progress.New(id, 0)
+	state.DestPath = filepath.Join(finalPath, finalFilename)
+
+	runtime := settings.ToRuntimeConfig()
+	if req.Workers > 0 {
+		maxConns := runtime.GetMaxConnectionsPerDownload()
+		if req.Workers > maxConns {
+			req.Workers = maxConns
+		}
+		runtime.Workers = req.Workers
+	}
+	if req.MinChunkSize > 0 {
+		runtime.MinChunkSize = req.MinChunkSize
+	}
+
+	var rateLimit int64
+	var rateLimitSet bool
+	if settings.Network.DefaultDownloadRateLimit != nil {
+		if parsed, err := utils.ParseRateLimitValue(settings.Network.DefaultDownloadRateLimit.Value); err == nil {
+			rateLimit = parsed
+			rateLimitSet = true
+		}
+	}
+
+	cfg := types.DownloadConfig{
+		URL:                req.URL,
+		Mirrors:            req.Mirrors,
+		OutputPath:         finalPath,
+		ID:                 id,
+		Filename:           finalFilename,
+		State:              state,
+		Runtime:            runtime,
+		Headers:            req.Headers,
+		IsExplicitCategory: req.IsExplicitCategory,
+		TotalSize:          probeResult.FileSize,
+		SupportsRange:      probeResult.SupportsRange,
+		RateLimitBps:       rateLimit,
+		RateLimitSet:       rateLimitSet,
+	}
+
+	if mgr.eventBus != nil {
+		cfg.ProgressCh = mgr.eventBus.InputCh
+	}
+
+	mgr.pool.Add(cfg)
+	return id, nil
 }

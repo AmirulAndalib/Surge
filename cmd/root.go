@@ -133,15 +133,8 @@ func buildActiveDownloadChecker(getAll func() []types.DownloadConfig) orchestrat
 	}
 }
 
-func newLocalLifecycleManager(service service.DownloadService, getAll func() []types.DownloadConfig) *orchestrator.LifecycleManager {
-	var addFunc orchestrator.AddDownloadFunc
-	var addWithIDFunc orchestrator.AddDownloadWithIDFunc
-	if service != nil {
-		addFunc = service.Add
-		addWithIDFunc = service.AddWithID
-	}
-
-	return orchestrator.NewLifecycleManager(addFunc, addWithIDFunc, buildActiveDownloadChecker(getAll))
+func newLocalLifecycleManager(pool *scheduler.Scheduler, eventBus *orchestrator.EventBus, getAll func() []types.DownloadConfig) *orchestrator.LifecycleManager {
+	return orchestrator.NewLifecycleManager(pool, eventBus, buildActiveDownloadChecker(getAll))
 }
 
 func startLifecycleEventWorker(service service.DownloadService, mgr *orchestrator.LifecycleManager) (func(), error) {
@@ -232,31 +225,18 @@ func lifecycleForLocalService(service service.DownloadService) (*orchestrator.Li
 
 func ensureGlobalLocalServiceAndLifecycle() error {
 	if GlobalService == nil {
-		localService := service.NewLocalDownloadServiceWithInput(GlobalPool, GlobalProgressCh)
+		eventBus := orchestrator.NewEventBus()
+		lifecycle := newLocalLifecycleManager(GlobalPool, eventBus, currentPoolConfigs)
+		GlobalLifecycle = lifecycle
+
+		localService := service.NewLocalDownloadService(lifecycle)
 		GlobalService = localService
 
-		lifecycle, err := ensureLocalLifecycle(localService, currentPoolConfigs)
+		cleanup, err := startLifecycleEventWorker(localService, lifecycle)
 		if err != nil {
 			return err
 		}
-
-		lifecycle.SetEngineHooks(orchestrator.EngineHooks{
-			Pause:               GlobalPool.Pause,
-			ExtractPausedConfig: GlobalPool.ExtractPausedConfig,
-			GetStatus:           GlobalPool.GetStatus,
-			AddConfig:           GlobalPool.Add,
-			Cancel:              GlobalPool.Cancel,
-			UpdateURL:           GlobalPool.UpdateURL,
-			PublishEvent:        localService.Publish,
-		})
-
-		localService.SetLifecycleHooks(service.LifecycleHooks{
-			Pause:       lifecycle.Pause,
-			Resume:      lifecycle.Resume,
-			ResumeBatch: lifecycle.ResumeBatch,
-			Cancel:      lifecycle.Cancel,
-			UpdateURL:   lifecycle.UpdateURL,
-		})
+		GlobalLifecycleCleanup = cleanup
 	} else {
 		_, err := ensureLocalLifecycle(GlobalService, currentPoolConfigs)
 		return err
@@ -309,7 +289,8 @@ func ensureLocalLifecycle(service service.DownloadService, getAll func() []types
 	defer globalLifecycleMu.Unlock()
 
 	if GlobalLifecycle == nil {
-		GlobalLifecycle = newLocalLifecycleManager(service, getAll)
+		eventBus := orchestrator.NewEventBus()
+		GlobalLifecycle = newLocalLifecycleManager(GlobalPool, eventBus, getAll)
 	}
 	if GlobalLifecycleCleanup == nil {
 		cleanup, err := startLifecycleEventWorker(service, GlobalLifecycle)
