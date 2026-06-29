@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/SurgeDM/Surge/internal/engine/concurrent"
-	"github.com/SurgeDM/Surge/internal/engine/single"
 	"github.com/SurgeDM/Surge/internal/probe"
 	"github.com/SurgeDM/Surge/internal/progress"
+	"github.com/SurgeDM/Surge/internal/strategy/concurrent"
+	"github.com/SurgeDM/Surge/internal/strategy/single"
 	"github.com/SurgeDM/Surge/internal/types"
 	"github.com/SurgeDM/Surge/internal/utils"
 )
