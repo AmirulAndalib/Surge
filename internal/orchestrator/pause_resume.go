@@ -206,15 +206,36 @@ func (mgr *LifecycleManager) ResumeBatch(ids []string) []error {
 		return errs
 	}
 
+	masterList, mErr := store.LoadMasterList()
+	var masterMap map[string]*types.DownloadRecord
+	if mErr == nil && masterList != nil {
+		masterMap = make(map[string]*types.DownloadRecord, len(masterList.Downloads))
+		for i := range masterList.Downloads {
+			e := &masterList.Downloads[i]
+			masterMap[e.ID] = e
+		}
+	}
+
 	for _, id := range coldIDs {
 		idx := coldIdx[id]
-		savedState, ok := states[id]
-		if !ok {
-			errs[idx] = fmt.Errorf("download not found or completed")
+		savedState := states[id]
+
+		var entry *types.DownloadRecord
+		if masterMap != nil {
+			entry = masterMap[id]
+		}
+
+		if savedState == nil && entry == nil {
+			errs[idx] = types.ErrNotFound
 			continue
 		}
 
-		cfg := buildResumeConfig(id, outputPath, nil, savedState, settings)
+		if entry != nil && entry.Status == "completed" {
+			errs[idx] = types.ErrCompleted
+			continue
+		}
+
+		cfg := buildResumeConfig(id, outputPath, entry, savedState, settings)
 
 		if mgr.eventBus != nil {
 			cfg.ProgressCh = mgr.eventBus.InputCh

@@ -39,6 +39,17 @@ func (eb *EventBus) broadcastLoop() {
 	for {
 		select {
 		case <-eb.ctx.Done():
+			// Drain remaining events in InputCh before closing listeners
+		drainLoop:
+			for {
+				select {
+				case msg := <-eb.InputCh:
+					eb.broadcastMsg(msg)
+				default:
+					break drainLoop
+				}
+			}
+
 			// Clean up on shutdown
 			eb.listenerMu.Lock()
 			for _, ch := range eb.listeners {
@@ -57,34 +68,7 @@ func (eb *EventBus) broadcastLoop() {
 				eb.listenerMu.Unlock()
 				return
 			}
-
-			eb.listenerMu.Lock()
-			listenersCopy := make([]chan types.DownloadEvent, len(eb.listeners))
-			copy(listenersCopy, eb.listeners)
-			eb.listenerMu.Unlock()
-
-			isProgress := false
-			if msg.Type == types.EventProgress || msg.Type == types.EventBatchProgress {
-				isProgress = true
-			}
-
-			for _, ch := range listenersCopy {
-				func() {
-					defer func() { _ = recover() }()
-					if isProgress {
-						select {
-						case ch <- msg:
-						default:
-						}
-					} else {
-						select {
-						case ch <- msg:
-						case <-time.After(1 * time.Second):
-							utils.Debug("Dropped critical event due to slow client")
-						}
-					}
-				}()
-			}
+			eb.broadcastMsg(msg)
 
 		case chToClose := <-eb.unsubscribeCh:
 			eb.listenerMu.Lock()
@@ -97,6 +81,36 @@ func (eb *EventBus) broadcastLoop() {
 			}
 			eb.listenerMu.Unlock()
 		}
+}
+}
+
+func (eb *EventBus) broadcastMsg(msg types.DownloadEvent) {
+	eb.listenerMu.Lock()
+	listenersCopy := make([]chan types.DownloadEvent, len(eb.listeners))
+	copy(listenersCopy, eb.listeners)
+	eb.listenerMu.Unlock()
+
+	isProgress := false
+	if msg.Type == types.EventProgress || msg.Type == types.EventBatchProgress {
+		isProgress = true
+	}
+
+	for _, ch := range listenersCopy {
+		func() {
+			defer func() { _ = recover() }()
+			if isProgress {
+				select {
+				case ch <- msg:
+				default:
+				}
+			} else {
+				select {
+				case ch <- msg:
+				case <-time.After(1 * time.Second):
+					utils.Debug("Dropped critical event due to slow client")
+				}
+			}
+		}()
 	}
 }
 
