@@ -31,8 +31,8 @@ func SetupStateDB(t *testing.T) string {
 	return tempDir
 }
 
-// SeedMasterList inserts a DownloadEntry into the master list for test setups.
-func SeedMasterList(t *testing.T, entry types.DownloadEntry) {
+// SeedMasterList inserts a DownloadRecord into the master list for test setups.
+func SeedMasterList(t *testing.T, entry types.DownloadRecord) {
 	t.Helper()
 	if err := store.AddToMasterList(entry); err != nil {
 		t.Fatalf("SeedMasterList failed: %v", err)

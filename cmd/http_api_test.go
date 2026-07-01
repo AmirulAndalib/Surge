@@ -17,7 +17,7 @@ import (
 )
 
 type httpAPITestService struct {
-	history               []types.DownloadEntry
+	history               []types.DownloadRecord
 	historyErr            error
 	statusByID            map[string]*types.DownloadStatus
 	getStatusErr          error
@@ -44,7 +44,7 @@ func (s *httpAPITestService) List() ([]types.DownloadStatus, error) {
 	return nil, nil
 }
 
-func (s *httpAPITestService) History() ([]types.DownloadEntry, error) {
+func (s *httpAPITestService) History() ([]types.DownloadRecord, error) {
 	if s.historyErr != nil {
 		return nil, s.historyErr
 	}
@@ -208,7 +208,7 @@ func TestEnsureOpenActionRequestAllowed_RemoteToggle(t *testing.T) {
 
 func TestHistoryEndpoint_SortsMostRecentFirst(t *testing.T) {
 	service := &httpAPITestService{
-		history: []types.DownloadEntry{
+		history: []types.DownloadRecord{
 			{ID: "old", CompletedAt: 10},
 			{ID: "new", CompletedAt: 30},
 			{ID: "middle", CompletedAt: 20},
@@ -226,7 +226,7 @@ func TestHistoryEndpoint_SortsMostRecentFirst(t *testing.T) {
 		t.Fatalf("expected status 200, got %d", recorder.Code)
 	}
 
-	var got []types.DownloadEntry
+	var got []types.DownloadRecord
 	if err := json.Unmarshal(recorder.Body.Bytes(), &got); err != nil {
 		t.Fatalf("failed to parse response: %v", err)
 	}
@@ -421,7 +421,7 @@ func TestResolveDownloadDestPath(t *testing.T) {
 				statusByID: map[string]*types.DownloadStatus{
 					"fallback": {ID: "fallback", DestPath: ""},
 				},
-				history: []types.DownloadEntry{{ID: "fallback", DestPath: "C:\\tmp\\b.bin"}},
+				history: []types.DownloadRecord{{ID: "fallback", DestPath: "C:\\tmp\\b.bin"}},
 			},
 			id:       "fallback",
 			wantPath: `C:\tmp\b.bin`,
@@ -429,7 +429,7 @@ func TestResolveDownloadDestPath(t *testing.T) {
 		{
 			name: "history entry has no destination path",
 			service: &httpAPITestService{
-				history: []types.DownloadEntry{{ID: "bad", DestPath: "."}},
+				history: []types.DownloadRecord{{ID: "bad", DestPath: "."}},
 			},
 			id:        "bad",
 			wantErrIs: ErrNoDestinationPath,
@@ -437,7 +437,7 @@ func TestResolveDownloadDestPath(t *testing.T) {
 		{
 			name: "id absent returns not found",
 			service: &httpAPITestService{
-				history: []types.DownloadEntry{{ID: "other", DestPath: "C:\\tmp\\c.bin"}},
+				history: []types.DownloadRecord{{ID: "other", DestPath: "C:\\tmp\\c.bin"}},
 			},
 			id:        "missing",
 			wantErrIs: ErrDownloadNotFound,
@@ -508,7 +508,7 @@ func TestOpenEndpoints_ReturnMappedResolveStatuses(t *testing.T) {
 			name: "missing download returns 404",
 			path: "/open-folder?id=missing",
 			service: &httpAPITestService{
-				history: []types.DownloadEntry{},
+				history: []types.DownloadRecord{},
 			},
 			statusCode: http.StatusNotFound,
 		},
@@ -841,7 +841,7 @@ type rateLimitWrapper struct {
 }
 
 func (r *rateLimitWrapper) List() ([]types.DownloadStatus, error)   { return nil, nil }
-func (r *rateLimitWrapper) History() ([]types.DownloadEntry, error) { return nil, nil }
+func (r *rateLimitWrapper) History() ([]types.DownloadRecord, error) { return nil, nil }
 func (r *rateLimitWrapper) Add(string, string, string, []string, map[string]string, bool, int, int64, int64, bool) (string, error) {
 	return "", nil
 }

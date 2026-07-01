@@ -191,7 +191,7 @@ func TestSetupTasks_BitmapRestoration(t *testing.T) {
 
 	// Create a saved state
 	savedBitmap := []byte{0xFF, 0x00, 0x00} // 10 chunks need 3 bytes
-	savedState := &types.DownloadState{
+	savedState := &types.DownloadRecord{
 		ID:              "test-id",
 		URL:             "http://example.com",
 		DestPath:        destPath,
@@ -201,7 +201,7 @@ func TestSetupTasks_BitmapRestoration(t *testing.T) {
 		ChunkBitmap:     savedBitmap,
 		Tasks:           []types.Task{{Offset: 500, Length: 500}},
 	}
-	if err := store.AddToMasterList(types.DownloadEntry{
+	if err := store.AddToMasterList(types.DownloadRecord{
 		ID:         "test-id",
 		URL:        "http://example.com",
 		DestPath:   destPath,

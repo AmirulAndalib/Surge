@@ -20,7 +20,7 @@ type DuplicateResult struct {
 // Policy decisions (whether to warn, block, or auto-approve) are the caller's
 // responsibility. This separation is required so that headless mode can always
 // distinguish duplicates from new downloads, even when WarnOnDuplicate is off.
-func CheckForDuplicate(url string, activeDownloads func() map[string]*types.DownloadConfig) *DuplicateResult {
+func CheckForDuplicate(url string, activeDownloads func() map[string]*types.DownloadRecord) *DuplicateResult {
 	normalizedInputURL := strings.TrimRight(url, "/")
 
 	// Check active downloads
@@ -30,7 +30,7 @@ func CheckForDuplicate(url string, activeDownloads func() map[string]*types.Down
 			normalizedExistingURL := strings.TrimRight(d.URL, "/")
 			if normalizedExistingURL == normalizedInputURL {
 				isActive := false
-				if d.State != nil && !cfgProgress(d).Done.Load() {
+				if d.ProgressState != nil && !cfgProgress(d).Done.Load() {
 					isActive = true
 				}
 

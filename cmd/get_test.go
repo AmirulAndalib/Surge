@@ -42,7 +42,7 @@ func TestCLI_DeleteEndpoint_CleansPausedStateAndPartialFile(t *testing.T) {
 
 	// Start server
 	eventBus := orchestrator.NewEventBus()
-	getAll := func() []types.DownloadConfig { return GlobalPool.GetAll() }
+	getAll := func() []types.DownloadRecord { return GlobalPool.GetAll() }
 	lifecycle := orchestrator.NewLifecycleManager(GlobalPool, eventBus, buildActiveDownloadChecker(getAll))
 	svc := service.NewLocalDownloadService(lifecycle)
 	t.Cleanup(func() { _ = svc.Shutdown() })
@@ -86,7 +86,7 @@ func TestCLI_DeleteEndpoint_CleansPausedStateAndPartialFile(t *testing.T) {
 		t.Fatalf("failed to create partial file: %v", err)
 	}
 
-	if err := store.AddToMasterList(types.DownloadEntry{
+	if err := store.AddToMasterList(types.DownloadRecord{
 		ID:         id,
 		URL:        url,
 		DestPath:   destPath,
@@ -98,7 +98,7 @@ func TestCLI_DeleteEndpoint_CleansPausedStateAndPartialFile(t *testing.T) {
 		t.Fatalf("failed to seed master list: %v", err)
 	}
 
-	if err := store.SaveState(url, destPath, &types.DownloadState{
+	if err := store.SaveState(url, destPath, &types.DownloadRecord{
 		ID:         id,
 		URL:        url,
 		DestPath:   destPath,

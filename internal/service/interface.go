@@ -14,7 +14,7 @@ type DownloadService interface {
 	List() ([]types.DownloadStatus, error)
 
 	// History returns completed downloads
-	History() ([]types.DownloadEntry, error)
+	History() ([]types.DownloadRecord, error)
 
 	// Add queues a new download.
 	Add(url string, path string, filename string, mirrors []string, headers map[string]string, isExplicitCategory bool, workers int, minChunkSize int64, totalSize int64, supportsRange bool) (string, error)

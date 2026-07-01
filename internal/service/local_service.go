@@ -17,16 +17,16 @@ import (
 )
 
 // cfgProgress returns the *progress.DownloadProgress associated with cfg, or
-// nil if cfg.State is nil. This is the single point in the service package
+// nil if cfg.ProgressState is nil. This is the single point in the service package
 // where the untyped State field is narrowed to a concrete type.
-func cfgProgress(cfg *types.DownloadConfig) *progress.DownloadProgress {
-	if cfg == nil || cfg.State == nil {
+func cfgProgress(cfg *types.DownloadRecord) *progress.DownloadProgress {
+	if cfg == nil || cfg.ProgressState == nil {
 		return nil
 	}
-	return cfg.State.(*progress.DownloadProgress)
+	return cfg.ProgressState.(*progress.DownloadProgress)
 }
 
-func completedSpeedBps(entry types.DownloadEntry) float64 {
+func completedSpeedBps(entry types.DownloadRecord) float64 {
 	if entry.Status != "completed" {
 		return 0
 	}
@@ -196,7 +196,7 @@ func (s *LocalDownloadService) GetStatus(id string) (*types.DownloadStatus, erro
 	return nil, types.ErrNotFound
 }
 
-func (s *LocalDownloadService) History() ([]types.DownloadEntry, error) {
+func (s *LocalDownloadService) History() ([]types.DownloadRecord, error) {
 	return store.LoadCompletedDownloads()
 }
 func (s *LocalDownloadService) ClearCompleted() (int64, error) {
@@ -345,10 +345,10 @@ func (s *LocalDownloadService) List() ([]types.DownloadStatus, error) {
 				URL:          cfg.URL,
 				Filename:     cfg.Filename,
 				Status:       statusStr,
-				RateLimit:    cfg.RateLimitBps,
+				RateLimit:    cfg.RateLimit,
 				RateLimitSet: cfg.RateLimitSet,
 			}
-			if cfg.State != nil {
+			if cfg.ProgressState != nil {
 				cp := cfgProgress(&cfg)
 				downloaded, totalSize, _, sessionElapsed, connections, sessionStart := cp.GetProgress()
 				status.TotalSize = totalSize

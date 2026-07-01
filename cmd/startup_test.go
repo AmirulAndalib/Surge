@@ -36,7 +36,7 @@ func TestServer_Startup_HandlesResume(t *testing.T) {
 	GlobalProgressCh = make(chan types.DownloadEvent, 10)
 	GlobalPool = scheduler.New(GlobalProgressCh, 3)
 	eventBus := orchestrator.NewEventBus()
-	getAll := func() []types.DownloadConfig { return GlobalPool.GetAll() }
+	getAll := func() []types.DownloadRecord { return GlobalPool.GetAll() }
 	GlobalLifecycle = orchestrator.NewLifecycleManager(GlobalPool, eventBus, buildActiveDownloadChecker(getAll))
 	GlobalService = service.NewLocalDownloadService(GlobalLifecycle)
 	defer func() {
@@ -129,7 +129,7 @@ func setupTestEnv(t *testing.T, tmpDir string) {
 }
 
 func seedDownload(t *testing.T, id, url, dest, status string) {
-	manualState := &types.DownloadState{
+	manualState := &types.DownloadRecord{
 		ID:         id,
 		URL:        url,
 		Filename:   filepath.Base(dest),
@@ -139,7 +139,7 @@ func seedDownload(t *testing.T, id, url, dest, status string) {
 		PausedAt:   0,
 		CreatedAt:  time.Now().Unix(),
 	}
-	if err := store.AddToMasterList(types.DownloadEntry{
+	if err := store.AddToMasterList(types.DownloadRecord{
 		ID:         id,
 		URL:        url,
 		DestPath:   dest,

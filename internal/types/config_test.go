@@ -252,17 +252,17 @@ func TestChannelBufferSizes(t *testing.T) {
 	}
 }
 
-func TestDownloadConfig_Fields(t *testing.T) {
+func TestDownloadRecord_Fields(t *testing.T) {
 	state := &struct{}{}
 	runtime := &RuntimeConfig{MaxConnectionsPerDownload: 8}
 
-	cfg := DownloadConfig{
+	cfg := DownloadRecord{
 		URL:        "https://example.com/file.zip",
 		OutputPath: "/tmp/file.zip",
 		ID:         "download-123",
 		Filename:   "file.zip",
 		ProgressCh: nil,
-		State:      state,
+		ProgressState:      state,
 		Runtime:    runtime,
 	}
 
@@ -275,7 +275,7 @@ func TestDownloadConfig_Fields(t *testing.T) {
 	if cfg.ID != "download-123" {
 		t.Error("ID not set correctly")
 	}
-	if cfg.State != state {
+	if cfg.ProgressState != state {
 		t.Error("State not set correctly")
 	}
 	if cfg.Runtime != runtime {

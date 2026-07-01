@@ -161,13 +161,13 @@ func TestRunDownload_StartedEventUsesFullDestPath(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	cfg := types.DownloadConfig{
+	cfg := types.DownloadRecord{
 		URL:           server.URL(),
 		OutputPath:    tmpDir,
 		Filename:      "file.bin",
 		ID:            "started-event-test",
 		ProgressCh:    progressCh,
-		State:         progress.New("started-event-test", fileSize),
+		ProgressState:         progress.New("started-event-test", fileSize),
 		Runtime:       &types.RuntimeConfig{},
 		TotalSize:     fileSize,
 		SupportsRange: false,
@@ -217,13 +217,13 @@ func TestRunDownload_ConcurrentBootstrapWithoutProbeMetadata(t *testing.T) {
 	_ = f.Close()
 
 	progressCh := make(chan types.DownloadEvent, 16)
-	cfg := types.DownloadConfig{
+	cfg := types.DownloadRecord{
 		URL:           server.URL(),
 		OutputPath:    tmpDir,
 		Filename:      "file.bin",
 		ID:            "bootstrap-test",
 		ProgressCh:    progressCh,
-		State:         progress.New("bootstrap-test", 0),
+		ProgressState:         progress.New("bootstrap-test", 0),
 		Runtime:       &types.RuntimeConfig{},
 		TotalSize:     0,
 		SupportsRange: true,
@@ -232,7 +232,7 @@ func TestRunDownload_ConcurrentBootstrapWithoutProbeMetadata(t *testing.T) {
 	if err := RunDownload(context.Background(), &cfg); err != nil {
 		t.Fatalf("RunDownload failed: %v", err)
 	}
-	_, stateTotal, _, _, _, _ := cfg.State.(*progress.DownloadProgress).GetProgress()
+	_, stateTotal, _, _, _, _ := cfg.ProgressState.(*progress.DownloadProgress).GetProgress()
 	if stateTotal != fileSize {
 		t.Fatalf("state total size = %d, want %d", stateTotal, fileSize)
 	}
@@ -275,13 +275,13 @@ func TestRunDownload_OptimisticConcurrentFallsBackToSingle(t *testing.T) {
 	_ = f.Close()
 
 	progressCh := make(chan types.DownloadEvent, 16)
-	cfg := types.DownloadConfig{
+	cfg := types.DownloadRecord{
 		URL:           server.URL,
 		OutputPath:    tmpDir,
 		Filename:      "fallback.bin",
 		ID:            "optimistic-fallback-test",
 		ProgressCh:    progressCh,
-		State:         progress.New("optimistic-fallback-test", 0),
+		ProgressState:         progress.New("optimistic-fallback-test", 0),
 		Runtime:       &types.RuntimeConfig{},
 		TotalSize:     0,
 		SupportsRange: true,
@@ -298,7 +298,7 @@ func TestRunDownload_OptimisticConcurrentFallsBackToSingle(t *testing.T) {
 	if string(got) != string(content) {
 		t.Fatalf("downloaded content = %q, want %q", string(got), string(content))
 	}
-	_, stateTotal, _, _, _, _ := cfg.State.(*progress.DownloadProgress).GetProgress()
+	_, stateTotal, _, _, _, _ := cfg.ProgressState.(*progress.DownloadProgress).GetProgress()
 	if stateTotal != int64(len(content)) {
 		t.Fatalf("state total size = %d, want %d", stateTotal, len(content))
 	}
@@ -335,13 +335,13 @@ func TestRunDownload_MidTransferConcurrentFailureFallsBackToSingle(t *testing.T)
 	}
 
 	progressCh := make(chan types.DownloadEvent, 100)
-	cfg := types.DownloadConfig{
+	cfg := types.DownloadRecord{
 		URL:           server.URL(),
 		OutputPath:    tmpDir,
 		Filename:      "midfail.bin",
 		ID:            "mid-fail-test",
 		ProgressCh:    progressCh,
-		State:         progress.New("mid-fail-test", 0), // Simulating unknown size
+		ProgressState:         progress.New("mid-fail-test", 0), // Simulating unknown size
 		Runtime:       &types.RuntimeConfig{MinChunkSize: 10240},
 		TotalSize:     0, // Force bootstrap attempt/failure
 		SupportsRange: true,
@@ -359,7 +359,7 @@ func TestRunDownload_MidTransferConcurrentFailureFallsBackToSingle(t *testing.T)
 
 	// Verification:
 	// 1. Progress counter is correct
-	downloaded, _, _, _, _, _ := cfg.State.(*progress.DownloadProgress).GetProgress()
+	downloaded, _, _, _, _, _ := cfg.ProgressState.(*progress.DownloadProgress).GetProgress()
 	if downloaded != int64(fileSize) {
 		t.Errorf("Progress counter = %d, want %d", downloaded, fileSize)
 	}

@@ -32,12 +32,12 @@ type SaveStateOptions struct {
 
 type MasterState struct {
 	Version   int
-	Downloads []types.DownloadEntry
+	Downloads []types.DownloadRecord
 }
 
 type DetailState struct {
 	Version int
-	State   *types.DownloadState
+	State   *types.DownloadRecord
 }
 
 func URLHash(url string) string {
@@ -53,11 +53,11 @@ func getDetailPath(id string) string {
 	return filepath.Join(baseDir, "details", id+".gob")
 }
 
-func SaveState(url string, destPath string, state *types.DownloadState) error {
+func SaveState(url string, destPath string, state *types.DownloadRecord) error {
 	return SaveStateWithOptions(url, destPath, state, SaveStateOptions{})
 }
 
-func SaveStateWithOptions(url string, destPath string, state *types.DownloadState, opts SaveStateOptions) error {
+func SaveStateWithOptions(url string, destPath string, state *types.DownloadRecord, opts SaveStateOptions) error {
 	if state.ID == "" {
 		state.ID = uuid.New().String()
 	}
@@ -95,7 +95,7 @@ func SaveStateWithOptions(url string, destPath string, state *types.DownloadStat
 	}
 
 	ds := DetailState{
-		Version: 1,
+		Version: 2,
 		State:   state,
 	}
 
@@ -220,7 +220,7 @@ func parseStoredHash(storedHash string) (algo, value string) {
 	}
 }
 
-func LoadState(url string, destPath string) (*types.DownloadState, error) {
+func LoadState(url string, destPath string) (*types.DownloadRecord, error) {
 	masterList, err := LoadMasterList()
 	if err != nil {
 		return nil, err
@@ -251,8 +251,8 @@ func LoadState(url string, destPath string) (*types.DownloadState, error) {
 	return ds.State, nil
 }
 
-func LoadStates(ids []string) (map[string]*types.DownloadState, error) {
-	states := make(map[string]*types.DownloadState)
+func LoadStates(ids []string) (map[string]*types.DownloadRecord, error) {
+	states := make(map[string]*types.DownloadRecord)
 	var errs []error
 	for _, id := range ids {
 		var ds DetailState
@@ -287,7 +287,7 @@ func DeleteState(id string) error {
 	if err != nil {
 		return err
 	}
-	out := make([]types.DownloadEntry, 0, len(list.Downloads))
+	out := make([]types.DownloadRecord, 0, len(list.Downloads))
 	for _, e := range list.Downloads {
 		if e.ID != id {
 			out = append(out, e)
@@ -323,14 +323,14 @@ func LoadMasterList() (*types.MasterList, error) {
 	defer masterMu.RUnlock()
 
 	if baseDir == "" {
-		return &types.MasterList{Downloads: []types.DownloadEntry{}}, nil
+		return &types.MasterList{Downloads: []types.DownloadRecord{}}, nil
 	}
 
 	var ms MasterState
 	err := loadGob(getMasterPath(), &ms)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return &types.MasterList{Downloads: []types.DownloadEntry{}}, nil
+			return &types.MasterList{Downloads: []types.DownloadRecord{}}, nil
 		}
 		return nil, err
 	}
@@ -345,13 +345,13 @@ func saveMasterListLocked(list *types.MasterList) error {
 		return err
 	}
 	ms := MasterState{
-		Version:   1,
+		Version:   2,
 		Downloads: list.Downloads,
 	}
 	return atomicWrite(getMasterPath(), ms)
 }
 
-func AddToMasterList(entry types.DownloadEntry) error {
+func AddToMasterList(entry types.DownloadRecord) error {
 	masterMu.Lock()
 	defer masterMu.Unlock()
 
@@ -382,16 +382,16 @@ func AddToMasterList(entry types.DownloadEntry) error {
 
 func loadMasterListUnlocked() (*types.MasterList, error) {
 	if baseDir == "" {
-		return &types.MasterList{Downloads: []types.DownloadEntry{}}, nil
+		return &types.MasterList{Downloads: []types.DownloadRecord{}}, nil
 	}
 	var ms MasterState
 	if err := loadGob(getMasterPath(), &ms); err != nil {
 		if os.IsNotExist(err) {
-			return &types.MasterList{Downloads: []types.DownloadEntry{}}, nil
+			return &types.MasterList{Downloads: []types.DownloadRecord{}}, nil
 		}
 		return nil, err
 	}
-	if ms.Version != 1 {
+	if ms.Version != 2 {
 		return nil, fmt.Errorf("unsupported master list version: %d", ms.Version)
 	}
 	return &types.MasterList{Downloads: ms.Downloads}, nil
@@ -405,7 +405,7 @@ func RemoveFromMasterList(id string) error {
 	if err != nil {
 		return err
 	}
-	out := []types.DownloadEntry{}
+	out := []types.DownloadRecord{}
 	for _, e := range list.Downloads {
 		if e.ID != id {
 			out = append(out, e)
@@ -415,7 +415,7 @@ func RemoveFromMasterList(id string) error {
 	return saveMasterListLocked(list)
 }
 
-func GetDownload(id string) (*types.DownloadEntry, error) {
+func GetDownload(id string) (*types.DownloadRecord, error) {
 	masterMu.RLock()
 	defer masterMu.RUnlock()
 
@@ -431,12 +431,12 @@ func GetDownload(id string) (*types.DownloadEntry, error) {
 	return nil, nil
 }
 
-func LoadPausedDownloads() ([]types.DownloadEntry, error) {
+func LoadPausedDownloads() ([]types.DownloadRecord, error) {
 	list, err := LoadMasterList()
 	if err != nil {
 		return nil, err
 	}
-	var paused []types.DownloadEntry
+	var paused []types.DownloadRecord
 	for _, e := range list.Downloads {
 		if e.Status == "paused" || e.Status == "queued" {
 			paused = append(paused, e)
@@ -445,12 +445,12 @@ func LoadPausedDownloads() ([]types.DownloadEntry, error) {
 	return paused, nil
 }
 
-func LoadCompletedDownloads() ([]types.DownloadEntry, error) {
+func LoadCompletedDownloads() ([]types.DownloadRecord, error) {
 	list, err := LoadMasterList()
 	if err != nil {
 		return nil, err
 	}
-	var completed []types.DownloadEntry
+	var completed []types.DownloadRecord
 	for _, e := range list.Downloads {
 		if e.Status == "completed" {
 			completed = append(completed, e)
@@ -549,7 +549,7 @@ func ResumeAllDownloads() error {
 	return saveMasterListLocked(list)
 }
 
-func ListAllDownloads() ([]types.DownloadEntry, error) {
+func ListAllDownloads() ([]types.DownloadRecord, error) {
 	list, err := LoadMasterList()
 	if err != nil {
 		return nil, err
@@ -574,7 +574,7 @@ func removeDownloadsByStatus(status string) (int64, error) {
 		return 0, err
 	}
 	var count int64
-	out := []types.DownloadEntry{}
+	out := []types.DownloadRecord{}
 	for _, e := range list.Downloads {
 		if e.Status == status {
 			count++
@@ -705,7 +705,7 @@ func ValidateIntegrity() (int, error) {
 	expectedSurgePaths := make(map[string]struct{})
 	candidateDirs := make(map[string]struct{})
 
-	var out []types.DownloadEntry
+	var out []types.DownloadRecord
 
 	for _, e := range list.Downloads {
 		if e.DestPath == "" {

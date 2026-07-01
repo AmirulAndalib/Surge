@@ -222,7 +222,7 @@ func TestLocalDownloadService_HistoryAndList(t *testing.T) {
 	}
 
 	// Add a dummy completed download to store
-	testutil.SeedMasterList(t, types.DownloadEntry{
+	testutil.SeedMasterList(t, types.DownloadRecord{
 		ID:       "db-id",
 		Status:   "completed",
 		Filename: "db.txt",

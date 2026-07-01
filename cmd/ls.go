@@ -211,7 +211,7 @@ func showDownloadDetails(partialID string, jsonOutput bool, baseURL string, toke
 		return fmt.Errorf("error listing downloads: %w", err)
 	}
 
-	var found *types.DownloadEntry
+	var found *types.DownloadRecord
 	for _, d := range downloads {
 		if d.ID == fullID {
 			found = &d

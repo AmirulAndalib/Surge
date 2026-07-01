@@ -497,7 +497,7 @@ func TestHandleDownload_PathTraversal(t *testing.T) {
 // 	id := "test-status-id"
 // 	state := progress.New(id, 2000)
 // 	state.Downloaded.Store(1000)
-// 	GlobalPool.Add(types.DownloadConfig{
+// 	GlobalPool.Add(types.DownloadRecord{
 // 		ID:    id,
 // 		URL:   "http://example.com/test",
 // 		State: state,

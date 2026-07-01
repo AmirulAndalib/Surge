@@ -25,7 +25,7 @@ func (m *mockService) Purge(id string) error {
 }
 
 func (m *mockService) List() ([]types.DownloadStatus, error)   { return nil, nil }
-func (m *mockService) History() ([]types.DownloadEntry, error) { return nil, nil }
+func (m *mockService) History() ([]types.DownloadRecord, error) { return nil, nil }
 func (m *mockService) Add(url string, path string, filename string, mirrors []string, headers map[string]string, isExplicitCategory bool, workers int, minChunkSize int64, totalSize int64, supportsRange bool) (string, error) {
 	return "", nil
 }

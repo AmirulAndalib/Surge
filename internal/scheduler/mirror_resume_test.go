@@ -79,13 +79,13 @@ func TestIntegration_MirrorResume(t *testing.T) {
 	outputPath := tmpDir
 	destPath := filepath.Join(outputPath, filename)
 
-	cfg := types.DownloadConfig{
+	cfg := types.DownloadRecord{
 		URL:           primary.URL(),
 		OutputPath:    outputPath,
 		Filename:      filename,
 		ID:            progState.ID,
 		ProgressCh:    progressCh,
-		State:         progState,
+		ProgressState:         progState,
 		Runtime:       runtime,
 		TotalSize:     fileSize,
 		SupportsRange: true,
@@ -133,7 +133,7 @@ func TestIntegration_MirrorResume(t *testing.T) {
 	}
 
 	// 4. Verify Mirrors Saved (event worker persists state asynchronously)
-	var savedState *types.DownloadState
+	var savedState *types.DownloadRecord
 	deadline = time.Now().Add(5 * time.Second)
 	for time.Now().Before(deadline) {
 		savedState, err = store.LoadState(primary.URL(), destPath)
@@ -170,20 +170,22 @@ func TestIntegration_MirrorResume(t *testing.T) {
 	// Create new config simulating a resumption where we don't know the mirrors initially.
 	// Resume now receives preloaded state from the caller.
 	resumeState := progress.New(savedState.ID, fileSize)
-	resumeCfg := types.DownloadConfig{
+	resumeCfg := types.DownloadRecord{
 		URL:           primary.URL(),
 		OutputPath:    outputPath,
 		Filename:      filename,
 		ID:            savedState.ID,
 		ProgressCh:    progressCh,
-		State:         resumeState,
+		ProgressState:         resumeState,
 		Runtime:       runtime,
 		TotalSize:     fileSize,
 		SupportsRange: true,
 		IsResume:      true,
 		DestPath:      destPath,
-		SavedState:    savedState,
-		Mirrors:       []string{}, // Empty mirrors!
+		Mirrors:       savedState.Mirrors,
+		Tasks:         savedState.Tasks,
+		ChunkBitmap:   savedState.ChunkBitmap,
+		ActualChunkSize: savedState.ActualChunkSize,
 	}
 
 	// We can't easily hook into RunDownload to verify it loaded mirrors without running it.

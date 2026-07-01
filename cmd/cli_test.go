@@ -108,7 +108,7 @@ func TestResolveDownloadID_RemoteStillWorksWhenDBUnavailable(t *testing.T) {
 func TestResolveDownloadID_StrictRemoteDoesNotFallbackToDBOnRemoteError(t *testing.T) {
 	setupIsolatedCmdState(t)
 
-	entry := types.DownloadEntry{
+	entry := types.DownloadRecord{
 		ID:       "11223344-1234-5678-90ab-cdef12345678",
 		Filename: "db-only.bin",
 	}
@@ -147,7 +147,7 @@ func TestResolveDownloadID_StrictRemoteDoesNotFallbackToDBOnRemoteError(t *testi
 func TestResolveDownloadID_LocalModeFallsBackToDBWhenRemoteListFails(t *testing.T) {
 	setupIsolatedCmdState(t)
 
-	entry := types.DownloadEntry{
+	entry := types.DownloadRecord{
 		ID:       "99aabbcc-1234-5678-90ab-cdef12345678",
 		Filename: "fallback.bin",
 	}
@@ -441,7 +441,7 @@ func TestRmClean_Offline_Works(t *testing.T) {
 	setupIsolatedCmdState(t)
 	removeActivePort() // Ensure offline mode
 
-	completed := types.DownloadEntry{
+	completed := types.DownloadRecord{
 		ID:          "rm-clean-offline-id",
 		URL:         "https://example.com/completed.bin",
 		Filename:    "completed.bin",
@@ -696,7 +696,7 @@ func TestActionCommandsRunE_ReturnAmbiguousIDErrors(t *testing.T) {
 			saveActivePort(port)
 			t.Cleanup(removeActivePort)
 
-			entries := []types.DownloadEntry{
+			entries := []types.DownloadRecord{
 				{ID: "deadbeef-1234-5678-90ab-cdef12345678", Filename: "first.bin"},
 				{ID: "deadbead-1234-5678-90ab-cdef12345678", Filename: "second.bin"},
 			}
@@ -721,7 +721,7 @@ func TestPrintDownloads_FromDatabase_TableAndJSON(t *testing.T) {
 	setupIsolatedCmdState(t)
 	removeActivePort()
 
-	entry := types.DownloadEntry{
+	entry := types.DownloadRecord{
 		ID:         "12345678-1234-1234-1234-1234567890ab",
 		URL:        "https://example.com/asset.bin",
 		Filename:   "this-is-a-very-long-file-name-that-should-truncate.bin",
@@ -790,7 +790,7 @@ func TestPrintDownloads_JSONEmpty(t *testing.T) {
 func TestPrintDownloads_StrictRemoteEmpty_DoesNotFallbackToDB(t *testing.T) {
 	setupIsolatedCmdState(t)
 
-	entry := types.DownloadEntry{
+	entry := types.DownloadRecord{
 		ID:       "feedface-1234-5678-90ab-cdef12345678",
 		Filename: "local-only.bin",
 		Status:   "completed",
@@ -823,7 +823,7 @@ func TestShowDownloadDetails_UsesDatabaseFallback(t *testing.T) {
 	setupIsolatedCmdState(t)
 	removeActivePort()
 
-	entry := types.DownloadEntry{
+	entry := types.DownloadRecord{
 		ID:         "87654321-1234-1234-1234-1234567890ab",
 		URL:        "https://example.com/detail.bin",
 		Filename:   "detail.bin",
@@ -1042,7 +1042,7 @@ func TestProcessDownloads_RemoteAndLocal(t *testing.T) {
 		GlobalProgressCh = make(chan types.DownloadEvent, 10)
 		GlobalPool = scheduler.New(GlobalProgressCh, 2)
 		eventBus := orchestrator.NewEventBus()
-		getAll := func() []types.DownloadConfig { return GlobalPool.GetAll() }
+		getAll := func() []types.DownloadRecord { return GlobalPool.GetAll() }
 		GlobalLifecycle = orchestrator.NewLifecycleManager(GlobalPool, eventBus, buildActiveDownloadChecker(getAll))
 		GlobalService = service.NewLocalDownloadService(GlobalLifecycle)
 

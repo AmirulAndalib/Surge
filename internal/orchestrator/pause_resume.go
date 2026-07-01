@@ -46,7 +46,7 @@ func (mgr *LifecycleManager) Pause(id string) error {
 // hydrateConfigFromDisk loads the latest persisted pause snapshot from disk
 // and merges it into cfg so the download resumes at the correct byte offset
 // and task list even when the pool's in-memory state is stale.
-func hydrateConfigFromDisk(cfg *types.DownloadConfig) {
+func hydrateConfigFromDisk(cfg *types.DownloadRecord) {
 	if cfg.URL == "" || cfg.DestPath == "" {
 		return
 	}
@@ -54,12 +54,14 @@ func hydrateConfigFromDisk(cfg *types.DownloadConfig) {
 	if err != nil || saved == nil {
 		return
 	}
-	cfg.SavedState = saved
 	if saved.TotalSize > 0 {
 		cfg.TotalSize = saved.TotalSize
 	}
 	if len(saved.Tasks) > 0 {
 		cfg.SupportsRange = true
+		cfg.Tasks = saved.Tasks
+		cfg.ChunkBitmap = saved.ChunkBitmap
+		cfg.ActualChunkSize = saved.ActualChunkSize
 	}
 }
 
@@ -300,11 +302,11 @@ func (mgr *LifecycleManager) UpdateURL(id string, newURL string) error {
 	return store.UpdateURL(id, newURL)
 }
 
-// buildResumeConfig constructs a DownloadConfig for a cold-path resume from saved state.
+// buildResumeConfig constructs a DownloadRecord for a cold-path resume from saved state.
 // When entry is non-nil it provides identity fields (URL, filename, destPath); savedState
 // takes precedence for progress, elapsed time, and mirror topology. If savedState is nil,
 // SupportsRange is false and the download restarts from the entry's Downloaded offset.
-func buildResumeConfig(id, outputPath string, entry *types.DownloadEntry, savedState *types.DownloadState, settings *config.Settings) types.DownloadConfig {
+func buildResumeConfig(id, outputPath string, entry *types.DownloadRecord, savedState *types.DownloadRecord, settings *config.Settings) types.DownloadRecord {
 	var destPath, url, filename string
 	var totalSize, downloaded int64
 	var rateLimit int64
@@ -374,7 +376,7 @@ func buildResumeConfig(id, outputPath string, entry *types.DownloadEntry, savedS
 	}
 	dmState.SetRateLimit(rateLimit, rateLimitSet)
 
-	return types.DownloadConfig{
+	return types.DownloadRecord{
 		URL:           url,
 		OutputPath:    outputPath,
 		DestPath:      destPath,
@@ -383,11 +385,10 @@ func buildResumeConfig(id, outputPath string, entry *types.DownloadEntry, savedS
 		TotalSize:     totalSize,
 		SupportsRange: savedState != nil && len(savedState.Tasks) > 0,
 		IsResume:      true,
-		State:         dmState,
-		SavedState:    savedState,
+		ProgressState: dmState,
 		Runtime:       runtime,
 		Mirrors:       mirrorURLs,
-		RateLimitBps:  rateLimit,
+		RateLimit:  rateLimit,
 		RateLimitSet:  rateLimitSet,
 	}
 }

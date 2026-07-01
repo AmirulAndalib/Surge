@@ -80,7 +80,7 @@ func (mgr *LifecycleManager) StartEventWorker(ch <-chan types.DownloadEvent) {
 		case types.EventStarted:
 			// Persist the started record immediately so crash recovery and later lifecycle
 			// events have a stable destination record even before the first pause snapshot.
-			entry := types.DownloadEntry{
+			entry := types.DownloadRecord{
 				ID:           m.DownloadID,
 				URL:          m.URL,
 				URLHash:      store.URLHash(m.URL),
@@ -155,7 +155,7 @@ func (mgr *LifecycleManager) StartEventWorker(ch <-chan types.DownloadEvent) {
 
 			// Pause snapshots can race slightly behind the master entry, so fall back to
 			// the DB values to keep the resume key stable when the in-memory state is sparse.
-			stateSnapshot := m.State.(*types.DownloadState)
+			stateSnapshot := m.State
 			snapshot := *stateSnapshot
 			destPath := stateSnapshot.DestPath
 			url := stateSnapshot.URL
@@ -177,7 +177,7 @@ func (mgr *LifecycleManager) StartEventWorker(ch <-chan types.DownloadEvent) {
 				}
 			}
 
-			entry := types.DownloadEntry{
+			entry := types.DownloadRecord{
 				ID:           m.DownloadID,
 				Status:       "paused",
 				Downloaded:   snapshot.Downloaded,
@@ -236,7 +236,7 @@ func (mgr *LifecycleManager) StartEventWorker(ch <-chan types.DownloadEvent) {
 			// finalization failure must stay retryable instead of being recorded as done.
 			if err := finalizeCompletedFile(destPath); err != nil {
 				utils.Debug("Lifecycle: Failed to finalize completed file at %s: %v", destPath, err)
-				errEntry := types.DownloadEntry{
+				errEntry := types.DownloadRecord{
 					ID:           m.DownloadID,
 					URL:          url,
 					URLHash:      urlHash,
@@ -270,7 +270,7 @@ func (mgr *LifecycleManager) StartEventWorker(ch <-chan types.DownloadEvent) {
 				break
 			}
 
-			entry := types.DownloadEntry{
+			entry := types.DownloadRecord{
 				ID:           m.DownloadID,
 				URL:          url,
 				URLHash:      urlHash,
@@ -368,7 +368,7 @@ func (mgr *LifecycleManager) StartEventWorker(ch <-chan types.DownloadEvent) {
 		case types.EventQueued:
 			// Queue persistence is what lets downloads survive shutdown before any worker
 			// has emitted a started event.
-			if err := store.AddToMasterList(types.DownloadEntry{
+			if err := store.AddToMasterList(types.DownloadRecord{
 				ID:           m.DownloadID,
 				URL:          m.URL,
 				URLHash:      store.URLHash(m.URL),

@@ -174,7 +174,7 @@ func TestHandleDownload_PathResolution(t *testing.T) {
 			req := httptest.NewRequest("POST", "/download", bytes.NewBuffer(body))
 			w := httptest.NewRecorder()
 			eventBus := orchestrator.NewEventBus()
-			getAll := func() []types.DownloadConfig { return GlobalPool.GetAll() }
+			getAll := func() []types.DownloadRecord { return GlobalPool.GetAll() }
 			GlobalLifecycle = orchestrator.NewLifecycleManager(GlobalPool, eventBus, buildActiveDownloadChecker(getAll))
 			svc := service.NewLocalDownloadService(GlobalLifecycle)
 
@@ -293,7 +293,7 @@ func TestHandleDownload_SkipApprovalUsesLifecycleEnqueue(t *testing.T) {
 	expectedFile := "from-extension.bin"
 
 	eventBus := orchestrator.NewEventBus()
-	getAll := func() []types.DownloadConfig { return GlobalPool.GetAll() }
+	getAll := func() []types.DownloadRecord { return GlobalPool.GetAll() }
 	GlobalLifecycle = orchestrator.NewLifecycleManager(GlobalPool, eventBus, buildActiveDownloadChecker(getAll))
 	svc := service.NewLocalDownloadService(GlobalLifecycle)
 	GlobalService = svc
@@ -360,7 +360,7 @@ func TestHandleDownload_EnqueueError_RecordsPreflightError(t *testing.T) {
 	})
 
 	eventBus := orchestrator.NewEventBus()
-	getAll := func() []types.DownloadConfig { return GlobalPool.GetAll() }
+	getAll := func() []types.DownloadRecord { return GlobalPool.GetAll() }
 	GlobalLifecycle = orchestrator.NewLifecycleManager(GlobalPool, eventBus, buildActiveDownloadChecker(getAll))
 	svc := service.NewLocalDownloadService(GlobalLifecycle)
 	GlobalService = svc
@@ -424,7 +424,7 @@ func TestHandleDownload_ForwardsPerTaskOverridesToLifecycle(t *testing.T) {
 	tempDir := t.TempDir()
 
 	eventBus := orchestrator.NewEventBus()
-	getAll := func() []types.DownloadConfig { return GlobalPool.GetAll() }
+	getAll := func() []types.DownloadRecord { return GlobalPool.GetAll() }
 	GlobalLifecycle = orchestrator.NewLifecycleManager(GlobalPool, eventBus, buildActiveDownloadChecker(getAll))
 	svc := service.NewLocalDownloadService(GlobalLifecycle)
 	GlobalService = svc

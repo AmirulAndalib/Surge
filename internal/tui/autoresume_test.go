@@ -43,7 +43,7 @@ func TestAutoResume_Enabled(t *testing.T) {
 	testURL := "http://example.com/resume.zip"
 	testDest := filepath.Join(tmpDir, "resume.zip")
 
-	manualState := &types.DownloadState{
+	manualState := &types.DownloadRecord{
 		ID:         testID,
 		URL:        testURL,
 		Filename:   "resume.zip",
@@ -53,7 +53,7 @@ func TestAutoResume_Enabled(t *testing.T) {
 		PausedAt:   time.Now().Unix(),
 		CreatedAt:  time.Now().Unix(),
 	}
-	if err := store.AddToMasterList(types.DownloadEntry{
+	if err := store.AddToMasterList(types.DownloadRecord{
 		ID:         testID,
 		URL:        testURL,
 		DestPath:   testDest,
@@ -119,7 +119,7 @@ func TestAutoResume_Disabled(t *testing.T) {
 	testURL := "http://example.com/resume2.zip"
 	testDest := filepath.Join(tmpDir, "resume2.zip")
 
-	manualState := &types.DownloadState{
+	manualState := &types.DownloadRecord{
 		ID:         testID,
 		URL:        testURL,
 		Filename:   "resume2.zip",
@@ -129,7 +129,7 @@ func TestAutoResume_Disabled(t *testing.T) {
 		PausedAt:   time.Now().Unix(),
 		CreatedAt:  time.Now().Unix(),
 	}
-	if err := store.AddToMasterList(types.DownloadEntry{
+	if err := store.AddToMasterList(types.DownloadRecord{
 		ID:         testID,
 		URL:        testURL,
 		DestPath:   testDest,

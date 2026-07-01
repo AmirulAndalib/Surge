@@ -156,16 +156,16 @@ func (m *RootModel) openDirectoryPicker(origin FilePickerOrigin, originalPath, b
 
 // checkForDuplicate checks if a compatible download already exists
 func (m RootModel) checkForDuplicate(url string) *orchestrator.DuplicateResult {
-	activeDownloads := func() map[string]*types.DownloadConfig {
-		active := make(map[string]*types.DownloadConfig)
+	activeDownloads := func() map[string]*types.DownloadRecord {
+		active := make(map[string]*types.DownloadRecord)
 		for _, d := range m.downloads {
 			if !d.done {
 				state := &engineprogress.DownloadProgress{}
 				// Create dummy config to pass into processing duplicate check
-				active[d.ID] = &types.DownloadConfig{
-					URL:      d.URL,
-					Filename: d.Filename,
-					State:    state,
+				active[d.ID] = &types.DownloadRecord{
+					URL:           d.URL,
+					Filename:      d.Filename,
+					ProgressState: state,
 				}
 			}
 		}

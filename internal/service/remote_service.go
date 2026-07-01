@@ -100,14 +100,14 @@ func (s *RemoteDownloadService) List() ([]types.DownloadStatus, error) {
 }
 
 // History returns completed downloads
-func (s *RemoteDownloadService) History() ([]types.DownloadEntry, error) {
+func (s *RemoteDownloadService) History() ([]types.DownloadRecord, error) {
 	resp, err := s.doRequest("GET", "/history", nil)
 	if err != nil {
 		return nil, err
 	}
 	defer func() { _, _ = io.Copy(io.Discard, resp.Body); _ = resp.Body.Close() }()
 
-	var history []types.DownloadEntry
+	var history []types.DownloadRecord
 	if err := json.NewDecoder(resp.Body).Decode(&history); err != nil {
 		return nil, err
 	}

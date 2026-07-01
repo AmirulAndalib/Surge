@@ -387,7 +387,7 @@ func (d *ConcurrentDownloader) getWorkerMirrors(activeMirrors []string) []string
 	return mirrors
 }
 
-func (d *ConcurrentDownloader) getEffectiveSizeForWorkers(fileSize int64, savedState *types.DownloadState, isResume bool) int64 {
+func (d *ConcurrentDownloader) getEffectiveSizeForWorkers(fileSize int64, savedState *types.DownloadRecord, isResume bool) int64 {
 	if isResume && savedState != nil && savedState.TotalSize > 0 {
 		eff := savedState.TotalSize - savedState.Downloaded
 		if eff < 0 {
@@ -398,7 +398,7 @@ func (d *ConcurrentDownloader) getEffectiveSizeForWorkers(fileSize int64, savedS
 	return fileSize
 }
 
-func (d *ConcurrentDownloader) setupTasks(destPath string, fileSize, chunkSize int64, outFile *os.File, savedState *types.DownloadState, isResume bool) ([]types.Task, error) {
+func (d *ConcurrentDownloader) setupTasks(destPath string, fileSize, chunkSize int64, outFile *os.File, savedState *types.DownloadRecord, isResume bool) ([]types.Task, error) {
 
 	if isResume {
 		if d.State != nil {
@@ -603,7 +603,7 @@ func (d *ConcurrentDownloader) handlePause(destPath string, fileSize int64, queu
 	}
 
 	// Save state for resume (use computed value for consistency)
-	s := &types.DownloadState{
+	s := &types.DownloadRecord{
 		URL:             d.URL,
 		ID:              d.ID,
 		DestPath:        destPath,

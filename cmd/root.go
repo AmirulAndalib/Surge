@@ -90,7 +90,7 @@ var (
 // buildActiveDownloadChecker bridges the lifecycle manager and the worker pool.
 // LifecycleManager has no direct reference to the pool, so we inject this closure
 // at construction time to let it detect file-name collisions with in-flight downloads.
-func buildActiveDownloadChecker(getAll func() []types.DownloadConfig) orchestrator.IsNameActiveFunc {
+func buildActiveDownloadChecker(getAll func() []types.DownloadRecord) orchestrator.IsNameActiveFunc {
 	if getAll == nil {
 		return nil
 	}
@@ -111,11 +111,11 @@ func buildActiveDownloadChecker(getAll func() []types.DownloadConfig) orchestrat
 					existingName = filepath.Base(cfg.DestPath)
 				}
 			}
-			if cfg.State != nil {
-				if stateName := strings.TrimSpace(cfg.State.(*progress.DownloadProgress).GetFilename()); stateName != "" {
+			if cfg.ProgressState != nil {
+				if stateName := strings.TrimSpace(cfg.ProgressState.(*progress.DownloadProgress).GetFilename()); stateName != "" {
 					existingName = stateName
 				}
-				if stateDestPath := strings.TrimSpace(cfg.State.(*progress.DownloadProgress).GetDestPath()); stateDestPath != "" {
+				if stateDestPath := strings.TrimSpace(cfg.ProgressState.(*progress.DownloadProgress).GetDestPath()); stateDestPath != "" {
 					existingDir = filepath.Dir(stateDestPath)
 					if existingName == "" {
 						existingName = filepath.Base(stateDestPath)
@@ -133,7 +133,7 @@ func buildActiveDownloadChecker(getAll func() []types.DownloadConfig) orchestrat
 	}
 }
 
-func newLocalLifecycleManager(pool *scheduler.Scheduler, eventBus *orchestrator.EventBus, getAll func() []types.DownloadConfig) *orchestrator.LifecycleManager {
+func newLocalLifecycleManager(pool *scheduler.Scheduler, eventBus *orchestrator.EventBus, getAll func() []types.DownloadRecord) *orchestrator.LifecycleManager {
 	return orchestrator.NewLifecycleManager(pool, eventBus, buildActiveDownloadChecker(getAll))
 }
 
@@ -208,7 +208,7 @@ func setLifecycleCleanupForTest(fn func()) {
 	globalLifecycleMu.Unlock()
 }
 
-func currentPoolConfigs() []types.DownloadConfig {
+func currentPoolConfigs() []types.DownloadRecord {
 	if GlobalPool == nil {
 		return nil
 	}
@@ -264,7 +264,7 @@ func recordPreflightDownloadError(url, outPath string, err error) {
 		destPath = filepath.Join(outPath, filename)
 	}
 
-	entry := types.DownloadEntry{
+	entry := types.DownloadRecord{
 		ID:       uuid.New().String(),
 		URL:      url,
 		URLHash:  store.URLHash(url),
@@ -286,7 +286,7 @@ func recordPreflightDownloadError(url, outPath string, err error) {
 	}
 }
 
-func ensureLocalLifecycle(service service.DownloadService, getAll func() []types.DownloadConfig) (*orchestrator.LifecycleManager, error) {
+func ensureLocalLifecycle(service service.DownloadService, getAll func() []types.DownloadRecord) (*orchestrator.LifecycleManager, error) {
 	globalLifecycleMu.Lock()
 	defer globalLifecycleMu.Unlock()
 

@@ -117,7 +117,7 @@ func TestResume_RespectsOriginalPath_WhenDefaultChanges(t *testing.T) {
 
 	// 5. Simulate "Pause" / Persistence
 	// Use SaveState to save the paused state (which updates the downloads table with status=paused)
-	manualState := &types.DownloadState{
+	manualState := &types.DownloadRecord{
 		ID:         dm.ID,
 		URL:        dm.URL,
 		Filename:   dm.Filename,
@@ -127,7 +127,7 @@ func TestResume_RespectsOriginalPath_WhenDefaultChanges(t *testing.T) {
 		PausedAt:   time.Now().Unix(),
 		CreatedAt:  time.Now().Unix(),
 	}
-	if err := store.AddToMasterList(types.DownloadEntry{
+	if err := store.AddToMasterList(types.DownloadRecord{
 		ID:         dm.ID,
 		URL:        dm.URL,
 		DestPath:   dm.Destination,
@@ -167,7 +167,7 @@ func TestResume_RespectsOriginalPath_WhenDefaultChanges(t *testing.T) {
 		t.Errorf("Resumed path incorrect.\nGot:  %s\nWant: %s", entry.DestPath, expectedPathA)
 	}
 
-	// Verify that if we constructed a RuntimeConfig/DownloadConfig, it would use this absolute path
+	// Verify that if we constructed a RuntimeConfig/DownloadRecord, it would use this absolute path
 	outputPath := filepath.Dir(entry.DestPath)
 	// Even if logic checks for empty/dot, filepath.Dir of absolute path is absolute path.
 	if outputPath == "" || outputPath == "." {

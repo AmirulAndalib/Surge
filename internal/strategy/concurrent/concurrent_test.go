@@ -597,8 +597,8 @@ func TestConcurrentDownloader_ResumePartialDownload(t *testing.T) {
 	remainingTasks := []types.Task{
 		{Offset: partialSize, Length: fileSize - partialSize},
 	}
-	// Need to check if DownloadState struct is compatible
-	savedState := &types.DownloadState{
+	// Need to check if DownloadRecord struct is compatible
+	savedState := &types.DownloadRecord{
 		ID:         downloadID,
 		URL:        server.URL(),
 		DestPath:   destPath,

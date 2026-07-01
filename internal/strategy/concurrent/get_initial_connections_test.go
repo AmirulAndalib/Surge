@@ -129,7 +129,7 @@ func TestGetEffectiveSizeForWorkers_FreshDownload(t *testing.T) {
 func TestGetEffectiveSizeForWorkers_Resume(t *testing.T) {
 	d := &ConcurrentDownloader{}
 	fileSize := int64(100 * utils.MiB)
-	savedState := &types.DownloadState{
+	savedState := &types.DownloadRecord{
 		TotalSize:  fileSize,
 		Downloaded: int64(98 * utils.MiB),
 	}
@@ -142,7 +142,7 @@ func TestGetEffectiveSizeForWorkers_Resume(t *testing.T) {
 func TestGetEffectiveSizeForWorkers_ResumeNegative(t *testing.T) {
 	d := &ConcurrentDownloader{}
 	fileSize := int64(100 * utils.MiB)
-	savedState := &types.DownloadState{
+	savedState := &types.DownloadRecord{
 		TotalSize:  fileSize,
 		Downloaded: int64(102 * utils.MiB), // Downloaded more than total size somehow
 	}

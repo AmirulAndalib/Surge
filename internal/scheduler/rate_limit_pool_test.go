@@ -19,11 +19,11 @@ func TestWorkerPool_RateLimit_QueuedUpdateHonored(t *testing.T) {
 
 	id := "queued-rate-test"
 	state := progress.New(id, 0)
-	cfg := types.DownloadConfig{
+	cfg := types.DownloadRecord{
 		ID:           id,
 		URL:          "http://example.com/file.bin",
-		State:        state,
-		RateLimitBps: 0,
+		ProgressState:        state,
+		RateLimit: 0,
 		RateLimitSet: false,
 	}
 
@@ -43,8 +43,8 @@ func TestWorkerPool_RateLimit_QueuedUpdateHonored(t *testing.T) {
 	if !qCfg.RateLimitSet {
 		t.Fatal("expected RateLimitSet=true after SetDownloadRateLimit")
 	}
-	if qCfg.RateLimitBps != 5*1024*1024 {
-		t.Fatalf("queued RateLimitBps = %d, want %d", qCfg.RateLimitBps, 5*1024*1024)
+	if qCfg.RateLimit != 5*1024*1024 {
+		t.Fatalf("queued RateLimitBps = %d, want %d", qCfg.RateLimit, 5*1024*1024)
 	}
 	rate, rateSet := state.GetRateLimit()
 	if rate != 5*1024*1024 || !rateSet {
@@ -64,10 +64,10 @@ func TestWorkerPool_RateLimit_ExplicitUnlimitedSurvivesDefaultChange(t *testing.
 	pool := New(ch, 1)
 
 	id := "explicit-unlimited"
-	cfg := types.DownloadConfig{
+	cfg := types.DownloadRecord{
 		ID:           id,
 		URL:          "http://example.com/file.bin",
-		RateLimitBps: 0,
+		RateLimit: 0,
 		RateLimitSet: true,
 	}
 
@@ -79,8 +79,8 @@ func TestWorkerPool_RateLimit_ExplicitUnlimitedSurvivesDefaultChange(t *testing.
 	pool.ensureLimiterForConfigLocked(&testCfg)
 	pool.mu.Unlock()
 
-	if testCfg.RateLimitBps != 0 {
-		t.Fatalf("Explicit unlimited should stay at 0, got %d", testCfg.RateLimitBps)
+	if testCfg.RateLimit != 0 {
+		t.Fatalf("Explicit unlimited should stay at 0, got %d", testCfg.RateLimit)
 	}
 
 	// Now raise the default
@@ -90,8 +90,8 @@ func TestWorkerPool_RateLimit_ExplicitUnlimitedSurvivesDefaultChange(t *testing.
 	qCfg, stillQueued := pool.queued[id]
 	pool.mu.RUnlock()
 
-	if stillQueued && qCfg.RateLimitBps != 0 {
-		t.Errorf("Explicit unlimited was overridden by default change: got %d", qCfg.RateLimitBps)
+	if stillQueued && qCfg.RateLimit != 0 {
+		t.Errorf("Explicit unlimited was overridden by default change: got %d", qCfg.RateLimit)
 	}
 
 	pool.mu.Lock()
@@ -114,11 +114,11 @@ func TestWorkerPool_RateLimit_DefaultChangeUpdatesInheritedActiveLimiter(t *test
 
 	pool.mu.Lock()
 	pool.downloads[id] = &activeDownload{
-		config: types.DownloadConfig{
+		config: types.DownloadRecord{
 			ID:           id,
 			URL:          "http://example.com/file.bin",
-			State:        state,
-			RateLimitBps: oldRate,
+			ProgressState:        state,
+			RateLimit: oldRate,
 			RateLimitSet: false,
 		},
 	}
@@ -152,7 +152,7 @@ func TestWorkerPool_RateLimit_DefaultChangeUpdatesInheritedActiveLimiter(t *test
 	}
 
 	pool.mu.RLock()
-	got := pool.downloads[id].config.RateLimitBps
+	got := pool.downloads[id].config.RateLimit
 	gotSet := pool.downloads[id].config.RateLimitSet
 	pool.mu.RUnlock()
 
@@ -183,11 +183,11 @@ func TestWorkerPool_RateLimit_DefaultChangeLeavesExplicitActiveLimiter(t *testin
 
 	pool.mu.Lock()
 	pool.downloads[id] = &activeDownload{
-		config: types.DownloadConfig{
+		config: types.DownloadRecord{
 			ID:           id,
 			URL:          "http://example.com/file.bin",
-			State:        state,
-			RateLimitBps: explicitRate,
+			ProgressState:        state,
+			RateLimit: explicitRate,
 			RateLimitSet: true,
 		},
 	}
@@ -219,7 +219,7 @@ func TestWorkerPool_RateLimit_DefaultChangeLeavesExplicitActiveLimiter(t *testin
 	}
 
 	pool.mu.RLock()
-	got := pool.downloads[id].config.RateLimitBps
+	got := pool.downloads[id].config.RateLimit
 	gotSet := pool.downloads[id].config.RateLimitSet
 	pool.mu.RUnlock()
 
@@ -304,10 +304,10 @@ func TestWorkerPool_RateLimit_SetDownloadHonorsWaiter(t *testing.T) {
 	pool := New(ch, 1)
 
 	id := "dl-waiter-test"
-	cfg := types.DownloadConfig{
+	cfg := types.DownloadRecord{
 		ID:           id,
 		URL:          "http://example.com/file.bin",
-		RateLimitBps: 10000,
+		RateLimit: 10000,
 		RateLimitSet: true,
 	}
 	pool.ensureLimiterForConfigLocked(&cfg)

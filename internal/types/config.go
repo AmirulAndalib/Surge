@@ -52,27 +52,6 @@ const (
 	RateLimitMaxRetries     = 6
 )
 
-type DownloadConfig struct {
-	URL        string
-	OutputPath string
-	DestPath   string
-	ID         string
-	Filename   string
-	IsResume   bool
-	ProgressCh chan<- DownloadEvent
-	State      interface{}
-	SavedState *DownloadState
-	Runtime    *RuntimeConfig
-	Mirrors    []string
-	Headers    map[string]string
-	Limiter    ByteLimiter
-
-	IsExplicitCategory bool
-	TotalSize          int64
-	SupportsRange      bool
-	RateLimitBps       int64
-	RateLimitSet       bool
-}
 
 // ByteLimiter abstracts byte-based throttling for downloads.
 type ByteLimiter interface {

@@ -50,7 +50,7 @@ type DownloadEvent struct {
 	Err error `json:"-"`
 
 	// Pause state
-	State interface{} `json:"-"`
+	State *DownloadRecord `json:"-"`
 
 	// Config echo
 	RateLimit    int64    `json:"rate_limit,omitempty"`

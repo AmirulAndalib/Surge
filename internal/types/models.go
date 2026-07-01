@@ -32,56 +32,58 @@ func (t *Task) GobDecode(data []byte) error {
 	return nil
 }
 
-// DownloadState is the persisted snapshot used to resume a download.
-type DownloadState struct {
-	ID         string   `json:"id"`
-	URLHash    string   `json:"url_hash"`
-	URL        string   `json:"url"`
-	DestPath   string   `json:"dest_path"`
-	TotalSize  int64    `json:"total_size"`
-	Downloaded int64    `json:"downloaded"`
-	Tasks      []Task   `json:"tasks"`
-	Filename   string   `json:"filename"`
-	CreatedAt  int64    `json:"created_at"`
-	PausedAt   int64    `json:"paused_at"`
-	Elapsed    int64    `json:"elapsed"`
-	Mirrors    []string `json:"mirrors,omitempty"`
+// DownloadRecord is the canonical representation of a download's static configuration,
+// persistent state, and runtime options. It replaces DownloadState, DownloadEntry, and DownloadConfig.
+type DownloadRecord struct {
+	// Identity & Core Info
+	ID         string `json:"id"`
+	URLHash    string `json:"url_hash"`
+	URL        string `json:"url"`
+	Filename   string `json:"filename"`
+	OutputPath string `json:"output_path"`
+	DestPath   string `json:"dest_path"`
+	TotalSize  int64  `json:"total_size"`
+	Downloaded int64  `json:"downloaded"`
 
+	// Status
+	Status string `json:"status"`
+	Error  string `json:"error,omitempty"`
+
+	// Lifecycle Timestamps & Stats
+	CreatedAt   int64   `json:"created_at"`
+	PausedAt    int64   `json:"paused_at,omitempty"`
+	CompletedAt int64   `json:"completed_at,omitempty"`
+	TimeTaken   int64   `json:"time_taken,omitempty"`
+	Elapsed     int64   `json:"elapsed,omitempty"`
+	AvgSpeed    float64 `json:"avg_speed,omitempty"`
+
+	// Resume State (Persistent)
+	Tasks           []Task `json:"tasks,omitempty"`
 	ChunkBitmap     []byte `json:"chunk_bitmap,omitempty"`
 	ActualChunkSize int64  `json:"actual_chunk_size,omitempty"`
+	FileHash        string `json:"file_hash,omitempty"`
 
-	FileHash     string `json:"file_hash,omitempty"`
-	RateLimit    int64  `json:"rate_limit,omitempty"`
-	RateLimitSet bool   `json:"rate_limit_set,omitempty"`
-
-	Workers      int   `json:"workers,omitempty"`
-	MinChunkSize int64 `json:"min_chunk_size,omitempty"`
-}
-
-// DownloadEntry is the durable record used for history and lifecycle recovery.
-type DownloadEntry struct {
-	ID           string   `json:"id"`
-	URLHash      string   `json:"url_hash"`
-	URL          string   `json:"url"`
-	DestPath     string   `json:"dest_path"`
-	Filename     string   `json:"filename"`
-	Status       string   `json:"status"`
-	TotalSize    int64    `json:"total_size"`
-	Downloaded   int64    `json:"downloaded"`
-	CompletedAt  int64    `json:"completed_at"`
-	TimeTaken    int64    `json:"time_taken"`
-	AvgSpeed     float64  `json:"avg_speed"`
+	// Configuration Options (Persistent)
 	Mirrors      []string `json:"mirrors,omitempty"`
 	RateLimit    int64    `json:"rate_limit,omitempty"`
 	RateLimitSet bool     `json:"rate_limit_set,omitempty"`
+	Workers      int      `json:"workers,omitempty"`
+	MinChunkSize int64    `json:"min_chunk_size,omitempty"`
 
-	Workers      int   `json:"workers,omitempty"`
-	MinChunkSize int64 `json:"min_chunk_size,omitempty"`
+	// Runtime / Transient Configuration (Not persisted)
+	IsResume           bool                 `json:"-" gob:"-"`
+	ProgressCh         chan<- DownloadEvent `json:"-" gob:"-"`
+	ProgressState      interface{}          `json:"-" gob:"-"` // typically *progress.DownloadProgress
+	Runtime            *RuntimeConfig       `json:"-" gob:"-"`
+	Headers            map[string]string    `json:"-" gob:"-"`
+	Limiter            ByteLimiter          `json:"-" gob:"-"`
+	IsExplicitCategory bool                 `json:"-" gob:"-"`
+	SupportsRange      bool                 `json:"-" gob:"-"`
 }
 
 // MasterList holds all tracked downloads.
 type MasterList struct {
-	Downloads []DownloadEntry `json:"downloads"`
+	Downloads []DownloadRecord `json:"downloads"`
 }
 
 // DownloadStatus is the transient view returned to the TUI and API clients.

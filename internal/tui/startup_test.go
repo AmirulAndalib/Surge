@@ -82,7 +82,7 @@ func TestTUI_Startup_LoadsCompletedTiming(t *testing.T) {
 	const timeTakenMs = int64(2500)
 	const avgSpeed = float64(2 * 1024 * 1024) // 2 MB/s
 
-	if err := store.AddToMasterList(types.DownloadEntry{
+	if err := store.AddToMasterList(types.DownloadRecord{
 		ID:         testID,
 		URL:        testURL,
 		URLHash:    "dummy-hash",
@@ -135,7 +135,7 @@ func TestTUI_Startup_LoadsErroredDownloadsIntoDoneTab(t *testing.T) {
 	testID := "tui-error-id"
 	testURL := "http://example.com/error.bin"
 	testDest := filepath.Join(tmpDir, "error.bin")
-	if err := store.AddToMasterList(types.DownloadEntry{
+	if err := store.AddToMasterList(types.DownloadRecord{
 		ID:       testID,
 		URL:      testURL,
 		URLHash:  "dummy-hash",
@@ -188,7 +188,7 @@ func setupTestEnv(t *testing.T, tmpDir string) {
 }
 
 func seedDownload(t *testing.T, id, url, dest, status string) {
-	manualState := &types.DownloadState{
+	manualState := &types.DownloadRecord{
 		ID:         id,
 		URL:        url,
 		Filename:   filepath.Base(dest),
@@ -198,7 +198,7 @@ func seedDownload(t *testing.T, id, url, dest, status string) {
 		PausedAt:   0,
 		CreatedAt:  time.Now().Unix(),
 	}
-	if err := store.AddToMasterList(types.DownloadEntry{
+	if err := store.AddToMasterList(types.DownloadRecord{
 		ID:         id,
 		URL:        url,
 		DestPath:   dest,

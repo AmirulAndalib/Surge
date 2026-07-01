@@ -54,7 +54,7 @@ func TestHandleDownload_HeadlessMode_AutoApprovesNonDuplicate(t *testing.T) {
 	GlobalPool = scheduler.New(progressCh, 1)
 
 	eventBus := orchestrator.NewEventBus()
-	getAll := func() []types.DownloadConfig { return GlobalPool.GetAll() }
+	getAll := func() []types.DownloadRecord { return GlobalPool.GetAll() }
 	GlobalLifecycle = orchestrator.NewLifecycleManager(GlobalPool, eventBus, buildActiveDownloadChecker(getAll))
 
 	svc := service.NewLocalDownloadService(GlobalLifecycle)
@@ -104,7 +104,7 @@ func TestHandleDownload_HeadlessMode_RejectsDuplicateWithWarn(t *testing.T) {
 
 	// Seed the DB with a "duplicate" entry
 	url := "http://example.com/duplicate.bin"
-	_ = store.AddToMasterList(types.DownloadEntry{
+	_ = store.AddToMasterList(types.DownloadRecord{
 		ID:       "dup-id",
 		URL:      url,
 		Filename: "duplicate.bin",
@@ -112,7 +112,7 @@ func TestHandleDownload_HeadlessMode_RejectsDuplicateWithWarn(t *testing.T) {
 	})
 
 	eventBus := orchestrator.NewEventBus()
-	getAll := func() []types.DownloadConfig { return GlobalPool.GetAll() }
+	getAll := func() []types.DownloadRecord { return GlobalPool.GetAll() }
 	GlobalLifecycle = orchestrator.NewLifecycleManager(GlobalPool, eventBus, buildActiveDownloadChecker(getAll))
 	svc := service.NewLocalDownloadService(GlobalLifecycle)
 	GlobalService = svc
@@ -154,7 +154,7 @@ func TestHandleDownload_HeadlessMode_RejectsExtensionPromptDuplicate(t *testing.
 	}
 
 	url := "http://example.com/already-downloaded.bin"
-	_ = store.AddToMasterList(types.DownloadEntry{
+	_ = store.AddToMasterList(types.DownloadRecord{
 		ID: "ext-dup-id", URL: url, Filename: "already-downloaded.bin", Status: "completed",
 	})
 
@@ -162,7 +162,7 @@ func TestHandleDownload_HeadlessMode_RejectsExtensionPromptDuplicate(t *testing.
 	GlobalProgressCh = progressCh
 	GlobalPool = scheduler.New(progressCh, 1)
 	eventBus := orchestrator.NewEventBus()
-	getAll := func() []types.DownloadConfig { return GlobalPool.GetAll() }
+	getAll := func() []types.DownloadRecord { return GlobalPool.GetAll() }
 	GlobalLifecycle = orchestrator.NewLifecycleManager(GlobalPool, eventBus, buildActiveDownloadChecker(getAll))
 	svc := service.NewLocalDownloadService(GlobalLifecycle)
 	GlobalService = svc

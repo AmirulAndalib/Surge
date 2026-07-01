@@ -68,13 +68,13 @@ func TestIntegration_PauseResume(t *testing.T) {
 
 	progState := progress.New(uuid.New().String(), fileSize)
 
-	cfg := types.DownloadConfig{
+	cfg := types.DownloadRecord{
 		URL:           url,
 		OutputPath:    outputPath,
 		Filename:      filename,
 		ID:            progState.ID,
 		ProgressCh:    progressCh,
-		State:         progState,
+		ProgressState:         progState,
 		Runtime:       runtime,
 		TotalSize:     fileSize,
 		SupportsRange: true,
@@ -123,7 +123,7 @@ func TestIntegration_PauseResume(t *testing.T) {
 	}
 
 	// 4. Verify State is Saved (event worker persists asynchronously)
-	var savedState *types.DownloadState
+	var savedState *types.DownloadRecord
 	deadline = time.Now().Add(5 * time.Second)
 	for time.Now().Before(deadline) {
 		savedState, err = store.LoadState(url, destPath)
@@ -167,7 +167,9 @@ func TestIntegration_PauseResume(t *testing.T) {
 	// Update config for resume
 	cfg.IsResume = true
 	cfg.DestPath = destPath // Important for resume lookup
-	cfg.SavedState = savedState
+	cfg.Tasks = savedState.Tasks
+	cfg.ChunkBitmap = savedState.ChunkBitmap
+	cfg.ActualChunkSize = savedState.ActualChunkSize
 
 	// Reset pause flag before resume
 	progState.Resume()

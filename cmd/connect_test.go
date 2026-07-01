@@ -23,7 +23,7 @@ func (f *fakeRemoteDownloadService) List() ([]types.DownloadStatus, error) {
 	return nil, nil
 }
 
-func (f *fakeRemoteDownloadService) History() ([]types.DownloadEntry, error) {
+func (f *fakeRemoteDownloadService) History() ([]types.DownloadRecord, error) {
 	return nil, nil
 }
 

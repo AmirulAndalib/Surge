@@ -27,13 +27,13 @@ import (
 type IsNameActiveFunc func(dir, name string) bool
 
 // cfgProgress returns the *progress.DownloadProgress associated with cfg, or
-// nil if cfg.State is nil. This is the single point in the orchestrator package
+// nil if cfg.ProgressState is nil. This is the single point in the orchestrator package
 // where the untyped State field is narrowed to a concrete type.
-func cfgProgress(cfg *types.DownloadConfig) *progress.DownloadProgress {
-	if cfg == nil || cfg.State == nil {
+func cfgProgress(cfg *types.DownloadRecord) *progress.DownloadProgress {
+	if cfg == nil || cfg.ProgressState == nil {
 		return nil
 	}
-	return cfg.State.(*progress.DownloadProgress)
+	return cfg.ProgressState.(*progress.DownloadProgress)
 }
 
 type LifecycleManager struct {
@@ -402,19 +402,19 @@ func (mgr *LifecycleManager) dispatchToScheduler(req *DownloadRequest, requestID
 		}
 	}
 
-	cfg := types.DownloadConfig{
+	cfg := types.DownloadRecord{
 		URL:                req.URL,
 		Mirrors:            req.Mirrors,
 		OutputPath:         finalPath,
 		ID:                 id,
 		Filename:           finalFilename,
-		State:              state,
+		ProgressState:              state,
 		Runtime:            runtime,
 		Headers:            req.Headers,
 		IsExplicitCategory: req.IsExplicitCategory,
 		TotalSize:          probeResult.FileSize,
 		SupportsRange:      probeResult.SupportsRange,
-		RateLimitBps:       rateLimit,
+		RateLimit:       rateLimit,
 		RateLimitSet:       rateLimitSet,
 	}
 

@@ -41,7 +41,7 @@ func TestStateSync(t *testing.T) {
 			Total:      1000,
 			URL:        "http://example.com/external",
 			DestPath:   "/tmp/external.file",
-			State:      workerState,
+			State: &types.DownloadRecord{ProgressState: workerState},
 		})
 
 		// Simulate worker updating the state -> Send Progress Event

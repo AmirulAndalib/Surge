@@ -28,11 +28,11 @@ func safeSendProgress(ch chan<- types.DownloadEvent, msg types.DownloadEvent) {
 // cfgProgress returns the *progress.DownloadProgress associated with cfg, or
 // nil if cfg.State is nil. This is the single point in the scheduler package
 // where the untyped State field is narrowed to a concrete type.
-func cfgProgress(cfg *types.DownloadConfig) *progress.DownloadProgress {
-	if cfg == nil || cfg.State == nil {
+func cfgProgress(cfg *types.DownloadRecord) *progress.DownloadProgress {
+	if cfg == nil || cfg.ProgressState == nil {
 		return nil
 	}
-	return cfg.State.(*progress.DownloadProgress)
+	return cfg.ProgressState.(*progress.DownloadProgress)
 }
 
 // uniqueFilePath returns a unique file path by appending (1), (2), etc. if the file exists
@@ -82,7 +82,7 @@ func uniqueFilePath(path string) string {
 }
 
 // RunDownload is the main entry point for downloads executed by the Engine pool
-func RunDownload(ctx context.Context, cfg *types.DownloadConfig) error {
+func RunDownload(ctx context.Context, cfg *types.DownloadRecord) error {
 	start := time.Now()
 	if cfg.Runtime == nil {
 		cfg.Runtime = types.DefaultRuntimeConfig()
@@ -97,12 +97,10 @@ func RunDownload(ctx context.Context, cfg *types.DownloadConfig) error {
 	copy(mirrors, cfg.Mirrors)
 
 	// Check if this is a resume (explicitly marked by TUI)
-	var savedState *types.DownloadState
+	var savedState *types.DownloadRecord
 
 	if cfg.IsResume && cfg.DestPath != "" {
-		if cfg.SavedState != nil {
-			savedState = cfg.SavedState
-		}
+		savedState = cfg
 
 		// Restore mirrors from state if found
 		if savedState != nil && len(savedState.Mirrors) > 0 {
@@ -133,7 +131,7 @@ func RunDownload(ctx context.Context, cfg *types.DownloadConfig) error {
 	utils.Debug("Destination path: %s", finalDestPath)
 
 	var progState *progress.DownloadProgress
-	if cfg.State != nil {
+	if cfg.ProgressState != nil {
 		progState = cfgProgress(cfg)
 		progState.SetFilename(finalFilename)
 		progState.SetDestPath(finalDestPath)
@@ -143,7 +141,7 @@ func RunDownload(ctx context.Context, cfg *types.DownloadConfig) error {
 		if progState != nil {
 			return progState.GetRateLimit()
 		}
-		return cfg.RateLimitBps, cfg.RateLimitSet
+		return cfg.RateLimit, cfg.RateLimitSet
 	}
 
 	// Send download started message
@@ -156,7 +154,7 @@ func RunDownload(ctx context.Context, cfg *types.DownloadConfig) error {
 			Filename:     finalFilename,
 			Total:        cfg.TotalSize, // Relies on TotalSize from Config
 			DestPath:     finalDestPath,
-			State:        cfg.State,
+			State:        cfg,
 			RateLimit:    rateLimit,
 			RateLimitSet: rateLimitSet,
 			Workers:      cfg.Runtime.Workers,
@@ -213,7 +211,7 @@ func RunDownload(ctx context.Context, cfg *types.DownloadConfig) error {
 		d := concurrent.NewConcurrentDownloader(cfg.ID, cfg.ProgressCh, progState, cfg.Runtime)
 		d.Headers = cfg.Headers // Forward custom headers from browser extension
 		d.Limiter = cfg.Limiter
-		d.RateLimitBps = cfg.RateLimitBps
+		d.RateLimitBps = cfg.RateLimit
 		d.RateLimitSet = cfg.RateLimitSet
 		utils.Debug("Calling Download with mirrors: %v", mirrors)
 		// Pass effectiveTotalSize to avoid unnecessary bootstrap if state already knows the size
@@ -318,12 +316,12 @@ func RunDownload(ctx context.Context, cfg *types.DownloadConfig) error {
 
 // Download is the CLI entry point (non-TUI) - convenience wrapper
 func Download(ctx context.Context, url string, outPath string, progressCh chan<- types.DownloadEvent, id string) error {
-	cfg := types.DownloadConfig{
+	cfg := types.DownloadRecord{
 		URL:        url,
-		OutputPath: outPath,
-		ID:         id,
-		ProgressCh: progressCh,
-		State:      nil,
+		OutputPath:    outPath,
+		ID:            id,
+		ProgressCh:    progressCh,
+		ProgressState: nil,
 	}
 	// Default runtime config
 	cfg.Runtime = types.DefaultRuntimeConfig()

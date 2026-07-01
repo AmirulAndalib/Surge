@@ -58,7 +58,7 @@ func TestCmd_AutoResume_Execution(t *testing.T) {
 	testURL := "http://example.com/cmd-resume.zip"
 	testDest := filepath.Join(tmpDir, "cmd-resume.zip")
 
-	manualState := &types.DownloadState{
+	manualState := &types.DownloadRecord{
 		ID:         testID,
 		URL:        testURL,
 		Filename:   "cmd-resume.zip",
@@ -68,7 +68,7 @@ func TestCmd_AutoResume_Execution(t *testing.T) {
 		PausedAt:   time.Now().Unix(),
 		CreatedAt:  time.Now().Unix(),
 	}
-	if err := store.AddToMasterList(types.DownloadEntry{
+	if err := store.AddToMasterList(types.DownloadRecord{
 		ID:         testID,
 		URL:        testURL,
 		DestPath:   testDest,
@@ -88,7 +88,7 @@ func TestCmd_AutoResume_Execution(t *testing.T) {
 	GlobalPool = scheduler.New(GlobalProgressCh, 4)
 
 	eventBus := orchestrator.NewEventBus()
-	getAll := func() []types.DownloadConfig { return GlobalPool.GetAll() }
+	getAll := func() []types.DownloadRecord { return GlobalPool.GetAll() }
 	GlobalLifecycle = orchestrator.NewLifecycleManager(GlobalPool, eventBus, buildActiveDownloadChecker(getAll))
 	GlobalService = service.NewLocalDownloadService(GlobalLifecycle)
 

@@ -72,7 +72,7 @@ func TestSaveLoadState(t *testing.T) {
 	testDestPath := filepath.Join(tmpDir, "testfile.zip")
 
 	id := uuid.New().String()
-	originalState := &types.DownloadState{
+	originalState := &types.DownloadRecord{
 		ID:         id,
 		URL:        testURL,
 		DestPath:   testDestPath,
@@ -89,7 +89,7 @@ func TestSaveLoadState(t *testing.T) {
 	if err := SaveState(testURL, testDestPath, originalState); err != nil {
 		t.Fatalf("SaveState failed: %v", err)
 	}
-	_ = AddToMasterList(types.DownloadEntry{ID: id, URL: testURL, DestPath: testDestPath, Status: "paused"})
+	_ = AddToMasterList(types.DownloadRecord{ID: id, URL: testURL, DestPath: testDestPath, Status: "paused"})
 
 	// Load state
 	loadedState, err := LoadState(testURL, testDestPath)
@@ -143,7 +143,7 @@ func TestSaveStateWithOptions_ComputesHashForSmallFile(t *testing.T) {
 		t.Fatal("computeFileHashMD5WithTimeout unexpectedly timed out")
 	}
 
-	downloadState := &types.DownloadState{
+	downloadState := &types.DownloadRecord{
 		ID:         "hash-small-id",
 		URL:        testURL,
 		DestPath:   testDestPath,
@@ -161,7 +161,7 @@ func TestSaveStateWithOptions_ComputesHashForSmallFile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("SaveStateWithOptions failed: %v", err)
 	}
-	_ = AddToMasterList(types.DownloadEntry{ID: "hash-small-id", URL: testURL, DestPath: testDestPath, Status: "paused"})
+	_ = AddToMasterList(types.DownloadRecord{ID: "hash-small-id", URL: testURL, DestPath: testDestPath, Status: "paused"})
 
 	loaded, err := LoadState(testURL, testDestPath)
 	if err != nil {
@@ -185,7 +185,7 @@ func TestSaveStateWithOptions_SkipsHashOnTimeoutButPersistsState(t *testing.T) {
 		t.Fatalf("failed to write .surge file: %v", err)
 	}
 
-	downloadState := &types.DownloadState{
+	downloadState := &types.DownloadRecord{
 		ID:         "hash-large-id",
 		URL:        testURL,
 		DestPath:   testDestPath,
@@ -204,7 +204,7 @@ func TestSaveStateWithOptions_SkipsHashOnTimeoutButPersistsState(t *testing.T) {
 	if err != nil {
 		t.Fatalf("SaveStateWithOptions failed: %v", err)
 	}
-	_ = AddToMasterList(types.DownloadEntry{ID: "hash-large-id", URL: testURL, DestPath: testDestPath, Status: "paused"})
+	_ = AddToMasterList(types.DownloadRecord{ID: "hash-large-id", URL: testURL, DestPath: testDestPath, Status: "paused"})
 
 	loaded, err := LoadState(testURL, testDestPath)
 	if err != nil {
@@ -239,7 +239,7 @@ func TestDeleteState(t *testing.T) {
 	testDestPath := filepath.Join(tmpDir, "delete-test.zip")
 	id := "test-id-delete"
 
-	state := &types.DownloadState{
+	state := &types.DownloadRecord{
 		ID:       id,
 		URL:      testURL,
 		DestPath: testDestPath,
@@ -250,7 +250,7 @@ func TestDeleteState(t *testing.T) {
 	if err := SaveState(testURL, testDestPath, state); err != nil {
 		t.Fatalf("SaveState failed: %v", err)
 	}
-	_ = AddToMasterList(types.DownloadEntry{ID: id, URL: testURL, DestPath: testDestPath, Status: "paused"})
+	_ = AddToMasterList(types.DownloadRecord{ID: id, URL: testURL, DestPath: testDestPath, Status: "paused"})
 
 	// Verify it was saved
 	if _, err := LoadState(testURL, testDestPath); err != nil {
@@ -281,7 +281,7 @@ func TestStateOverwrite(t *testing.T) {
 	id := "test-id-overwrite"
 
 	// First pause at 30%
-	state1 := &types.DownloadState{
+	state1 := &types.DownloadRecord{
 		ID:         id,
 		URL:        testURL,
 		DestPath:   testDestPath,
@@ -293,10 +293,10 @@ func TestStateOverwrite(t *testing.T) {
 	if err := SaveState(testURL, testDestPath, state1); err != nil {
 		t.Fatalf("First SaveState failed: %v", err)
 	}
-	_ = AddToMasterList(types.DownloadEntry{ID: id, URL: testURL, DestPath: testDestPath, Status: "paused"})
+	_ = AddToMasterList(types.DownloadRecord{ID: id, URL: testURL, DestPath: testDestPath, Status: "paused"})
 
 	// Second pause at 80% (simulating resume + more downloading)
-	state2 := &types.DownloadState{
+	state2 := &types.DownloadRecord{
 		ID:         id,
 		URL:        testURL,
 		DestPath:   testDestPath,
@@ -338,7 +338,7 @@ func TestDuplicateURLStateIsolation(t *testing.T) {
 	// The new DB schema has ID as Primary Key.
 	// If we don't provide ID, SaveState generates one.
 
-	state1 := &types.DownloadState{
+	state1 := &types.DownloadRecord{
 		URL:        testURL,
 		DestPath:   dest1,
 		TotalSize:  1000000,
@@ -346,7 +346,7 @@ func TestDuplicateURLStateIsolation(t *testing.T) {
 		Tasks:      []types.Task{{Offset: 100000, Length: 900000}},
 		Filename:   "samefile.zip",
 	}
-	state2 := &types.DownloadState{
+	state2 := &types.DownloadRecord{
 		URL:        testURL,
 		DestPath:   dest2,
 		TotalSize:  1000000,
@@ -354,7 +354,7 @@ func TestDuplicateURLStateIsolation(t *testing.T) {
 		Tasks:      []types.Task{{Offset: 500000, Length: 500000}},
 		Filename:   "samefile(1).zip",
 	}
-	state3 := &types.DownloadState{
+	state3 := &types.DownloadRecord{
 		URL:        testURL,
 		DestPath:   dest3,
 		TotalSize:  1000000,
@@ -367,15 +367,15 @@ func TestDuplicateURLStateIsolation(t *testing.T) {
 	if err := SaveState(testURL, dest1, state1); err != nil {
 		t.Fatalf("SaveState 1 failed: %v", err)
 	}
-	_ = AddToMasterList(types.DownloadEntry{ID: state1.ID, URL: testURL, DestPath: dest1, Status: "paused"})
+	_ = AddToMasterList(types.DownloadRecord{ID: state1.ID, URL: testURL, DestPath: dest1, Status: "paused"})
 	if err := SaveState(testURL, dest2, state2); err != nil {
 		t.Fatalf("SaveState 2 failed: %v", err)
 	}
-	_ = AddToMasterList(types.DownloadEntry{ID: state2.ID, URL: testURL, DestPath: dest2, Status: "paused"})
+	_ = AddToMasterList(types.DownloadRecord{ID: state2.ID, URL: testURL, DestPath: dest2, Status: "paused"})
 	if err := SaveState(testURL, dest3, state3); err != nil {
 		t.Fatalf("SaveState 3 failed: %v", err)
 	}
-	_ = AddToMasterList(types.DownloadEntry{ID: state3.ID, URL: testURL, DestPath: dest3, Status: "paused"})
+	_ = AddToMasterList(types.DownloadRecord{ID: state3.ID, URL: testURL, DestPath: dest3, Status: "paused"})
 
 	// Load and verify each has its correct state
 	loaded1, err := LoadState(testURL, dest1)
@@ -422,7 +422,7 @@ func TestUpdateStatus(t *testing.T) {
 	defer CloseDB()
 
 	id := "test-status-id"
-	entry := types.DownloadEntry{
+	entry := types.DownloadRecord{
 		ID:       id,
 		URL:      "https://example.com/status-test.zip",
 		DestPath: filepath.Join(tmpDir, "status-test.zip"),
@@ -434,7 +434,7 @@ func TestUpdateStatus(t *testing.T) {
 		t.Fatalf("AddToMasterList failed: %v", err)
 	}
 	// Mock task data using SaveState
-	state := &types.DownloadState{
+	state := &types.DownloadRecord{
 		ID:       id,
 		URL:      "https://example.com/status-test.zip",
 		DestPath: filepath.Join(tmpDir, "status-test.zip"),
@@ -481,7 +481,7 @@ func TestPauseAllDownloads(t *testing.T) {
 	defer CloseDB()
 
 	// Add downloads with various statuses
-	entries := []types.DownloadEntry{
+	entries := []types.DownloadRecord{
 		{ID: "dl-1", URL: "https://a.com/1", DestPath: "/tmp/1", Status: "downloading"},
 		{ID: "dl-2", URL: "https://a.com/2", DestPath: "/tmp/2", Status: "queued"},
 		{ID: "dl-3", URL: "https://a.com/3", DestPath: "/tmp/3", Status: "completed"},
@@ -524,7 +524,7 @@ func TestResumeAllDownloads(t *testing.T) {
 	defer CloseDB()
 
 	// Add paused and other downloads
-	entries := []types.DownloadEntry{
+	entries := []types.DownloadRecord{
 		{ID: "dl-1", URL: "https://b.com/1", DestPath: "/tmp/1", Status: "paused"},
 		{ID: "dl-2", URL: "https://b.com/2", DestPath: "/tmp/2", Status: "paused"},
 		{ID: "dl-3", URL: "https://b.com/3", DestPath: "/tmp/3", Status: "completed"},
@@ -567,7 +567,7 @@ func TestListAllDownloads(t *testing.T) {
 	defer CloseDB()
 
 	// Add downloads
-	entries := []types.DownloadEntry{
+	entries := []types.DownloadRecord{
 		{ID: "list-1", URL: "https://c.com/1", DestPath: "/tmp/1", Status: "completed"},
 		{ID: "list-2", URL: "https://c.com/2", DestPath: "/tmp/2", Status: "paused"},
 	}
@@ -614,7 +614,7 @@ func TestRemoveCompletedDownloads(t *testing.T) {
 	defer CloseDB()
 
 	// Add downloads with various statuses
-	entries := []types.DownloadEntry{
+	entries := []types.DownloadRecord{
 		{ID: "rm-1", URL: "https://d.com/1", DestPath: "/tmp/1", Status: "completed"},
 		{ID: "rm-2", URL: "https://d.com/2", DestPath: "/tmp/2", Status: "completed"},
 		{ID: "rm-3", URL: "https://d.com/3", DestPath: "/tmp/3", Status: "paused"},
@@ -658,8 +658,8 @@ func TestMirrorsPersistence(t *testing.T) {
 		"https://mirror2.example.com/file.zip",
 	}
 
-	// 1. Test DownloadState (Resume)
-	state := &types.DownloadState{
+	// 1. Test DownloadRecord (Resume)
+	state := &types.DownloadRecord{
 		ID:         "mirror-state-id",
 		URL:        testURL,
 		DestPath:   testDestPath,
@@ -672,7 +672,7 @@ func TestMirrorsPersistence(t *testing.T) {
 	if err := SaveState(testURL, testDestPath, state); err != nil {
 		t.Fatalf("SaveState failed: %v", err)
 	}
-	_ = AddToMasterList(types.DownloadEntry{ID: "mirror-state-id", URL: testURL, DestPath: testDestPath, Status: "paused"})
+	_ = AddToMasterList(types.DownloadRecord{ID: "mirror-state-id", URL: testURL, DestPath: testDestPath, Status: "paused"})
 
 	loadedState, err := LoadState(testURL, testDestPath)
 	if err != nil {
@@ -687,8 +687,8 @@ func TestMirrorsPersistence(t *testing.T) {
 		}
 	}
 
-	// 2. Test DownloadEntry (Master List / Completed)
-	entry := types.DownloadEntry{
+	// 2. Test DownloadRecord (Master List / Completed)
+	entry := types.DownloadRecord{
 		ID:          "mirror-entry-id",
 		URL:         testURL,
 		DestPath:    testDestPath + ".completed",
@@ -738,7 +738,7 @@ func TestValidateIntegrity_MissingFile(t *testing.T) {
 
 	destPath := filepath.Join(tmpDir, "missing.zip")
 	// Insert a paused download - but DO NOT create the .surge file
-	entry := types.DownloadEntry{
+	entry := types.DownloadRecord{
 		ID:       "integrity-missing",
 		URL:      "https://example.com/missing.zip",
 		DestPath: destPath,
@@ -800,7 +800,7 @@ func TestValidateIntegrity_ValidFile(t *testing.T) {
 	}
 
 	// Insert a paused download with correct file hash
-	if err := AddToMasterList(types.DownloadEntry{
+	if err := AddToMasterList(types.DownloadRecord{
 		ID:       "integrity-valid",
 		URL:      "https://example.com/valid.zip",
 		DestPath: destPath,
@@ -811,7 +811,7 @@ func TestValidateIntegrity_ValidFile(t *testing.T) {
 	}
 
 	// Set file_hash directly in DB (simulating SaveState having computed it)
-	state := &types.DownloadState{
+	state := &types.DownloadRecord{
 		ID:       "integrity-valid",
 		URL:      "https://example.com/valid.zip",
 		DestPath: destPath,
@@ -856,7 +856,7 @@ func TestValidateIntegrity_TamperedFile(t *testing.T) {
 	}
 
 	// Insert entry with a WRONG hash (simulating tampering)
-	if err := AddToMasterList(types.DownloadEntry{
+	if err := AddToMasterList(types.DownloadRecord{
 		ID:       "integrity-tampered",
 		URL:      "https://example.com/tampered.zip",
 		DestPath: destPath,
@@ -867,7 +867,7 @@ func TestValidateIntegrity_TamperedFile(t *testing.T) {
 	}
 
 	// Set a fake hash that won't match the file content
-	state := &types.DownloadState{
+	state := &types.DownloadRecord{
 		ID:       "integrity-tampered",
 		URL:      "https://example.com/tampered.zip",
 		DestPath: destPath,
@@ -904,7 +904,7 @@ func TestValidateIntegrity_CompletedIgnored(t *testing.T) {
 	defer CloseDB()
 
 	// Insert a completed download - should NOT be touched by integrity check
-	if err := AddToMasterList(types.DownloadEntry{
+	if err := AddToMasterList(types.DownloadRecord{
 		ID:          "integrity-completed",
 		URL:         "https://example.com/done.zip",
 		DestPath:    filepath.Join(tmpDir, "done.zip"),
@@ -937,7 +937,7 @@ func TestValidateIntegrity_QueuedWithoutPartialFileRemoved(t *testing.T) {
 
 	destPath := filepath.Join(tmpDir, "queued-never-started.bin")
 
-	if err := AddToMasterList(types.DownloadEntry{
+	if err := AddToMasterList(types.DownloadRecord{
 		ID:         "integrity-queued-fresh",
 		URL:        "https://example.com/queued-never-started.bin",
 		DestPath:   destPath,
@@ -972,7 +972,7 @@ func TestValidateIntegrity_DeletesOrphanSurgeFile(t *testing.T) {
 	defer CloseDB()
 
 	// Seed one normal completed entry so tmpDir is a known download directory.
-	if err := AddToMasterList(types.DownloadEntry{
+	if err := AddToMasterList(types.DownloadRecord{
 		ID:          "integrity-known-dir",
 		URL:         "https://example.com/known.zip",
 		DestPath:    filepath.Join(tmpDir, "known.zip"),
@@ -1009,7 +1009,7 @@ func TestValidateIntegrity_PreservesNonCompletedSurgeFile(t *testing.T) {
 	destPath := filepath.Join(tmpDir, "active.bin")
 	surgePath := destPath + types.IncompleteSuffix
 
-	if err := AddToMasterList(types.DownloadEntry{
+	if err := AddToMasterList(types.DownloadRecord{
 		ID:       "integrity-active",
 		URL:      "https://example.com/active.bin",
 		DestPath: destPath,
@@ -1045,7 +1045,7 @@ func TestAvgSpeedPersistence(t *testing.T) {
 	defer func() { _ = os.RemoveAll(tmpDir) }()
 	defer CloseDB()
 
-	entry := types.DownloadEntry{
+	entry := types.DownloadRecord{
 		ID:          "speed-test",
 		URL:         "https://example.com/speed.zip",
 		DestPath:    filepath.Join(tmpDir, "speed.zip"),
@@ -1100,7 +1100,7 @@ func TestNormalizeStaleDownloads(t *testing.T) {
 	defer func() { _ = os.RemoveAll(tmpDir) }()
 	defer CloseDB()
 
-	entries := []types.DownloadEntry{
+	entries := []types.DownloadRecord{
 		{ID: "stale-1", URL: "https://a.com/1", DestPath: "/tmp/1", Status: "downloading"},
 		{ID: "stale-2", URL: "https://a.com/2", DestPath: "/tmp/2", Status: "downloading"},
 		{ID: "ok-3", URL: "https://a.com/3", DestPath: "/tmp/3", Status: "paused"},
@@ -1152,7 +1152,7 @@ func TestSaveLoadState_PreservesOverrideFields(t *testing.T) {
 	testDestPath := filepath.Join(tmpDir, "override-state.zip")
 	id := uuid.New().String()
 
-	originalState := &types.DownloadState{
+	originalState := &types.DownloadRecord{
 		ID:           id,
 		URL:          testURL,
 		DestPath:     testDestPath,
@@ -1166,7 +1166,7 @@ func TestSaveLoadState_PreservesOverrideFields(t *testing.T) {
 	if err := SaveState(testURL, testDestPath, originalState); err != nil {
 		t.Fatalf("SaveState failed: %v", err)
 	}
-	_ = AddToMasterList(types.DownloadEntry{ID: id, URL: testURL, DestPath: testDestPath, Status: "paused"})
+	_ = AddToMasterList(types.DownloadRecord{ID: id, URL: testURL, DestPath: testDestPath, Status: "paused"})
 
 	loadedState, err := LoadState(testURL, testDestPath)
 	if err != nil {
@@ -1186,7 +1186,7 @@ func TestAddGetDownload_PreservesOverrideFields(t *testing.T) {
 	defer CloseDB()
 
 	id := "override-entry-id"
-	entry := types.DownloadEntry{
+	entry := types.DownloadRecord{
 		ID:           id,
 		URL:          "https://test.example.com/override-entry.zip",
 		DestPath:     filepath.Join(tmpDir, "override-entry.zip"),

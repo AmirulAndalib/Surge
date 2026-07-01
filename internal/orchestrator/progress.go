@@ -85,7 +85,7 @@ func (pa *ProgressAggregator) reportProgressLoop() {
 		activeConfigs := pa.pool.GetAll()
 
 		for _, cfg := range activeConfigs {
-			if cfg.State == nil || cfgProgress(&cfg).IsPaused() || cfgProgress(&cfg).Done.Load() {
+			if cfg.ProgressState == nil || cfgProgress(&cfg).IsPaused() || cfgProgress(&cfg).Done.Load() {
 				delete(lastSpeeds, cfg.ID)
 				delete(lastChunkSnapshot, cfg.ID)
 				continue
