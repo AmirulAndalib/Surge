@@ -247,7 +247,7 @@ func (mgr *LifecycleManager) ResumeBatch(ids []string) []error {
 			_ = mgr.eventBus.Publish(types.DownloadEvent{
 				Type:       types.EventResumed,
 				DownloadID: id,
-				Filename:   savedState.Filename,
+				Filename:   cfg.Filename,
 			})
 		}
 		errs[idx] = nil
