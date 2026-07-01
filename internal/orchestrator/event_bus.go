@@ -90,10 +90,7 @@ func (eb *EventBus) broadcastMsg(msg types.DownloadEvent) {
 	copy(listenersCopy, eb.listeners)
 	eb.listenerMu.Unlock()
 
-	isProgress := false
-	if msg.Type == types.EventProgress || msg.Type == types.EventBatchProgress {
-		isProgress = true
-	}
+	isProgress := msg.Type == types.EventProgress || msg.Type == types.EventBatchProgress
 
 	for _, ch := range listenersCopy {
 		func() {
