@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/SurgeDM/Surge/internal/config"
+	"github.com/SurgeDM/Surge/internal/progress"
 	"github.com/SurgeDM/Surge/internal/scheduler"
 	"github.com/SurgeDM/Surge/internal/types"
 )
@@ -85,13 +86,13 @@ func (pa *ProgressAggregator) reportProgressLoop() {
 		activeConfigs := pa.pool.GetAll()
 
 		for _, cfg := range activeConfigs {
-			if cfg.ProgressState == nil || cfgProgress(&cfg).IsPaused() || cfgProgress(&cfg).Done.Load() {
+			if cfg.ProgressState == nil || progress.CfgProgress(&cfg).IsPaused() || progress.CfgProgress(&cfg).Done.Load() {
 				delete(lastSpeeds, cfg.ID)
 				delete(lastChunkSnapshot, cfg.ID)
 				continue
 			}
 
-			downloaded, total, totalElapsed, sessionElapsed, connections, sessionStart := cfgProgress(&cfg).GetProgress()
+			downloaded, total, totalElapsed, sessionElapsed, connections, sessionStart := progress.CfgProgress(&cfg).GetProgress()
 			sessionDownloaded := downloaded - sessionStart
 
 			var instantSpeed float64
@@ -109,18 +110,18 @@ func (pa *ProgressAggregator) reportProgressLoop() {
 			lastSpeeds[cfg.ID] = currentSpeed
 
 			msg := types.DownloadEvent{
-				Type:              types.EventProgress,
-				DownloadID:        cfg.ID,
-				Downloaded:        downloaded,
-				Total:             total,
-				Speed:             currentSpeed,
-				Elapsed:           totalElapsed,
+				Type:        types.EventProgress,
+				DownloadID:  cfg.ID,
+				Downloaded:  downloaded,
+				Total:       total,
+				Speed:       currentSpeed,
+				Elapsed:     totalElapsed,
 				Connections: int(connections),
-				RateLimited:       cfgProgress(&cfg).RateLimited.Load(),
+				RateLimited: progress.CfgProgress(&cfg).RateLimited.Load(),
 			}
 
 			if time.Since(lastChunkSnapshot[cfg.ID]) >= 500*time.Millisecond {
-				bitmap, width, _, chunkSize, chunkProgress := cfgProgress(&cfg).GetBitmapSnapshot(true)
+				bitmap, width, _, chunkSize, chunkProgress := progress.CfgProgress(&cfg).GetBitmapSnapshot(true)
 				if width > 0 && len(bitmap) > 0 {
 					msg.ChunkBitmap = bitmap
 					msg.BitmapWidth = width

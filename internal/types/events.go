@@ -202,10 +202,10 @@ func EventTypeToString(t EventType) string {
 	}
 }
 
-func DecodeSSEMessage(eventStr string, data []byte) (DownloadEvent, bool, error) {
+func DecodeSSEMessage(data []byte) (DownloadEvent, error) {
 	var msg DownloadEvent
 	if err := json.Unmarshal(data, &msg); err != nil {
-		return msg, true, err
+		return msg, err
 	}
-	return msg, true, nil
+	return msg, nil
 }

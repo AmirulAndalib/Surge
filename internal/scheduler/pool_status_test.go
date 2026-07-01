@@ -29,10 +29,10 @@ func TestWorkerPool_GetStatus_Active(t *testing.T) {
 	pool.mu.Lock()
 	pool.downloads[id] = &activeDownload{
 		config: types.DownloadRecord{
-			ID:       id,
-			URL:      "http://example.com/file",
-			Filename: "file",
-			ProgressState:    state,
+			ID:            id,
+			URL:           "http://example.com/file",
+			Filename:      "file",
+			ProgressState: state,
 		},
 	}
 	pool.mu.Unlock()

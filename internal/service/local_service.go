@@ -16,16 +16,6 @@ import (
 	"github.com/SurgeDM/Surge/internal/utils"
 )
 
-// cfgProgress returns the *progress.DownloadProgress associated with cfg, or
-// nil if cfg.ProgressState is nil. This is the single point in the service package
-// where the untyped State field is narrowed to a concrete type.
-func cfgProgress(cfg *types.DownloadRecord) *progress.DownloadProgress {
-	if cfg == nil || cfg.ProgressState == nil {
-		return nil
-	}
-	return cfg.ProgressState.(*progress.DownloadProgress)
-}
-
 func completedSpeedBps(entry types.DownloadRecord) float64 {
 	if entry.Status != "completed" {
 		return 0
@@ -48,9 +38,14 @@ func NewLocalDownloadService(lifecycle *orchestrator.LifecycleManager) *LocalDow
 }
 
 func (s *LocalDownloadService) ReloadSettings() error {
-	// Settings reload logic could go through LifecycleManager
-	// For now we don't have it on lifecycle, so we just do config.LoadSettings
-	return nil // Handled elsewhere or let LifecycleManager manage it
+	if s.lifecycle != nil {
+		settings, err := config.LoadSettings()
+		if err != nil {
+			return err
+		}
+		s.lifecycle.ApplySettings(settings)
+	}
+	return nil
 }
 
 func (s *LocalDownloadService) StreamEvents(ctx context.Context) (<-chan types.DownloadEvent, func(), error) {
@@ -349,7 +344,7 @@ func (s *LocalDownloadService) List() ([]types.DownloadStatus, error) {
 				RateLimitSet: cfg.RateLimitSet,
 			}
 			if cfg.ProgressState != nil {
-				cp := cfgProgress(&cfg)
+				cp := progress.CfgProgress(&cfg)
 				downloaded, totalSize, _, sessionElapsed, connections, sessionStart := cp.GetProgress()
 				status.TotalSize = totalSize
 				status.Downloaded = downloaded

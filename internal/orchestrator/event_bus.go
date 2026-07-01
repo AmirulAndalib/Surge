@@ -11,8 +11,8 @@ import (
 
 // EventBus handles broadcasting events from the orchestrator to all listeners.
 type EventBus struct {
-	InputCh    chan types.DownloadEvent
-	listeners  []chan types.DownloadEvent
+	InputCh       chan types.DownloadEvent
+	listeners     []chan types.DownloadEvent
 	listenerMu    sync.Mutex
 	unsubscribeCh chan chan types.DownloadEvent
 	ctx           context.Context
@@ -85,7 +85,7 @@ func (eb *EventBus) broadcastLoop() {
 					}
 				}()
 			}
-			
+
 		case chToClose := <-eb.unsubscribeCh:
 			eb.listenerMu.Lock()
 			for i, listener := range eb.listeners {

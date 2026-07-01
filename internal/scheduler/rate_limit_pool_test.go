@@ -20,11 +20,11 @@ func TestWorkerPool_RateLimit_QueuedUpdateHonored(t *testing.T) {
 	id := "queued-rate-test"
 	state := progress.New(id, 0)
 	cfg := types.DownloadRecord{
-		ID:           id,
-		URL:          "http://example.com/file.bin",
-		ProgressState:        state,
-		RateLimit: 0,
-		RateLimitSet: false,
+		ID:            id,
+		URL:           "http://example.com/file.bin",
+		ProgressState: state,
+		RateLimit:     0,
+		RateLimitSet:  false,
 	}
 
 	pool.SetDefaultDownloadRateLimit(1000)
@@ -67,7 +67,7 @@ func TestWorkerPool_RateLimit_ExplicitUnlimitedSurvivesDefaultChange(t *testing.
 	cfg := types.DownloadRecord{
 		ID:           id,
 		URL:          "http://example.com/file.bin",
-		RateLimit: 0,
+		RateLimit:    0,
 		RateLimitSet: true,
 	}
 
@@ -115,11 +115,11 @@ func TestWorkerPool_RateLimit_DefaultChangeUpdatesInheritedActiveLimiter(t *test
 	pool.mu.Lock()
 	pool.downloads[id] = &activeDownload{
 		config: types.DownloadRecord{
-			ID:           id,
-			URL:          "http://example.com/file.bin",
-			ProgressState:        state,
-			RateLimit: oldRate,
-			RateLimitSet: false,
+			ID:            id,
+			URL:           "http://example.com/file.bin",
+			ProgressState: state,
+			RateLimit:     oldRate,
+			RateLimitSet:  false,
 		},
 	}
 	pool.mu.Unlock()
@@ -184,11 +184,11 @@ func TestWorkerPool_RateLimit_DefaultChangeLeavesExplicitActiveLimiter(t *testin
 	pool.mu.Lock()
 	pool.downloads[id] = &activeDownload{
 		config: types.DownloadRecord{
-			ID:           id,
-			URL:          "http://example.com/file.bin",
-			ProgressState:        state,
-			RateLimit: explicitRate,
-			RateLimitSet: true,
+			ID:            id,
+			URL:           "http://example.com/file.bin",
+			ProgressState: state,
+			RateLimit:     explicitRate,
+			RateLimitSet:  true,
 		},
 	}
 	pool.mu.Unlock()
@@ -307,7 +307,7 @@ func TestWorkerPool_RateLimit_SetDownloadHonorsWaiter(t *testing.T) {
 	cfg := types.DownloadRecord{
 		ID:           id,
 		URL:          "http://example.com/file.bin",
-		RateLimit: 10000,
+		RateLimit:    10000,
 		RateLimitSet: true,
 	}
 	pool.ensureLimiterForConfigLocked(&cfg)

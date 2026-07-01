@@ -74,7 +74,7 @@ func TestIntegration_PauseResume(t *testing.T) {
 		Filename:      filename,
 		ID:            progState.ID,
 		ProgressCh:    progressCh,
-		ProgressState:         progState,
+		ProgressState: progState,
 		Runtime:       runtime,
 		TotalSize:     fileSize,
 		SupportsRange: true,

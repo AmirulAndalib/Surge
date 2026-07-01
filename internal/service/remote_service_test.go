@@ -8,7 +8,6 @@ import (
 	"net/http/httptest"
 	"testing"
 	"time"
-
 )
 
 func TestRemoteDownloadService_SetRateLimit_ProxiesRequest(t *testing.T) {

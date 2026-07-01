@@ -167,7 +167,7 @@ func TestRunDownload_StartedEventUsesFullDestPath(t *testing.T) {
 		Filename:      "file.bin",
 		ID:            "started-event-test",
 		ProgressCh:    progressCh,
-		ProgressState:         progress.New("started-event-test", fileSize),
+		ProgressState: progress.New("started-event-test", fileSize),
 		Runtime:       &types.RuntimeConfig{},
 		TotalSize:     fileSize,
 		SupportsRange: false,
@@ -183,7 +183,7 @@ func TestRunDownload_StartedEventUsesFullDestPath(t *testing.T) {
 		select {
 		case msg := <-progressCh:
 			started := msg
-			
+
 			if started.DestPath != finalPath {
 				t.Fatalf("started dest path = %q, want %q", started.DestPath, finalPath)
 			}
@@ -223,7 +223,7 @@ func TestRunDownload_ConcurrentBootstrapWithoutProbeMetadata(t *testing.T) {
 		Filename:      "file.bin",
 		ID:            "bootstrap-test",
 		ProgressCh:    progressCh,
-		ProgressState:         progress.New("bootstrap-test", 0),
+		ProgressState: progress.New("bootstrap-test", 0),
 		Runtime:       &types.RuntimeConfig{},
 		TotalSize:     0,
 		SupportsRange: true,
@@ -281,7 +281,7 @@ func TestRunDownload_OptimisticConcurrentFallsBackToSingle(t *testing.T) {
 		Filename:      "fallback.bin",
 		ID:            "optimistic-fallback-test",
 		ProgressCh:    progressCh,
-		ProgressState:         progress.New("optimistic-fallback-test", 0),
+		ProgressState: progress.New("optimistic-fallback-test", 0),
 		Runtime:       &types.RuntimeConfig{},
 		TotalSize:     0,
 		SupportsRange: true,
@@ -341,7 +341,7 @@ func TestRunDownload_MidTransferConcurrentFailureFallsBackToSingle(t *testing.T)
 		Filename:      "midfail.bin",
 		ID:            "mid-fail-test",
 		ProgressCh:    progressCh,
-		ProgressState:         progress.New("mid-fail-test", 0), // Simulating unknown size
+		ProgressState: progress.New("mid-fail-test", 0), // Simulating unknown size
 		Runtime:       &types.RuntimeConfig{MinChunkSize: 10240},
 		TotalSize:     0, // Force bootstrap attempt/failure
 		SupportsRange: true,

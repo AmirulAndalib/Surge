@@ -81,8 +81,8 @@ func TestScheduler_Add_QueuesToChannel(t *testing.T) {
 	pool := New(ch, 3)
 
 	cfg := types.DownloadRecord{
-		ID:    "test-id",
-		URL:   "http://example.com/file.zip",
+		ID:            "test-id",
+		URL:           "http://example.com/file.zip",
 		ProgressState: progress.New("test-id", 1000),
 	}
 
@@ -130,7 +130,7 @@ func TestScheduler_Pause_ActiveDownload(t *testing.T) {
 	pool.mu.Lock()
 	pool.downloads["test-id"] = &activeDownload{
 		config: types.DownloadRecord{
-			ID:    "test-id",
+			ID:            "test-id",
 			ProgressState: state,
 		},
 	}
@@ -153,7 +153,7 @@ func TestScheduler_Pause_NilState(t *testing.T) {
 	pool.mu.Lock()
 	pool.downloads["test-id"] = &activeDownload{
 		config: types.DownloadRecord{
-			ID:    "test-id",
+			ID:            "test-id",
 			ProgressState: nil,
 		},
 		cancel: func() {
@@ -204,7 +204,7 @@ func TestScheduler_PauseAll_MultipleDownloads(t *testing.T) {
 		pool.mu.Lock()
 		pool.downloads[id] = &activeDownload{
 			config: types.DownloadRecord{
-				ID:    id,
+				ID:            id,
 				ProgressState: states[i],
 			},
 		}
@@ -280,7 +280,7 @@ func TestScheduler_Cancel_RemovesFromMap(t *testing.T) {
 	pool.mu.Lock()
 	ad := &activeDownload{
 		config: types.DownloadRecord{
-			ID:    "test-id",
+			ID:            "test-id",
 			ProgressState: state,
 		},
 	}
@@ -331,7 +331,7 @@ func TestScheduler_Cancel_CallsCancelFunc(t *testing.T) {
 	pool.mu.Lock()
 	pool.downloads["test-id"] = &activeDownload{
 		config: types.DownloadRecord{
-			ID:    "test-id",
+			ID:            "test-id",
 			ProgressState: state,
 		},
 		cancel: cancel,
@@ -369,7 +369,7 @@ func TestScheduler_Cancel_MarksDone(t *testing.T) {
 	pool.mu.Lock()
 	pool.downloads["test-id"] = &activeDownload{
 		config: types.DownloadRecord{
-			ID:    "test-id",
+			ID:            "test-id",
 			ProgressState: state,
 		},
 	}
@@ -402,7 +402,7 @@ func TestScheduler_Cancel_DoesNotRemoveIncompleteFile(t *testing.T) {
 	pool.mu.Lock()
 	pool.downloads["test-id"] = &activeDownload{
 		config: types.DownloadRecord{
-			ID:    "test-id",
+			ID:            "test-id",
 			ProgressState: state,
 		},
 	}
@@ -473,7 +473,7 @@ func TestScheduler_GracefulShutdown_PausesAll(t *testing.T) {
 	pool.mu.Lock()
 	pool.downloads["test-id"] = &activeDownload{
 		config: types.DownloadRecord{
-			ID:    "test-id",
+			ID:            "test-id",
 			ProgressState: state,
 		},
 	}
@@ -520,7 +520,7 @@ func TestScheduler_GracefulShutdown_WaitsPastSoftTimeout(t *testing.T) {
 	pool.mu.Lock()
 	ad := &activeDownload{
 		config: types.DownloadRecord{
-			ID:    "wait-test-id",
+			ID:            "wait-test-id",
 			ProgressState: ps,
 		},
 	}
@@ -581,7 +581,7 @@ func TestScheduler_GracefulShutdown_ClearsStalePausingWithoutWorker(t *testing.T
 	pool.mu.Lock()
 	pool.downloads["stale-pausing-id"] = &activeDownload{
 		config: types.DownloadRecord{
-			ID:    "stale-pausing-id",
+			ID:            "stale-pausing-id",
 			ProgressState: ps,
 		},
 	}
@@ -702,7 +702,7 @@ func TestScheduler_ExtractPausedConfig_WhilePausing(t *testing.T) {
 	pool.mu.Lock()
 	pool.downloads["test-id"] = &activeDownload{
 		config: types.DownloadRecord{
-			ID:    "test-id",
+			ID:            "test-id",
 			ProgressState: state,
 		},
 	}
@@ -732,7 +732,7 @@ func TestScheduler_ExtractPausedConfig_NotPaused(t *testing.T) {
 	pool.mu.Lock()
 	pool.downloads["test-id"] = &activeDownload{
 		config: types.DownloadRecord{
-			ID:    "test-id",
+			ID:            "test-id",
 			ProgressState: state,
 		},
 	}
@@ -756,11 +756,11 @@ func TestScheduler_ExtractPausedConfig_Success(t *testing.T) {
 	pool.mu.Lock()
 	pool.downloads["test-id"] = &activeDownload{
 		config: types.DownloadRecord{
-			ID:       "test-id",
-			URL:      "http://example.com/file.zip",
-			Filename: "stale.bin",
-			ProgressState:    state,
-			Limiter:  staleLimiter,
+			ID:            "test-id",
+			URL:           "http://example.com/file.zip",
+			Filename:      "stale.bin",
+			ProgressState: state,
+			Limiter:       staleLimiter,
 		},
 	}
 	pool.mu.Unlock()
@@ -822,7 +822,7 @@ func TestScheduler_PauseResume_Idempotency(t *testing.T) {
 	pool.mu.Lock()
 	pool.downloads["idempotent-test"] = &activeDownload{
 		config: types.DownloadRecord{
-			ID:    "idempotent-test",
+			ID:            "idempotent-test",
 			ProgressState: state,
 		},
 	}
@@ -869,8 +869,8 @@ func TestScheduler_GetStatus_IncludesDestPath(t *testing.T) {
 	pool.mu.Lock()
 	pool.downloads["status-id"] = &activeDownload{
 		config: types.DownloadRecord{
-			ID:    "status-id",
-			URL:   "https://example.com/file.bin",
+			ID:            "status-id",
+			URL:           "https://example.com/file.bin",
 			ProgressState: st,
 		},
 	}
@@ -893,8 +893,8 @@ func TestScheduler_UpdateURL(t *testing.T) {
 	pool.mu.Lock()
 	ad := &activeDownload{
 		config: types.DownloadRecord{
-			ID:    "active-id",
-			URL:   "http://example.com/old.zip",
+			ID:            "active-id",
+			URL:           "http://example.com/old.zip",
 			ProgressState: activeState,
 		},
 	}

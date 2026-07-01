@@ -9,6 +9,15 @@ import (
 	"github.com/SurgeDM/Surge/internal/types"
 )
 
+// CfgProgress returns the *DownloadProgress associated with cfg, or
+// nil if cfg.ProgressState is nil. This safely narrows the untyped State field.
+func CfgProgress(cfg *types.DownloadRecord) *DownloadProgress {
+	if cfg == nil || cfg.ProgressState == nil {
+		return nil
+	}
+	return cfg.ProgressState.(*DownloadProgress)
+}
+
 // DownloadProgress is the facade that coordinates all trackers.
 type DownloadProgress struct {
 	ID string

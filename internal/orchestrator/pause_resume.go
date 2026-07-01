@@ -388,7 +388,7 @@ func buildResumeConfig(id, outputPath string, entry *types.DownloadRecord, saved
 		ProgressState: dmState,
 		Runtime:       runtime,
 		Mirrors:       mirrorURLs,
-		RateLimit:  rateLimit,
+		RateLimit:     rateLimit,
 		RateLimitSet:  rateLimitSet,
 	}
 }

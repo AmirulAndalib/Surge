@@ -435,12 +435,9 @@ func (s *RemoteDownloadService) connectSSE(ctx context.Context, ch chan types.Do
 		}
 		jsonData := strings.Join(dataLines, "\n")
 
-		msg, ok, err := types.DecodeSSEMessage(eventType, []byte(jsonData))
+		msg, err := types.DecodeSSEMessage([]byte(jsonData))
 		if err != nil {
 			utils.Debug("SSE decode error for event=%s payload_bytes=%d: %v", eventType, len(jsonData), err)
-			continue
-		}
-		if !ok {
 			continue
 		}
 

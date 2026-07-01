@@ -25,16 +25,6 @@ func safeSendProgress(ch chan<- types.DownloadEvent, msg types.DownloadEvent) {
 	ch <- msg
 }
 
-// cfgProgress returns the *progress.DownloadProgress associated with cfg, or
-// nil if cfg.State is nil. This is the single point in the scheduler package
-// where the untyped State field is narrowed to a concrete type.
-func cfgProgress(cfg *types.DownloadRecord) *progress.DownloadProgress {
-	if cfg == nil || cfg.ProgressState == nil {
-		return nil
-	}
-	return cfg.ProgressState.(*progress.DownloadProgress)
-}
-
 // uniqueFilePath returns a unique file path by appending (1), (2), etc. if the file exists
 func uniqueFilePath(path string) string {
 	// Check if file exists (both final and incomplete)
@@ -132,7 +122,7 @@ func RunDownload(ctx context.Context, cfg *types.DownloadRecord) error {
 
 	var progState *progress.DownloadProgress
 	if cfg.ProgressState != nil {
-		progState = cfgProgress(cfg)
+		progState = progress.CfgProgress(cfg)
 		progState.SetFilename(finalFilename)
 		progState.SetDestPath(finalDestPath)
 	}
@@ -317,7 +307,7 @@ func RunDownload(ctx context.Context, cfg *types.DownloadRecord) error {
 // Download is the CLI entry point (non-TUI) - convenience wrapper
 func Download(ctx context.Context, url string, outPath string, progressCh chan<- types.DownloadEvent, id string) error {
 	cfg := types.DownloadRecord{
-		URL:        url,
+		URL:           url,
 		OutputPath:    outPath,
 		ID:            id,
 		ProgressCh:    progressCh,

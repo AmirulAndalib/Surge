@@ -38,13 +38,13 @@ func TestProgressAggregator_Loop(t *testing.T) {
 	state := progress.New("agg-test", 1024)
 	tmpDir := t.TempDir()
 	cfg := types.DownloadRecord{
-		ID:         "agg-test",
-		URL:        ts.URL,
-		OutputPath: tmpDir,
-		Filename:   "test.txt",
-		ProgressState:      state,
-		TotalSize:  1024,
-		Runtime:    types.DefaultRuntimeConfig(),
+		ID:            "agg-test",
+		URL:           ts.URL,
+		OutputPath:    tmpDir,
+		Filename:      "test.txt",
+		ProgressState: state,
+		TotalSize:     1024,
+		Runtime:       types.DefaultRuntimeConfig(),
 	}
 	pool.Add(cfg)
 
