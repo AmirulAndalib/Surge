@@ -21,7 +21,7 @@ func TestRemoteDownloadService_SetRateLimit_ProxiesRequest(t *testing.T) {
 	defer ts.Close()
 
 	svc, _ := NewRemoteDownloadService(ts.URL, "token", HTTPClientOptions{})
-	defer svc.Shutdown()
+	t.Cleanup(func() { _ = svc.Shutdown() })
 
 	err := svc.SetRateLimit("test-id", 100)
 	if err != nil {
@@ -43,7 +43,7 @@ func TestRemoteDownloadService_ClearRateLimit_ProxiesRequest(t *testing.T) {
 	defer ts.Close()
 
 	svc, _ := NewRemoteDownloadService(ts.URL, "token", HTTPClientOptions{})
-	defer svc.Shutdown()
+	t.Cleanup(func() { _ = svc.Shutdown() })
 
 	err := svc.ClearRateLimit("test-id")
 	if err != nil {
@@ -65,7 +65,7 @@ func TestRemoteDownloadService_SetGlobalRateLimit_ProxiesRequest(t *testing.T) {
 	defer ts.Close()
 
 	svc, _ := NewRemoteDownloadService(ts.URL, "token", HTTPClientOptions{})
-	defer svc.Shutdown()
+	t.Cleanup(func() { _ = svc.Shutdown() })
 
 	err := svc.SetGlobalRateLimit(200)
 	if err != nil {
@@ -87,7 +87,7 @@ func TestRemoteDownloadService_SetDefaultRateLimit_ProxiesRequest(t *testing.T) 
 	defer ts.Close()
 
 	svc, _ := NewRemoteDownloadService(ts.URL, "token", HTTPClientOptions{})
-	defer svc.Shutdown()
+	t.Cleanup(func() { _ = svc.Shutdown() })
 
 	err := svc.SetDefaultRateLimit(300)
 	if err != nil {
@@ -100,7 +100,7 @@ func TestRemoteDownloadService_SetDefaultRateLimit_ProxiesRequest(t *testing.T) 
 
 func TestRemoteDownloadService_NegativeRates_Rejected(t *testing.T) {
 	svc, _ := NewRemoteDownloadService("http://localhost:0", "token", HTTPClientOptions{})
-	defer svc.Shutdown()
+	t.Cleanup(func() { _ = svc.Shutdown() })
 
 	if err := svc.SetRateLimit("id", -1); err == nil {
 		t.Errorf("expected error setting negative rate limit")
@@ -139,7 +139,9 @@ func TestRemoteDownloadService_StreamEvents_ShutdownClosesChannel(t *testing.T) 
 	}
 
 	// Shutdown the service, which should cancel the context and close the channel
-	svc.Shutdown()
+	if err := svc.Shutdown(); err != nil {
+		t.Errorf("Shutdown failed: %v", err)
+	}
 
 	// The channel should be closed
 	select {
@@ -171,7 +173,7 @@ func TestRemoteDownloadService_StreamEvents_CleanupClosesChannel(t *testing.T) {
 	defer close(blockCh)
 
 	svc, _ := NewRemoteDownloadService(ts.URL, "token", HTTPClientOptions{})
-	defer svc.Shutdown()
+	t.Cleanup(func() { _ = svc.Shutdown() })
 
 	ch, cleanup, err := svc.StreamEvents(context.Background())
 	if err != nil {
@@ -202,7 +204,7 @@ func TestRemoteDownloadService_StreamEvents_ReceivesMessages(t *testing.T) {
 		}
 
 		msg := "event: started\ndata: {\"download_id\":\"test-1\",\"filename\":\"test.txt\"}\n\n"
-		w.Write([]byte(msg))
+		_, _ = w.Write([]byte(msg))
 		if f, ok := w.(http.Flusher); ok {
 			f.Flush()
 		}
@@ -216,7 +218,7 @@ func TestRemoteDownloadService_StreamEvents_ReceivesMessages(t *testing.T) {
 	defer close(blockCh)
 
 	svc, _ := NewRemoteDownloadService(ts.URL, "token", HTTPClientOptions{})
-	defer svc.Shutdown()
+	t.Cleanup(func() { _ = svc.Shutdown() })
 
 	ch, cleanup, err := svc.StreamEvents(context.Background())
 	if err != nil {

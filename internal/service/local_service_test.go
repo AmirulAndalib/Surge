@@ -21,7 +21,7 @@ func setupTestService(t *testing.T) (*LocalDownloadService, *httptest.Server, st
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Length", "1024")
 		w.WriteHeader(http.StatusOK)
-		w.Write(make([]byte, 1024))
+		_, _ = w.Write(make([]byte, 1024))
 	}))
 
 	progressCh := make(chan types.DownloadEvent, 10)
@@ -31,8 +31,8 @@ func setupTestService(t *testing.T) (*LocalDownloadService, *httptest.Server, st
 
 	// Ensure config directory exists for settings tests
 	tmpDir := t.TempDir()
-	os.Setenv("XDG_CONFIG_HOME", tmpDir)
-	os.Setenv("XDG_STATE_HOME", tmpDir)
+	t.Setenv("XDG_CONFIG_HOME", tmpDir)
+	t.Setenv("XDG_STATE_HOME", tmpDir)
 
 	svc := NewLocalDownloadService(mgr)
 	return svc, ts, tmpDir
@@ -41,7 +41,7 @@ func setupTestService(t *testing.T) (*LocalDownloadService, *httptest.Server, st
 func TestLocalDownloadService_AddWithID_UsesProvidedID(t *testing.T) {
 	svc, ts, tmpDir := setupTestService(t)
 	defer ts.Close()
-	defer svc.Shutdown()
+	t.Cleanup(func() { _ = svc.Shutdown() })
 
 	customID := "test-id-123"
 	id, err := svc.AddWithID(ts.URL, tmpDir, "test.txt", nil, nil, customID, 1, 0)
@@ -83,7 +83,9 @@ func TestLocalDownloadService_StreamEvents(t *testing.T) {
 	}
 
 	// Shutting down should close the channel
-	svc.Shutdown()
+	if err := svc.Shutdown(); err != nil {
+		t.Errorf("Shutdown failed: %v", err)
+	}
 
 	// Drain the channel until it is closed
 	closed := false
@@ -103,7 +105,7 @@ func TestLocalDownloadService_StreamEvents(t *testing.T) {
 func TestLocalDownloadService_RateLimits(t *testing.T) {
 	svc, ts, tmpDir := setupTestService(t)
 	defer ts.Close()
-	defer svc.Shutdown()
+	t.Cleanup(func() { _ = svc.Shutdown() })
 
 	err := svc.SetRateLimit("invalid", 100)
 	if err == nil {
@@ -164,7 +166,7 @@ func TestLocalDownloadService_RateLimits(t *testing.T) {
 
 func TestLocalDownloadService_Purge(t *testing.T) {
 	svc, _, tmpDir := setupTestService(t)
-	defer svc.Shutdown()
+	t.Cleanup(func() { _ = svc.Shutdown() })
 
 	blockCh := make(chan struct{})
 	purgeTs := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -214,7 +216,7 @@ func TestLocalDownloadService_Purge(t *testing.T) {
 func TestLocalDownloadService_HistoryAndList(t *testing.T) {
 	svc, ts, tmpDir := setupTestService(t)
 	defer ts.Close()
-	defer svc.Shutdown()
+	t.Cleanup(func() { _ = svc.Shutdown() })
 
 	blockCh := make(chan struct{})
 	listTs := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -272,7 +274,7 @@ func TestLocalDownloadService_HistoryAndList(t *testing.T) {
 func TestLocalDownloadService_Delete(t *testing.T) {
 	svc, ts, tmpDir := setupTestService(t)
 	defer ts.Close()
-	defer svc.Shutdown()
+	t.Cleanup(func() { _ = svc.Shutdown() })
 
 	id, _ := svc.Add(ts.URL, tmpDir, "delete.txt", nil, nil, false, 1, 0)
 

@@ -47,9 +47,6 @@ const (
 	// no settings value is available. The live value comes from
 	// NetworkSettings.MaxConcurrentProbes.
 	defaultMaxConcurrentProbes = 3
-	// maxConcurrentProbes is the package-level cap used by tests that construct
-	// a manager without a settings snapshot (newLifecycleManagerForTest).
-	maxConcurrentProbes = defaultMaxConcurrentProbes
 )
 
 var settingsRefreshTTL = time.Second
