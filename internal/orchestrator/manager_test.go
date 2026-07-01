@@ -87,10 +87,8 @@ func TestLifecycleManager_EnqueueSuccess(t *testing.T) {
 	timeout := time.After(500 * time.Millisecond)
 	for !found {
 		select {
-		case msg := <-sub:
-			{
-				found = true
-			}
+		case <-sub:
+			found = true
 		case <-timeout:
 			t.Fatal("timed out waiting for DownloadQueuedMsg")
 		}

@@ -60,9 +60,9 @@ func TestProgressAggregator_Loop(t *testing.T) {
 	for {
 		select {
 		case msg := <-sub:
-			if batch, ok := msg.(types.BatchProgress); ok {
-				if len(batch) > 0 {
-					pMsg := batch[0]
+			if msg.Type == types.EventBatchProgress {
+				if len(msg.BatchEvents) > 0 {
+					pMsg := msg.BatchEvents[0]
 					if pMsg.DownloadID == "agg-test" {
 						if pMsg.Downloaded == 512 {
 							return // Success!

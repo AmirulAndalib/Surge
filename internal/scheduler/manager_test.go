@@ -240,11 +240,11 @@ func TestRunDownload_ConcurrentBootstrapWithoutProbeMetadata(t *testing.T) {
 	foundComplete := false
 	for len(progressCh) > 0 {
 		msg := <-progressCh
-		complete := msg
-		
-		foundComplete = true
-		if complete.Total != fileSize {
-			t.Fatalf("complete total = %d, want %d", complete.Total, fileSize)
+		if msg.Type == types.EventComplete {
+			foundComplete = true
+			if msg.Total != fileSize {
+				t.Fatalf("complete total = %d, want %d", msg.Total, fileSize)
+			}
 		}
 	}
 	if !foundComplete {
@@ -306,11 +306,11 @@ func TestRunDownload_OptimisticConcurrentFallsBackToSingle(t *testing.T) {
 	foundComplete := false
 	for len(progressCh) > 0 {
 		msg := <-progressCh
-		complete := msg
-		
-		foundComplete = true
-		if complete.Total != int64(len(content)) {
-			t.Fatalf("complete total = %d, want %d", complete.Total, len(content))
+		if msg.Type == types.EventComplete {
+			foundComplete = true
+			if msg.Total != int64(len(content)) {
+				t.Fatalf("complete total = %d, want %d", msg.Total, len(content))
+			}
 		}
 	}
 	if !foundComplete {

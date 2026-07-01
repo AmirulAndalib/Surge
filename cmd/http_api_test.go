@@ -21,7 +21,7 @@ type httpAPITestService struct {
 	historyErr            error
 	statusByID            map[string]*types.DownloadStatus
 	getStatusErr          error
-	streamMsgs            []interface{}
+	streamMsgs            []types.DownloadEvent
 	rateLimitCalls        []string
 	rateLimitValues       map[string]int64
 	clearRateLimitID      []string
@@ -92,13 +92,13 @@ func (s *httpAPITestService) StreamEvents(context.Context) (<-chan types.Downloa
 	return channel, cleanup, nil
 }
 
-func (s *httpAPITestService) Publish(interface{}) error {
+func (s *httpAPITestService) Publish(types.DownloadEvent) error {
 	return nil
 }
 
 type publishRecordingHTTPService struct {
 	*httpAPITestService
-	published []interface{}
+	published []types.DownloadEvent
 }
 
 func (s *publishRecordingHTTPService) Publish(msg types.DownloadEvent) error {
@@ -242,7 +242,7 @@ func TestHistoryEndpoint_SortsMostRecentFirst(t *testing.T) {
 
 func TestEventsEndpoint_RequiresAuthAndStreamsSSE(t *testing.T) {
 	service := &httpAPITestService{
-		streamMsgs: []interface{}{
+		streamMsgs: []types.DownloadEvent{
 			types.DownloadEvent{
 				Type:       types.EventQueued,
 				DownloadID: "queue-1",
@@ -295,7 +295,7 @@ func TestEventsEndpoint_RequiresAuthAndStreamsSSE(t *testing.T) {
 	if !strings.Contains(text, "event: queued") {
 		t.Fatalf("expected queued SSE event, got %q", text)
 	}
-	if !strings.Contains(text, `"DownloadID":"queue-1"`) {
+	if !strings.Contains(text, `"download_id":"queue-1"`) {
 		t.Fatalf("expected queued payload in SSE body, got %q", text)
 	}
 }
@@ -329,10 +329,7 @@ func TestHandleBatchDownload_ConfirmPublishesSingleBatchRequest(t *testing.T) {
 	if len(service.published) != 1 {
 		t.Fatalf("expected 1 published message, got %d", len(service.published))
 	}
-	msg, ok := service.published[0].(types.DownloadEvent)
-	if !ok {
-		t.Fatalf("expected BatchDownloadRequestMsg, got %T", service.published[0])
-	}
+	msg := service.published[0]
 	if len(msg.BatchEvents) != 2 {
 		t.Fatalf("expected 2 batch requests, got %d", len(msg.BatchEvents))
 	}
@@ -857,7 +854,7 @@ func (r *rateLimitWrapper) ResumeBatch([]string) []error                    { re
 func (r *rateLimitWrapper) UpdateURL(string, string) error                  { return nil }
 func (r *rateLimitWrapper) Delete(string) error                             { return nil }
 func (r *rateLimitWrapper) Purge(string) error                              { return nil }
-func (r *rateLimitWrapper) Publish(interface{}) error                       { return nil }
+func (r *rateLimitWrapper) Publish(types.DownloadEvent) error                       { return nil }
 func (r *rateLimitWrapper) GetStatus(string) (*types.DownloadStatus, error) { return nil, nil }
 func (r *rateLimitWrapper) Shutdown() error                                 { return nil }
 func (r *rateLimitWrapper) ClearCompleted() (int64, error)                  { return 0, nil }

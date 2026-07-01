@@ -202,7 +202,7 @@ func TestRemoteDownloadService_StreamEvents_ReceivesMessages(t *testing.T) {
 			f.Flush()
 		}
 
-		msg := "event: started\ndata: {\"DownloadID\":\"test-1\",\"Filename\":\"test.txt\"}\n\n"
+		msg := "event: started\ndata: {\"download_id\":\"test-1\",\"filename\":\"test.txt\"}\n\n"
 		w.Write([]byte(msg))
 		if f, ok := w.(http.Flusher); ok {
 			f.Flush()

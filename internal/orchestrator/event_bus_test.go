@@ -15,7 +15,7 @@ func TestEventBus_BasicPubSub(t *testing.T) {
 	sub, cleanup := eb.Subscribe()
 	defer cleanup()
 
-	msg := "test message"
+	msg := types.DownloadEvent{Message: "test message"}
 	err := eb.Publish(msg)
 	if err != nil {
 		t.Fatalf("expected nil error on publish, got %v", err)
@@ -23,7 +23,7 @@ func TestEventBus_BasicPubSub(t *testing.T) {
 
 	select {
 	case received := <-sub:
-		if received != msg {
+		if received.Message != msg.Message {
 			t.Errorf("expected %v, got %v", msg, received)
 		}
 	case <-time.After(500 * time.Millisecond):
@@ -41,13 +41,13 @@ func TestEventBus_MultipleSubscribers(t *testing.T) {
 	sub2, cleanup2 := eb.Subscribe()
 	defer cleanup2()
 
-	msg := "broadcast"
+	msg := types.DownloadEvent{Message: "broadcast"}
 	_ = eb.Publish(msg)
 
 	for i, sub := range []<-chan types.DownloadEvent{sub1, sub2} {
 		select {
 		case received := <-sub:
-			if received != msg {
+			if received.Message != msg.Message {
 				t.Errorf("subscriber %d expected %v, got %v", i+1, msg, received)
 			}
 		case <-time.After(500 * time.Millisecond):
@@ -106,7 +106,7 @@ func TestEventBus_CriticalMsgWaitBehavior(t *testing.T) {
 
 	// Publish a critical message (not progress). It should block for up to 1 second before dropping.
 	start := time.Now()
-	msg := "critical"
+	msg := types.DownloadEvent{Message: "critical"}
 	_ = eb.Publish(msg)
 
 	// Wait for processing
@@ -130,7 +130,7 @@ func TestEventBus_ShutdownCleanly(t *testing.T) {
 	// Fill InputCh so the only unblocked select case is ctx.Done()
 	for i := 0; i < 100; i++ {
 		select {
-		case eb.InputCh <- "filler":
+		case eb.InputCh <- types.DownloadEvent{Message: "filler"}:
 		default:
 		}
 	}
