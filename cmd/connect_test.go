@@ -27,7 +27,7 @@ func (f *fakeRemoteDownloadService) History() ([]types.DownloadRecord, error) {
 	return nil, nil
 }
 
-func (f *fakeRemoteDownloadService) Add(url, path, filename string, mirrors []string, headers map[string]string, isExplicitCategory bool, workers int, minChunkSize int64, totalSize int64, supportsRange bool) (string, error) {
+func (f *fakeRemoteDownloadService) Add(url, path, filename string, mirrors []string, headers map[string]string, isExplicitCategory bool, workers int, minChunkSize int64) (string, error) {
 	f.addCalls++
 	f.lastURL = url
 	f.lastPath = path
@@ -36,7 +36,7 @@ func (f *fakeRemoteDownloadService) Add(url, path, filename string, mirrors []st
 	return "remote-add-id", nil
 }
 
-func (f *fakeRemoteDownloadService) AddWithID(url, path, filename string, mirrors []string, headers map[string]string, id string, workers int, minChunkSize int64, totalSize int64, supportsRange bool) (string, error) {
+func (f *fakeRemoteDownloadService) AddWithID(url, path, filename string, mirrors []string, headers map[string]string, id string, workers int, minChunkSize int64) (string, error) {
 	return id, nil
 }
 

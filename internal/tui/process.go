@@ -160,8 +160,6 @@ func (m RootModel) startDownload(url string, mirrors []string, headers map[strin
 				requestID,
 				workers,
 				minChunkSize,
-				0,
-				false,
 			)
 		} else {
 			newID, err = m.Service.Add(
@@ -173,8 +171,6 @@ func (m RootModel) startDownload(url string, mirrors []string, headers map[strin
 				!isDefaultPath,
 				workers,
 				minChunkSize,
-				0,
-				false,
 			)
 		}
 		if err != nil {

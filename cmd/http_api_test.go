@@ -51,11 +51,11 @@ func (s *httpAPITestService) History() ([]types.DownloadRecord, error) {
 	return s.history, nil
 }
 
-func (s *httpAPITestService) Add(string, string, string, []string, map[string]string, bool, int, int64, int64, bool) (string, error) {
+func (s *httpAPITestService) Add(string, string, string, []string, map[string]string, bool, int, int64) (string, error) {
 	return "", errors.New("not implemented")
 }
 
-func (s *httpAPITestService) AddWithID(string, string, string, []string, map[string]string, string, int, int64, int64, bool) (string, error) {
+func (s *httpAPITestService) AddWithID(string, string, string, []string, map[string]string, string, int, int64) (string, error) {
 	return "", errors.New("not implemented")
 }
 
@@ -112,7 +112,7 @@ type batchAddRecordingService struct {
 	failOn string
 }
 
-func (s *batchAddRecordingService) Add(url string, _ string, _ string, _ []string, _ map[string]string, _ bool, _ int, _ int64, _ int64, _ bool) (string, error) {
+func (s *batchAddRecordingService) Add(url string, _ string, _ string, _ []string, _ map[string]string, _ bool, _ int, _ int64) (string, error) {
 	if url == s.failOn {
 		return "", errors.New("enqueue failed")
 	}
@@ -840,12 +840,12 @@ type rateLimitWrapper struct {
 	svc *httpAPITestService
 }
 
-func (r *rateLimitWrapper) List() ([]types.DownloadStatus, error)   { return nil, nil }
+func (r *rateLimitWrapper) List() ([]types.DownloadStatus, error)    { return nil, nil }
 func (r *rateLimitWrapper) History() ([]types.DownloadRecord, error) { return nil, nil }
-func (r *rateLimitWrapper) Add(string, string, string, []string, map[string]string, bool, int, int64, int64, bool) (string, error) {
+func (r *rateLimitWrapper) Add(string, string, string, []string, map[string]string, bool, int, int64) (string, error) {
 	return "", nil
 }
-func (r *rateLimitWrapper) AddWithID(string, string, string, []string, map[string]string, string, int, int64, int64, bool) (string, error) {
+func (r *rateLimitWrapper) AddWithID(string, string, string, []string, map[string]string, string, int, int64) (string, error) {
 	return "", nil
 }
 func (r *rateLimitWrapper) Pause(string) error                              { return nil }
@@ -854,7 +854,7 @@ func (r *rateLimitWrapper) ResumeBatch([]string) []error                    { re
 func (r *rateLimitWrapper) UpdateURL(string, string) error                  { return nil }
 func (r *rateLimitWrapper) Delete(string) error                             { return nil }
 func (r *rateLimitWrapper) Purge(string) error                              { return nil }
-func (r *rateLimitWrapper) Publish(types.DownloadEvent) error                       { return nil }
+func (r *rateLimitWrapper) Publish(types.DownloadEvent) error               { return nil }
 func (r *rateLimitWrapper) GetStatus(string) (*types.DownloadStatus, error) { return nil, nil }
 func (r *rateLimitWrapper) Shutdown() error                                 { return nil }
 func (r *rateLimitWrapper) ClearCompleted() (int64, error)                  { return 0, nil }

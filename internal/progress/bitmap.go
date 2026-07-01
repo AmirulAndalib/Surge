@@ -1,9 +1,9 @@
 package progress
 
 import (
-	"sync"
 	"github.com/SurgeDM/Surge/internal/types"
 	"github.com/SurgeDM/Surge/internal/utils"
+	"sync"
 )
 
 type BitmapTracker struct {

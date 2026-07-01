@@ -20,7 +20,7 @@ func newCategoryTestModel(t *testing.T, settings *config.Settings) RootModel {
 
 	svc := &categoryMockService{
 		DownloadService: baseSvc,
-		addFunc: func(url, path, filename string, mirrors []string, headers map[string]string, isExplicit bool, workers int, minChunkSize int64, fileSize int64, supportsRange bool) (string, error) {
+		addFunc: func(url, path, filename string, mirrors []string, headers map[string]string, isExplicit bool, workers int, minChunkSize int64) (string, error) {
 			return "mock-id", nil
 		},
 	}
@@ -37,19 +37,19 @@ func newCategoryTestModel(t *testing.T, settings *config.Settings) RootModel {
 
 type categoryMockService struct {
 	service.DownloadService
-	addFunc func(url, path, filename string, mirrors []string, headers map[string]string, isExplicit bool, workers int, minChunkSize int64, fileSize int64, supportsRange bool) (string, error)
+	addFunc func(url, path, filename string, mirrors []string, headers map[string]string, isExplicit bool, workers int, minChunkSize int64) (string, error)
 }
 
-func (m *categoryMockService) Add(url, path, filename string, mirrors []string, headers map[string]string, isExplicit bool, workers int, minChunkSize int64, totalSize int64, supportsRange bool) (string, error) {
+func (m *categoryMockService) Add(url, path, filename string, mirrors []string, headers map[string]string, isExplicit bool, workers int, minChunkSize int64) (string, error) {
 	if m.addFunc != nil {
-		return m.addFunc(url, path, filename, mirrors, headers, isExplicit, workers, minChunkSize, totalSize, supportsRange)
+		return m.addFunc(url, path, filename, mirrors, headers, isExplicit, workers, minChunkSize)
 	}
 	return "mock-id", nil
 }
 
-func (m *categoryMockService) AddWithID(url string, path string, filename string, mirrors []string, headers map[string]string, id string, workers int, minChunkSize int64, totalSize int64, supportsRange bool) (string, error) {
+func (m *categoryMockService) AddWithID(url string, path string, filename string, mirrors []string, headers map[string]string, id string, workers int, minChunkSize int64) (string, error) {
 	if m.addFunc != nil {
-		return m.addFunc(url, path, filename, mirrors, headers, false, workers, minChunkSize, totalSize, supportsRange)
+		return m.addFunc(url, path, filename, mirrors, headers, false, workers, minChunkSize)
 	}
 	return id, nil
 }

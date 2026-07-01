@@ -70,7 +70,7 @@ func (s *LocalDownloadService) Shutdown() error {
 	return nil
 }
 
-func (s *LocalDownloadService) Add(url string, path string, filename string, mirrors []string, headers map[string]string, isExplicitCategory bool, workers int, minChunkSize int64, totalSize int64, supportsRange bool) (string, error) {
+func (s *LocalDownloadService) Add(url string, path string, filename string, mirrors []string, headers map[string]string, isExplicitCategory bool, workers int, minChunkSize int64) (string, error) {
 	req := &orchestrator.DownloadRequest{
 		URL:                url,
 		Path:               path,
@@ -80,14 +80,12 @@ func (s *LocalDownloadService) Add(url string, path string, filename string, mir
 		IsExplicitCategory: isExplicitCategory,
 		Workers:            workers,
 		MinChunkSize:       minChunkSize,
-		TotalSize:          totalSize,
-		SupportsRange:      supportsRange,
 	}
 	id, _, err := s.lifecycle.Enqueue(context.Background(), req)
 	return id, err
 }
 
-func (s *LocalDownloadService) AddWithID(url string, path string, filename string, mirrors []string, headers map[string]string, id string, workers int, minChunkSize int64, totalSize int64, supportsRange bool) (string, error) {
+func (s *LocalDownloadService) AddWithID(url string, path string, filename string, mirrors []string, headers map[string]string, id string, workers int, minChunkSize int64) (string, error) {
 	req := &orchestrator.DownloadRequest{
 		URL:                url,
 		Path:               path,
@@ -97,8 +95,6 @@ func (s *LocalDownloadService) AddWithID(url string, path string, filename strin
 		IsExplicitCategory: false,
 		Workers:            workers,
 		MinChunkSize:       minChunkSize,
-		TotalSize:          totalSize,
-		SupportsRange:      supportsRange,
 	}
 	newID, _, err := s.lifecycle.EnqueueWithID(context.Background(), req, id)
 	return newID, err

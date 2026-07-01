@@ -24,19 +24,19 @@ func (m *mockService) Purge(id string) error {
 	return m.Delete(id)
 }
 
-func (m *mockService) List() ([]types.DownloadStatus, error)   { return nil, nil }
+func (m *mockService) List() ([]types.DownloadStatus, error)    { return nil, nil }
 func (m *mockService) History() ([]types.DownloadRecord, error) { return nil, nil }
-func (m *mockService) Add(url string, path string, filename string, mirrors []string, headers map[string]string, isExplicitCategory bool, workers int, minChunkSize int64, totalSize int64, supportsRange bool) (string, error) {
+func (m *mockService) Add(url string, path string, filename string, mirrors []string, headers map[string]string, isExplicitCategory bool, workers int, minChunkSize int64) (string, error) {
 	return "", nil
 }
-func (m *mockService) AddWithID(url string, path string, filename string, mirrors []string, headers map[string]string, id string, workers int, minChunkSize int64, totalSize int64, supportsRange bool) (string, error) {
+func (m *mockService) AddWithID(url string, path string, filename string, mirrors []string, headers map[string]string, id string, workers int, minChunkSize int64) (string, error) {
 	return "", nil
 }
 func (m *mockService) ResumeBatch(ids []string) []error { return nil }
 func (m *mockService) StreamEvents(ctx context.Context) (<-chan types.DownloadEvent, func(), error) {
 	return nil, nil, nil
 }
-func (m *mockService) Publish(msg types.DownloadEvent) error                      { return nil }
+func (m *mockService) Publish(msg types.DownloadEvent) error              { return nil }
 func (m *mockService) Pause(id string) error                              { return nil }
 func (m *mockService) Resume(id string) error                             { return nil }
 func (m *mockService) UpdateURL(id string, newURL string) error           { return nil }

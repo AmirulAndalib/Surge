@@ -24,19 +24,19 @@ import (
 
 type updateMockService struct {
 	service.DownloadService
-	addFunc func(url string, path string, filename string, mirrors []string, headers map[string]string, isExplicitCategory bool, workers int, minChunkSize int64, totalSize int64, supportsRange bool) (string, error)
+	addFunc func(url string, path string, filename string, mirrors []string, headers map[string]string, isExplicitCategory bool, workers int, minChunkSize int64) (string, error)
 }
 
-func (m *updateMockService) Add(url string, path string, filename string, mirrors []string, headers map[string]string, isExplicitCategory bool, workers int, minChunkSize int64, totalSize int64, supportsRange bool) (string, error) {
+func (m *updateMockService) Add(url string, path string, filename string, mirrors []string, headers map[string]string, isExplicitCategory bool, workers int, minChunkSize int64) (string, error) {
 	if m.addFunc != nil {
-		return m.addFunc(url, path, filename, mirrors, headers, isExplicitCategory, workers, minChunkSize, totalSize, supportsRange)
+		return m.addFunc(url, path, filename, mirrors, headers, isExplicitCategory, workers, minChunkSize)
 	}
 	return "mock-id", nil
 }
 
-func (m *updateMockService) AddWithID(url string, path string, filename string, mirrors []string, headers map[string]string, id string, workers int, minChunkSize int64, totalSize int64, supportsRange bool) (string, error) {
+func (m *updateMockService) AddWithID(url string, path string, filename string, mirrors []string, headers map[string]string, id string, workers int, minChunkSize int64) (string, error) {
 	if m.addFunc != nil {
-		return m.addFunc(url, path, filename, mirrors, headers, false, workers, minChunkSize, totalSize, supportsRange)
+		return m.addFunc(url, path, filename, mirrors, headers, false, workers, minChunkSize)
 	}
 	return id, nil
 }
@@ -116,7 +116,7 @@ func TestUpdate_DownloadStartedKeepsResuming(t *testing.T) {
 		Filename:   "file",
 		Total:      100,
 		DestPath:   "/tmp/file",
-		State: &types.DownloadRecord{ProgressState: engineprogress.New("id-1", 100)},
+		State:      &types.DownloadRecord{ProgressState: engineprogress.New("id-1", 100)},
 	}
 
 	updated, _ := m.Update(msg)
@@ -152,7 +152,7 @@ func TestUpdate_DownloadStartedPropagatesRateLimit(t *testing.T) {
 		Filename:     "file",
 		Total:        100,
 		DestPath:     "/tmp/file",
-		State: &types.DownloadRecord{ProgressState: engineprogress.New("id-1", 100)},
+		State:        &types.DownloadRecord{ProgressState: engineprogress.New("id-1", 100)},
 		RateLimit:    2 * 1024 * 1024,
 		RateLimitSet: true,
 	})
@@ -176,7 +176,7 @@ func TestUpdate_DownloadStartedNewDownloadPropagatesRateLimit(t *testing.T) {
 		Filename:     "file",
 		Total:        100,
 		DestPath:     "/tmp/file",
-		State: &types.DownloadRecord{ProgressState: engineprogress.New("id-1", 100)},
+		State:        &types.DownloadRecord{ProgressState: engineprogress.New("id-1", 100)},
 		RateLimit:    3 * 1024 * 1024,
 		RateLimitSet: true,
 	})
@@ -209,7 +209,7 @@ func TestUpdate_EnqueueSuccessMergesOptimisticEntryAfterStart(t *testing.T) {
 		Filename:   "file.bin",
 		Total:      100,
 		DestPath:   "/tmp/file.bin",
-		State: &types.DownloadRecord{ProgressState: engineprogress.New("real-1", 100)},
+		State:      &types.DownloadRecord{ProgressState: engineprogress.New("real-1", 100)},
 	})
 	m2 := updated.(RootModel)
 	if len(m2.downloads) != 2 {
@@ -730,7 +730,7 @@ func TestStartDownload_UsesModelEnqueueContext(t *testing.T) {
 
 	svc := &updateMockService{
 		DownloadService: &mockService{},
-		addFunc: func(string, string, string, []string, map[string]string, bool, int, int64, int64, bool) (string, error) {
+		addFunc: func(string, string, string, []string, map[string]string, bool, int, int64) (string, error) {
 			t.Fatal("enqueue dispatch should not run after context cancellation")
 			return "", nil
 		},
@@ -767,7 +767,7 @@ func TestStartDownload_UsesModelEnqueueContext(t *testing.T) {
 func TestStartDownload_GuessesFilenameOptimisticallyWhenProvidedOrInferred(t *testing.T) {
 	svc := &updateMockService{
 		DownloadService: &mockService{},
-		addFunc: func(string, string, string, []string, map[string]string, bool, int, int64, int64, bool) (string, error) {
+		addFunc: func(string, string, string, []string, map[string]string, bool, int, int64) (string, error) {
 			return "real-id", nil
 		},
 	}
@@ -798,7 +798,7 @@ func TestStartDownload_GuessesFilenameOptimisticallyWhenProvidedOrInferred(t *te
 func TestStartDownload_UsesGenericQueuedNameForExplicitFilenameUntilLifecycleConfirms(t *testing.T) {
 	svc := &updateMockService{
 		DownloadService: &mockService{},
-		addFunc: func(string, string, string, []string, map[string]string, bool, int, int64, int64, bool) (string, error) {
+		addFunc: func(string, string, string, []string, map[string]string, bool, int, int64) (string, error) {
 			return "real-id", nil
 		},
 	}
@@ -1075,7 +1075,7 @@ func TestWithEnqueueContext_OverridesStartDownloadContext(t *testing.T) {
 
 	svc := &updateMockService{
 		DownloadService: &mockService{},
-		addFunc: func(string, string, string, []string, map[string]string, bool, int, int64, int64, bool) (string, error) {
+		addFunc: func(string, string, string, []string, map[string]string, bool, int, int64) (string, error) {
 			t.Fatal("enqueue dispatch should not run after shared context cancellation")
 			return "", nil
 		},

@@ -44,7 +44,7 @@ func TestLocalDownloadService_AddWithID_UsesProvidedID(t *testing.T) {
 	defer svc.Shutdown()
 
 	customID := "test-id-123"
-	id, err := svc.AddWithID(ts.URL, tmpDir, "test.txt", nil, nil, customID, 1, 0, 0, false)
+	id, err := svc.AddWithID(ts.URL, tmpDir, "test.txt", nil, nil, customID, 1, 0)
 
 	if err != nil {
 		t.Fatalf("AddWithID failed: %v", err)
@@ -73,7 +73,7 @@ func TestLocalDownloadService_StreamEvents(t *testing.T) {
 	defer cleanup()
 
 	// Add a download to generate an event
-	_, _ = svc.Add(ts.URL, tmpDir, "event.txt", nil, nil, false, 1, 0, 0, false)
+	_, _ = svc.Add(ts.URL, tmpDir, "event.txt", nil, nil, false, 1, 0)
 
 	select {
 	case <-ch:
@@ -138,7 +138,7 @@ func TestLocalDownloadService_RateLimits(t *testing.T) {
 	}
 
 	// Add a download and set its specific rate limit
-	id, _ := svc.Add(ts.URL, tmpDir, "rate.txt", nil, nil, false, 1, 0, 0, false)
+	id, _ := svc.Add(ts.URL, tmpDir, "rate.txt", nil, nil, false, 1, 0)
 
 	err = svc.SetRateLimit(id, 2000)
 	if err != nil {
@@ -183,7 +183,7 @@ func TestLocalDownloadService_Purge(t *testing.T) {
 	defer purgeTs.Close()
 	defer close(blockCh)
 
-	id, _ := svc.AddWithID(purgeTs.URL, tmpDir, "purge.txt", nil, nil, "purge-id", 1, 0, 0, false)
+	id, _ := svc.AddWithID(purgeTs.URL, tmpDir, "purge.txt", nil, nil, "purge-id", 1, 0)
 
 	// Wait a tiny bit for the file to be created
 	time.Sleep(100 * time.Millisecond)
@@ -233,7 +233,7 @@ func TestLocalDownloadService_HistoryAndList(t *testing.T) {
 	defer listTs.Close()
 	defer close(blockCh)
 
-	_, err := svc.Add(listTs.URL, tmpDir, "list1.txt", nil, nil, false, 1, 0, 0, false)
+	_, err := svc.Add(listTs.URL, tmpDir, "list1.txt", nil, nil, false, 1, 0)
 	if err != nil {
 		t.Fatalf("Add failed: %v", err)
 	}
@@ -274,7 +274,7 @@ func TestLocalDownloadService_Delete(t *testing.T) {
 	defer ts.Close()
 	defer svc.Shutdown()
 
-	id, _ := svc.Add(ts.URL, tmpDir, "delete.txt", nil, nil, false, 1, 0, 0, false)
+	id, _ := svc.Add(ts.URL, tmpDir, "delete.txt", nil, nil, false, 1, 0)
 
 	err := svc.Delete(id)
 	if err != nil {

@@ -130,7 +130,7 @@ func (s *RemoteDownloadService) GetStatus(id string) (*types.DownloadStatus, err
 }
 
 // Add queues a new download.
-func (s *RemoteDownloadService) Add(url string, path string, filename string, mirrors []string, headers map[string]string, isExplicitCategory bool, workers int, minChunkSize int64, totalSize int64, supportsRange bool) (string, error) {
+func (s *RemoteDownloadService) Add(url string, path string, filename string, mirrors []string, headers map[string]string, isExplicitCategory bool, workers int, minChunkSize int64) (string, error) {
 	req := map[string]interface{}{
 		"url":                  url,
 		"path":                 path,
@@ -139,8 +139,6 @@ func (s *RemoteDownloadService) Add(url string, path string, filename string, mi
 		"headers":              headers,
 		"skip_approval":        true,
 		"is_explicit_category": isExplicitCategory,
-		"total_size":           totalSize,
-		"supports_range":       supportsRange,
 	}
 	if workers > 0 {
 		req["workers"] = workers
@@ -163,17 +161,15 @@ func (s *RemoteDownloadService) Add(url string, path string, filename string, mi
 }
 
 // AddWithID queues a new download with a caller-provided id.
-func (s *RemoteDownloadService) AddWithID(url string, path string, filename string, mirrors []string, headers map[string]string, id string, workers int, minChunkSize int64, totalSize int64, supportsRange bool) (string, error) {
+func (s *RemoteDownloadService) AddWithID(url string, path string, filename string, mirrors []string, headers map[string]string, id string, workers int, minChunkSize int64) (string, error) {
 	req := map[string]interface{}{
-		"url":            url,
-		"path":           path,
-		"filename":       filename,
-		"mirrors":        mirrors,
-		"headers":        headers,
-		"skip_approval":  true,
-		"id":             id,
-		"total_size":     totalSize,
-		"supports_range": supportsRange,
+		"url":           url,
+		"path":          path,
+		"filename":      filename,
+		"mirrors":       mirrors,
+		"headers":       headers,
+		"skip_approval": true,
+		"id":            id,
 	}
 	if workers > 0 {
 		req["workers"] = workers

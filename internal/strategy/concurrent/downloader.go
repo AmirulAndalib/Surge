@@ -23,7 +23,7 @@ import (
 
 // ConcurrentDownloader handles multi-connection downloads
 type ConcurrentDownloader struct {
-	ProgressChan chan<- types.DownloadEvent                 // Channel for events (start/complete/error)
+	ProgressChan chan<- types.DownloadEvent // Channel for events (start/complete/error)
 	ID           string                     // Download ID
 	State        *progress.DownloadProgress // Shared state for TUI polling
 	activeTasks  map[int]*ActiveTask

@@ -32,12 +32,12 @@ type countingLifecycleService struct {
 
 var _ service.DownloadService = (*countingLifecycleService)(nil)
 
-func (s *countingLifecycleService) List() ([]types.DownloadStatus, error)   { return nil, nil }
+func (s *countingLifecycleService) List() ([]types.DownloadStatus, error)    { return nil, nil }
 func (s *countingLifecycleService) History() ([]types.DownloadRecord, error) { return nil, nil }
-func (s *countingLifecycleService) Add(string, string, string, []string, map[string]string, bool, int, int64, int64, bool) (string, error) {
+func (s *countingLifecycleService) Add(string, string, string, []string, map[string]string, bool, int, int64) (string, error) {
 	return "", nil
 }
-func (s *countingLifecycleService) AddWithID(string, string, string, []string, map[string]string, string, int, int64, int64, bool) (string, error) {
+func (s *countingLifecycleService) AddWithID(string, string, string, []string, map[string]string, string, int, int64) (string, error) {
 	return "", nil
 }
 func (s *countingLifecycleService) Pause(string) error             { return nil }

@@ -22,7 +22,7 @@ func TestAutoFollow_BrandNewDownload(t *testing.T) {
 		DownloadID: "new-1",
 		Filename:   "new-file",
 		Total:      100,
-		State: &types.DownloadRecord{ProgressState: engineprogress.New("new-1", 100)},
+		State:      &types.DownloadRecord{ProgressState: engineprogress.New("new-1", 100)},
 	}
 
 	updated, _ := m.Update(msg)
@@ -53,7 +53,7 @@ func TestAutoFollow_ExistingDownloadRestart(t *testing.T) {
 		DownloadID: "existing-1",
 		Filename:   "file",
 		Total:      100,
-		State: &types.DownloadRecord{ProgressState: engineprogress.New("existing-1", 100)},
+		State:      &types.DownloadRecord{ProgressState: engineprogress.New("existing-1", 100)},
 	}
 
 	updated, _ := m.Update(msg)
@@ -77,7 +77,7 @@ func TestAutoFollow_SuppressedByPin(t *testing.T) {
 		DownloadID: "new-1",
 		Filename:   "new-file",
 		Total:      100,
-		State: &types.DownloadRecord{ProgressState: engineprogress.New("new-1", 100)},
+		State:      &types.DownloadRecord{ProgressState: engineprogress.New("new-1", 100)},
 	}
 
 	updated, _ := m.Update(msg)
@@ -110,7 +110,7 @@ func TestAutoFollow_QueuedToActiveTransition(t *testing.T) {
 		DownloadID: "id-1",
 		Filename:   "file",
 		Total:      100,
-		State: &types.DownloadRecord{ProgressState: engineprogress.New("id-1", 100)},
+		State:      &types.DownloadRecord{ProgressState: engineprogress.New("id-1", 100)},
 	}
 
 	updated, _ := m.Update(msg)

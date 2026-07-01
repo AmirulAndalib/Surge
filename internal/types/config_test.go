@@ -257,13 +257,13 @@ func TestDownloadRecord_Fields(t *testing.T) {
 	runtime := &RuntimeConfig{MaxConnectionsPerDownload: 8}
 
 	cfg := DownloadRecord{
-		URL:        "https://example.com/file.zip",
-		OutputPath: "/tmp/file.zip",
-		ID:         "download-123",
-		Filename:   "file.zip",
-		ProgressCh: nil,
-		ProgressState:      state,
-		Runtime:    runtime,
+		URL:           "https://example.com/file.zip",
+		OutputPath:    "/tmp/file.zip",
+		ID:            "download-123",
+		Filename:      "file.zip",
+		ProgressCh:    nil,
+		ProgressState: state,
+		Runtime:       runtime,
 	}
 
 	if cfg.URL != "https://example.com/file.zip" {

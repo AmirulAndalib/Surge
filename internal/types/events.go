@@ -117,18 +117,18 @@ func (m *DownloadEvent) UnmarshalJSON(data []byte) error {
 type BatchProgress []DownloadEvent
 
 const (
-	EventTypeProgress     = "progress"
-	EventTypeStarted      = "started"
-	EventTypeComplete     = "complete"
-	EventTypeError        = "error"
-	EventTypePaused       = "paused"
-	EventTypeResumed      = "resumed"
-	EventTypeQueued       = "queued"
-	EventTypeRemoved      = "removed"
-	EventTypeRequest      = "request"
-	EventTypeBatchRequest = "batch_request"
+	EventTypeProgress      = "progress"
+	EventTypeStarted       = "started"
+	EventTypeComplete      = "complete"
+	EventTypeError         = "error"
+	EventTypePaused        = "paused"
+	EventTypeResumed       = "resumed"
+	EventTypeQueued        = "queued"
+	EventTypeRemoved       = "removed"
+	EventTypeRequest       = "request"
+	EventTypeBatchRequest  = "batch_request"
 	EventTypeBatchProgress = "batch_progress"
-	EventTypeSystem       = "system"
+	EventTypeSystem        = "system"
 )
 
 type SSEMessage struct {
@@ -141,7 +141,7 @@ func EncodeSSEMessages(msg DownloadEvent) ([]SSEMessage, error) {
 	if eventType == "" {
 		return nil, nil
 	}
-	
+
 	if msg.Type == EventBatchProgress {
 		return EncodeBatchProgress(msg.BatchEvents)
 	}

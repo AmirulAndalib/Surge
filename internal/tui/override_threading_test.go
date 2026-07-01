@@ -14,24 +14,24 @@ import (
 
 type overrideMockService struct {
 	service.DownloadService
-	addFunc func(url, path, filename string, mirrors []string, headers map[string]string, isExplicit bool, workers int, minChunkSize int64, fileSize int64, supportsRange bool) (string, error)
+	addFunc func(url, path, filename string, mirrors []string, headers map[string]string, isExplicit bool, workers int, minChunkSize int64) (string, error)
 }
 
-func (m *overrideMockService) Add(url, path, filename string, mirrors []string, headers map[string]string, isExplicit bool, workers int, minChunkSize int64, totalSize int64, supportsRange bool) (string, error) {
+func (m *overrideMockService) Add(url, path, filename string, mirrors []string, headers map[string]string, isExplicit bool, workers int, minChunkSize int64) (string, error) {
 	if m.addFunc != nil {
-		return m.addFunc(url, path, filename, mirrors, headers, isExplicit, workers, minChunkSize, totalSize, supportsRange)
+		return m.addFunc(url, path, filename, mirrors, headers, isExplicit, workers, minChunkSize)
 	}
 	return "mock-id", nil
 }
 
-func (m *overrideMockService) AddWithID(url string, path string, filename string, mirrors []string, headers map[string]string, id string, workers int, minChunkSize int64, totalSize int64, supportsRange bool) (string, error) {
+func (m *overrideMockService) AddWithID(url string, path string, filename string, mirrors []string, headers map[string]string, id string, workers int, minChunkSize int64) (string, error) {
 	if m.addFunc != nil {
-		return m.addFunc(url, path, filename, mirrors, headers, false, workers, minChunkSize, totalSize, supportsRange)
+		return m.addFunc(url, path, filename, mirrors, headers, false, workers, minChunkSize)
 	}
 	return id, nil
 }
 
-func newOverrideTestModel(t *testing.T, addFunc func(url, path, filename string, mirrors []string, headers map[string]string, isExplicit bool, workers int, minChunkSize int64, fileSize int64, supportsRange bool) (string, error)) RootModel {
+func newOverrideTestModel(t *testing.T, addFunc func(url, path, filename string, mirrors []string, headers map[string]string, isExplicit bool, workers int, minChunkSize int64) (string, error)) RootModel {
 	t.Helper()
 
 	bus := orchestrator.NewEventBus()
@@ -72,7 +72,7 @@ func TestOverride_ExtensionConfirmPreservesWorkersAndMinChunkSize(t *testing.T) 
 	var capturedWorkers int
 	var capturedMinChunkSize int64
 
-	addFunc := func(url, path, filename string, mirrors []string, headers map[string]string, isExplicit bool, workers int, minChunkSize int64, fileSize int64, supportsRange bool) (string, error) {
+	addFunc := func(url, path, filename string, mirrors []string, headers map[string]string, isExplicit bool, workers int, minChunkSize int64) (string, error) {
 		capturedWorkers = workers
 		capturedMinChunkSize = minChunkSize
 		return "real-id", nil
@@ -123,7 +123,7 @@ func TestOverride_DuplicateContinuePreservesWorkersAndMinChunkSize(t *testing.T)
 	var capturedWorkers int
 	var capturedMinChunkSize int64
 
-	addFunc := func(url, path, filename string, mirrors []string, headers map[string]string, isExplicit bool, workers int, minChunkSize int64, fileSize int64, supportsRange bool) (string, error) {
+	addFunc := func(url, path, filename string, mirrors []string, headers map[string]string, isExplicit bool, workers int, minChunkSize int64) (string, error) {
 		capturedWorkers = workers
 		capturedMinChunkSize = minChunkSize
 		return "real-id", nil
@@ -176,7 +176,7 @@ func TestOverride_ManualURLDuplicateDoesNotInheritStaleOverride(t *testing.T) {
 	var capturedWorkers int
 	var capturedMinChunkSize int64
 
-	addFunc := func(url, path, filename string, mirrors []string, headers map[string]string, isExplicit bool, workers int, minChunkSize int64, fileSize int64, supportsRange bool) (string, error) {
+	addFunc := func(url, path, filename string, mirrors []string, headers map[string]string, isExplicit bool, workers int, minChunkSize int64) (string, error) {
 		capturedWorkers = workers
 		capturedMinChunkSize = minChunkSize
 		return "real-id", nil
@@ -231,7 +231,7 @@ func TestOverride_BatchConfirmPreservesWorkersAndMinChunkSize(t *testing.T) {
 		minChunkSize int64
 	}
 
-	addFunc := func(url, path, filename string, mirrors []string, headers map[string]string, isExplicit bool, workers int, minChunkSize int64, fileSize int64, supportsRange bool) (string, error) {
+	addFunc := func(url, path, filename string, mirrors []string, headers map[string]string, isExplicit bool, workers int, minChunkSize int64) (string, error) {
 		captured = append(captured, struct {
 			workers      int
 			minChunkSize int64

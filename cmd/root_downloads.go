@@ -189,7 +189,7 @@ func handleBatchDownload(w http.ResponseWriter, r *http.Request, defaultOutputDi
 		itemPath := utils.EnsureAbsPath(resolveOutputDir(validated.Path, validated.RelativeToDefaultDir, defaultOutputDir, settings))
 		requests = append(requests, types.DownloadEvent{
 			Type:         types.EventRequest,
-			DownloadID:           uuid.New().String(),
+			DownloadID:   uuid.New().String(),
 			URL:          urlForAdd,
 			Filename:     validated.Filename,
 			Path:         itemPath,
@@ -210,9 +210,9 @@ func handleBatchDownload(w http.ResponseWriter, r *http.Request, defaultOutputDi
 		}
 		batchID := uuid.New().String()
 		if err := service.Publish(types.DownloadEvent{
-			Type:     types.EventBatchRequest,
-			DownloadID:       batchID,
-			Path:     sharedPath,
+			Type:        types.EventBatchRequest,
+			DownloadID:  batchID,
+			Path:        sharedPath,
 			BatchEvents: requests,
 		}); err != nil {
 			http.Error(w, "Failed to notify TUI: "+err.Error(), http.StatusInternalServerError)
@@ -355,7 +355,7 @@ func maybeRequireDownloadApproval(w http.ResponseWriter, service service.Downloa
 		downloadID := uuid.New().String()
 		if err := service.Publish(types.DownloadEvent{
 			Type:         types.EventRequest,
-			DownloadID:           downloadID,
+			DownloadID:   downloadID,
 			URL:          resolved.urlForAdd,
 			Filename:     req.Filename,
 			Path:         resolved.outPath,
@@ -415,7 +415,7 @@ func enqueueDownloadRequest(r *http.Request, service service.DownloadService, re
 		})
 	}
 
-	id, err := service.Add(resolved.urlForAdd, resolved.outPath, req.Filename, resolved.mirrorsForAdd, req.Headers, req.IsExplicitCategory, req.Workers, req.MinChunkSize, 0, false)
+	id, err := service.Add(resolved.urlForAdd, resolved.outPath, req.Filename, resolved.mirrorsForAdd, req.Headers, req.IsExplicitCategory, req.Workers, req.MinChunkSize)
 	return id, req.Filename, err
 }
 

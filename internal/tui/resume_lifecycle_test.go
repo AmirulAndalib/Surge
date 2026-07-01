@@ -21,11 +21,11 @@ type resumeMockService struct {
 	service.DownloadService
 }
 
-func (m *resumeMockService) Add(url, path, filename string, mirrors []string, headers map[string]string, isExplicit bool, workers int, minChunkSize int64, totalSize int64, supportsRange bool) (string, error) {
+func (m *resumeMockService) Add(url, path, filename string, mirrors []string, headers map[string]string, isExplicit bool, workers int, minChunkSize int64) (string, error) {
 	return "mock-id", nil
 }
 
-func (m *resumeMockService) AddWithID(url string, path string, filename string, mirrors []string, headers map[string]string, id string, workers int, minChunkSize int64, totalSize int64, supportsRange bool) (string, error) {
+func (m *resumeMockService) AddWithID(url string, path string, filename string, mirrors []string, headers map[string]string, id string, workers int, minChunkSize int64) (string, error) {
 	return id, nil
 }
 

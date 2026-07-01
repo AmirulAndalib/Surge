@@ -81,7 +81,7 @@ func (eb *EventBus) broadcastLoop() {
 			}
 			eb.listenerMu.Unlock()
 		}
-}
+	}
 }
 
 func (eb *EventBus) broadcastMsg(msg types.DownloadEvent) {

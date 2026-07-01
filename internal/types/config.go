@@ -52,7 +52,6 @@ const (
 	RateLimitMaxRetries     = 6
 )
 
-
 // ByteLimiter abstracts byte-based throttling for downloads.
 type ByteLimiter interface {
 	WaitN(ctx context.Context, n int64) error
