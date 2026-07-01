@@ -44,6 +44,7 @@ type Scheduler struct {
 	globalLimiter               *transport.RateLimiter
 	downloadLimiters            map[string]*transport.RateLimiter
 	defaultDownloadRateLimitBps int64
+	shutdownOnce                sync.Once
 }
 
 var (
@@ -788,73 +789,75 @@ func (p *Scheduler) GetStatus(id string) *types.DownloadStatus {
 
 // GracefulShutdown pauses all downloads and waits for them to save state
 func (p *Scheduler) GracefulShutdown() {
-	p.PauseAll()
+	p.shutdownOnce.Do(func() {
+		p.PauseAll()
 
-	// Discard all queued-but-not-yet-started downloads so that idle workers
-	// do not pick them up and begin downloading after shutdown is initiated.
-	// Workers already guard against this with the p.queued check at loop entry,
-	// so clearing the map here is sufficient; draining taskChan is belt-and-suspenders.
-	p.mu.Lock()
-	for id := range p.queued {
-		delete(p.queued, id)
-	}
-	p.mu.Unlock()
-
-	// Drain taskChan to discard any configs that were already written into the
-	// buffered channel but not yet consumed by a worker.
-drainLoop:
-	for {
-		select {
-		case <-p.taskChan:
-			p.wg.Done()
-		default:
-			break drainLoop
-		}
-	}
-
-	// Wait for any downloads in "Pausing" state to finish transitioning
-	// This ensures we don't exit while a database write is pending/active
-	ticker := time.NewTicker(gracefulShutdownPausePollInterval)
-	defer ticker.Stop()
-	start := time.Now()
-	warned := false
-
-	for {
+		// Discard all queued-but-not-yet-started downloads so that idle workers
+		// do not pick them up and begin downloading after shutdown is initiated.
+		// Workers already guard against this with the p.queued check at loop entry,
+		// so clearing the map here is sufficient; draining taskChan is belt-and-suspenders.
 		p.mu.Lock()
-		stillPausing := false
-		for _, ad := range p.downloads {
-			if ad.config.ProgressState != nil && progress.CfgProgress(&ad.config).IsPausing() {
-				// If no worker is running this download anymore, pausing is stale.
-				// Normalize it so shutdown can proceed.
-				if !ad.running.Load() {
-					progress.CfgProgress(&ad.config).SetPausing(false)
-					continue
-				}
-				stillPausing = true
-				break
-			}
+		for id := range p.queued {
+			delete(p.queued, id)
 		}
 		p.mu.Unlock()
 
-		if !stillPausing {
-			break
+		// Drain taskChan to discard any configs that were already written into the
+		// buffered channel but not yet consumed by a worker.
+	drainLoop:
+		for {
+			select {
+			case <-p.taskChan:
+				p.wg.Done()
+			default:
+				break drainLoop
+			}
 		}
 
-		if !warned && time.Since(start) >= gracefulShutdownPauseSoftTimeout {
-			utils.Debug("GracefulShutdown: downloads still pausing after %v, continuing to wait for durable pause", gracefulShutdownPauseSoftTimeout)
-			warned = true
-		}
-		if time.Since(start) >= gracefulShutdownPauseHardTimeout {
-			utils.Debug("GracefulShutdown: forcing exit from pausing wait after hard timeout %v", gracefulShutdownPauseHardTimeout)
-			break
-		}
-		<-ticker.C
-	}
+		// Wait for any downloads in "Pausing" state to finish transitioning
+		// This ensures we don't exit while a database write is pending/active
+		ticker := time.NewTicker(gracefulShutdownPausePollInterval)
+		defer ticker.Stop()
+		start := time.Now()
+		warned := false
 
-	p.wg.Wait() // Blocks until all workers call Done()
+		for {
+			p.mu.Lock()
+			stillPausing := false
+			for _, ad := range p.downloads {
+				if ad.config.ProgressState != nil && progress.CfgProgress(&ad.config).IsPausing() {
+					// If no worker is running this download anymore, pausing is stale.
+					// Normalize it so shutdown can proceed.
+					if !ad.running.Load() {
+						progress.CfgProgress(&ad.config).SetPausing(false)
+						continue
+					}
+					stillPausing = true
+					break
+				}
+			}
+			p.mu.Unlock()
 
-	// Signal that progressCh must no longer be sent to, then close taskChan
-	// so worker goroutines exit their range loop.
-	close(p.progressDone)
-	close(p.taskChan)
+			if !stillPausing {
+				break
+			}
+
+			if !warned && time.Since(start) >= gracefulShutdownPauseSoftTimeout {
+				utils.Debug("GracefulShutdown: downloads still pausing after %v, continuing to wait for durable pause", gracefulShutdownPauseSoftTimeout)
+				warned = true
+			}
+			if time.Since(start) >= gracefulShutdownPauseHardTimeout {
+				utils.Debug("GracefulShutdown: forcing exit from pausing wait after hard timeout %v", gracefulShutdownPauseHardTimeout)
+				break
+			}
+			<-ticker.C
+		}
+
+		p.wg.Wait() // Blocks until all workers call Done()
+
+		// Signal that progressCh must no longer be sent to, then close taskChan
+		// so worker goroutines exit their range loop.
+		close(p.progressDone)
+		close(p.taskChan)
+	})
 }
