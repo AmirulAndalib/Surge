@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/SurgeDM/Surge/internal/config"
-	"github.com/SurgeDM/Surge/internal/progress"
 	"github.com/SurgeDM/Surge/internal/scheduler"
 	"github.com/SurgeDM/Surge/internal/types"
 )
@@ -82,17 +81,17 @@ func (pa *ProgressAggregator) reportProgressLoop() {
 		}
 		alpha := pa.getSpeedEmaAlpha()
 
-		var batch types.BatchProgressMsg
+		var batch []types.DownloadEvent
 		activeConfigs := pa.pool.GetAll()
 
 		for _, cfg := range activeConfigs {
-			if cfg.State == nil || cfg.State.(*progress.DownloadProgress).IsPaused() || cfg.State.(*progress.DownloadProgress).Done.Load() {
+			if cfg.State == nil || cfgProgress(&cfg).IsPaused() || cfgProgress(&cfg).Done.Load() {
 				delete(lastSpeeds, cfg.ID)
 				delete(lastChunkSnapshot, cfg.ID)
 				continue
 			}
 
-			downloaded, total, totalElapsed, sessionElapsed, connections, sessionStart := cfg.State.(*progress.DownloadProgress).GetProgress()
+			downloaded, total, totalElapsed, sessionElapsed, connections, sessionStart := cfgProgress(&cfg).GetProgress()
 			sessionDownloaded := downloaded - sessionStart
 
 			var instantSpeed float64
@@ -109,22 +108,23 @@ func (pa *ProgressAggregator) reportProgressLoop() {
 			}
 			lastSpeeds[cfg.ID] = currentSpeed
 
-			msg := types.ProgressMsg{
+			msg := types.DownloadEvent{
+				Type:              types.EventProgress,
 				DownloadID:        cfg.ID,
 				Downloaded:        downloaded,
 				Total:             total,
 				Speed:             currentSpeed,
 				Elapsed:           totalElapsed,
-				ActiveConnections: int(connections),
-				RateLimited:       cfg.State.(*progress.DownloadProgress).RateLimited.Load(),
+				Connections: int(connections),
+				RateLimited:       cfgProgress(&cfg).RateLimited.Load(),
 			}
 
 			if time.Since(lastChunkSnapshot[cfg.ID]) >= 500*time.Millisecond {
-				bitmap, width, _, chunkSize, chunkProgress := cfg.State.(*progress.DownloadProgress).GetBitmapSnapshot(true)
+				bitmap, width, _, chunkSize, chunkProgress := cfgProgress(&cfg).GetBitmapSnapshot(true)
 				if width > 0 && len(bitmap) > 0 {
 					msg.ChunkBitmap = bitmap
 					msg.BitmapWidth = width
-					msg.ActualChunkSize = chunkSize
+					msg.ChunkSize = chunkSize
 					msg.ChunkProgress = chunkProgress
 					lastChunkSnapshot[cfg.ID] = time.Now()
 				}
@@ -134,7 +134,7 @@ func (pa *ProgressAggregator) reportProgressLoop() {
 		}
 
 		if len(batch) > 0 {
-			_ = pa.eventBus.Publish(batch)
+			_ = pa.eventBus.Publish(types.DownloadEvent{Type: types.EventBatchProgress, BatchEvents: batch})
 		}
 	}
 }

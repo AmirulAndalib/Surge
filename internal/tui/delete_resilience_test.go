@@ -33,10 +33,10 @@ func (m *mockService) AddWithID(url string, path string, filename string, mirror
 	return "", nil
 }
 func (m *mockService) ResumeBatch(ids []string) []error { return nil }
-func (m *mockService) StreamEvents(ctx context.Context) (<-chan interface{}, func(), error) {
+func (m *mockService) StreamEvents(ctx context.Context) (<-chan types.DownloadEvent, func(), error) {
 	return nil, nil, nil
 }
-func (m *mockService) Publish(msg interface{}) error                      { return nil }
+func (m *mockService) Publish(msg types.DownloadEvent) error                      { return nil }
 func (m *mockService) Pause(id string) error                              { return nil }
 func (m *mockService) Resume(id string) error                             { return nil }
 func (m *mockService) UpdateURL(id string, newURL string) error           { return nil }

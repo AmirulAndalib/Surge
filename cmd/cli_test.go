@@ -1039,7 +1039,7 @@ func TestProcessDownloads_RemoteAndLocal(t *testing.T) {
 		setupIsolatedCmdState(t)
 		atomic.StoreInt32(&activeDownloads, 0)
 
-		GlobalProgressCh = make(chan any, 10)
+		GlobalProgressCh = make(chan types.DownloadEvent, 10)
 		GlobalPool = scheduler.New(GlobalProgressCh, 2)
 		eventBus := orchestrator.NewEventBus()
 		getAll := func() []types.DownloadConfig { return GlobalPool.GetAll() }

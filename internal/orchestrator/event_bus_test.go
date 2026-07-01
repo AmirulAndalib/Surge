@@ -44,7 +44,7 @@ func TestEventBus_MultipleSubscribers(t *testing.T) {
 	msg := "broadcast"
 	_ = eb.Publish(msg)
 
-	for i, sub := range []<-chan any{sub1, sub2} {
+	for i, sub := range []<-chan types.DownloadEvent{sub1, sub2} {
 		select {
 		case received := <-sub:
 			if received != msg {
@@ -66,7 +66,7 @@ func TestEventBus_ProgressMsgDropBehavior(t *testing.T) {
 
 	// Fill the buffer (size 100 for outCh) by publishing 100 items
 	for i := 0; i < 100; i++ {
-		_ = eb.Publish("dummy")
+		_ = eb.Publish(types.DownloadEvent{})
 	}
 
 	// Give the broadcast loop time to fill the subscriber's channel buffer
@@ -74,7 +74,8 @@ func TestEventBus_ProgressMsgDropBehavior(t *testing.T) {
 
 	// Publish a progress message. It should be dropped immediately without blocking for 1s.
 	start := time.Now()
-	msg := types.ProgressMsg{DownloadID: "test"}
+	msg := types.DownloadEvent{
+		Type: types.EventProgress, DownloadID: "test"}
 	_ = eb.Publish(msg)
 
 	// Since it's a progress message and the subscriber channel is full, it should drop it and return quickly.
@@ -97,7 +98,7 @@ func TestEventBus_CriticalMsgWaitBehavior(t *testing.T) {
 
 	// Fill buffer
 	for i := 0; i < 100; i++ {
-		_ = eb.Publish("dummy")
+		_ = eb.Publish(types.DownloadEvent{})
 	}
 
 	// Give the broadcast loop time to fill the subscriber's channel buffer
@@ -107,11 +108,11 @@ func TestEventBus_CriticalMsgWaitBehavior(t *testing.T) {
 	start := time.Now()
 	msg := "critical"
 	_ = eb.Publish(msg)
-	
+
 	// Wait for processing
 	time.Sleep(1200 * time.Millisecond)
 	elapsed := time.Since(start)
-	
+
 	// broadcastLoop should take at least 1s to try sending to a blocked subscriber
 	if elapsed < 1*time.Second {
 		t.Errorf("broadcast loop did not wait 1s for critical message, elapsed: %v", elapsed)
@@ -135,7 +136,7 @@ func TestEventBus_ShutdownCleanly(t *testing.T) {
 	}
 
 	// Should not be able to publish after shutdown
-	err := eb.Publish("late message")
+	err := eb.Publish(types.DownloadEvent{})
 	if err != context.Canceled {
 		t.Errorf("expected context.Canceled on publish after shutdown, got %v", err)
 	}

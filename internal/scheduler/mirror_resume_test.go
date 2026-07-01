@@ -56,7 +56,7 @@ func TestIntegration_MirrorResume(t *testing.T) {
 
 	// 3. Start Download with Mirror
 	ctx1 := context.Background()
-	progressCh := make(chan any, 100)
+	progressCh := make(chan types.DownloadEvent, 100)
 	runtime := &types.RuntimeConfig{
 		MaxConnectionsPerDownload: 4,
 	}

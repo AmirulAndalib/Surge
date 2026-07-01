@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"github.com/SurgeDM/Surge/internal/types"
+
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -23,7 +25,7 @@ import (
 
 func init() {
 	// Initialize GlobalPool for tests
-	GlobalProgressCh = make(chan any, 100)
+	GlobalProgressCh = make(chan types.DownloadEvent, 100)
 	GlobalPool = scheduler.New(GlobalProgressCh, 4)
 }
 

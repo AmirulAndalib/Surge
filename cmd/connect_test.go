@@ -52,12 +52,12 @@ func (f *fakeRemoteDownloadService) Delete(id string) error { return nil }
 
 func (f *fakeRemoteDownloadService) Purge(id string) error { return nil }
 
-func (f *fakeRemoteDownloadService) StreamEvents(ctx context.Context) (<-chan interface{}, func(), error) {
-	ch := make(chan interface{})
+func (f *fakeRemoteDownloadService) StreamEvents(ctx context.Context) (<-chan types.DownloadEvent, func(), error) {
+	ch := make(chan types.DownloadEvent)
 	return ch, func() { close(ch) }, nil
 }
 
-func (f *fakeRemoteDownloadService) Publish(msg interface{}) error { return nil }
+func (f *fakeRemoteDownloadService) Publish(msg types.DownloadEvent) error { return nil }
 
 func (f *fakeRemoteDownloadService) GetStatus(id string) (*types.DownloadStatus, error) {
 	return nil, nil
@@ -95,7 +95,8 @@ func TestNewRemoteRootModel_DownloadRequestUsesServiceAdd(t *testing.T) {
 	m.Settings.Extension.ExtensionPrompt.Value = false
 	m.Settings.General.WarnOnDuplicate.Value = false
 
-	updated, cmd := m.Update(types.DownloadRequestMsg{
+	updated, cmd := m.Update(types.DownloadEvent{
+		Type:     types.EventRequest,
 		URL:      "https://example.com/file.bin",
 		Filename: "file.bin",
 		Path:     ".",

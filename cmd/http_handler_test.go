@@ -265,7 +265,7 @@ func mustGetwd(t *testing.T) string {
 func TestHandleDownload_SkipApprovalUsesLifecycleEnqueue(t *testing.T) {
 	setupIsolatedCmdState(t)
 
-	progressCh := make(chan any, 10)
+	progressCh := make(chan types.DownloadEvent, 10)
 	GlobalProgressCh = progressCh
 	GlobalPool = scheduler.New(progressCh, 1)
 
@@ -346,7 +346,7 @@ func TestHandleDownload_SkipApprovalUsesLifecycleEnqueue(t *testing.T) {
 func TestHandleDownload_EnqueueError_RecordsPreflightError(t *testing.T) {
 	setupIsolatedCmdState(t)
 
-	progressCh := make(chan any, 10)
+	progressCh := make(chan types.DownloadEvent, 10)
 	GlobalProgressCh = progressCh
 	GlobalPool = scheduler.New(progressCh, 1)
 
@@ -400,7 +400,7 @@ func TestHandleDownload_EnqueueError_RecordsPreflightError(t *testing.T) {
 func TestHandleDownload_ForwardsPerTaskOverridesToLifecycle(t *testing.T) {
 	setupIsolatedCmdState(t)
 
-	progressCh := make(chan any, 10)
+	progressCh := make(chan types.DownloadEvent, 10)
 	GlobalProgressCh = progressCh
 	GlobalPool = scheduler.New(progressCh, 1)
 
@@ -467,7 +467,7 @@ type failingPublishService struct {
 	publishErr error
 }
 
-func (f *failingPublishService) Publish(msg interface{}) error {
+func (f *failingPublishService) Publish(msg types.DownloadEvent) error {
 	return f.publishErr
 }
 

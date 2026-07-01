@@ -24,7 +24,7 @@ func TestProgressAggregator_Loop(t *testing.T) {
 	defer close(blockCh)
 
 	// 2. Setup Pool and EventBus
-	progressCh := make(chan any, 10)
+	progressCh := make(chan types.DownloadEvent, 10)
 	pool := scheduler.New(progressCh, 1)
 	eb := NewEventBus()
 	defer eb.Shutdown()
@@ -60,7 +60,7 @@ func TestProgressAggregator_Loop(t *testing.T) {
 	for {
 		select {
 		case msg := <-sub:
-			if batch, ok := msg.(types.BatchProgressMsg); ok {
+			if batch, ok := msg.(types.BatchProgress); ok {
 				if len(batch) > 0 {
 					pMsg := batch[0]
 					if pMsg.DownloadID == "agg-test" {

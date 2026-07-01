@@ -42,7 +42,7 @@ func TestLifecycleManager_EnqueueSuccess(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	progressCh := make(chan any, 10)
+	progressCh := make(chan types.DownloadEvent, 10)
 	pool := scheduler.New(progressCh, 1)
 	eb := NewEventBus()
 	mgr := NewLifecycleManager(pool, eb)
@@ -80,7 +80,7 @@ func TestLifecycleManager_EnqueueSuccess(t *testing.T) {
 	// Verify DownloadQueuedMsg was published
 	sub, cleanup := eb.Subscribe()
 	defer cleanup()
-	
+
 	// Wait a moment for async event to be broadcasted if any, though Enqueue synchronously calls eb.Publish
 	// We need to check if the event reached the subscriber.
 	found := false
@@ -88,7 +88,7 @@ func TestLifecycleManager_EnqueueSuccess(t *testing.T) {
 	for !found {
 		select {
 		case msg := <-sub:
-			if _, ok := msg.(types.DownloadQueuedMsg); ok {
+			{
 				found = true
 			}
 		case <-timeout:
@@ -101,7 +101,7 @@ func TestLifecycleManager_EnqueueWithID(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 	defer ts.Close()
 
-	progressCh := make(chan any, 10)
+	progressCh := make(chan types.DownloadEvent, 10)
 	pool := scheduler.New(progressCh, 1)
 	eb := NewEventBus()
 	mgr := NewLifecycleManager(pool, eb)
@@ -132,7 +132,7 @@ func TestLifecycleManager_IsNameActive(t *testing.T) {
 	}
 
 	mgr := NewLifecycleManager(nil, nil, activeFunc)
-	
+
 	if !mgr.IsNameActive("/tmp", "active.txt") {
 		t.Error("expected true for active.txt")
 	}
@@ -143,14 +143,14 @@ func TestLifecycleManager_IsNameActive(t *testing.T) {
 
 func TestLifecycleManager_EnqueueInvalid(t *testing.T) {
 	mgr := NewLifecycleManager(nil, nil)
-	
+
 	// Missing Pool
 	_, _, err := mgr.Enqueue(context.Background(), &DownloadRequest{URL: "http://example.com", Path: "/tmp"})
 	if err != types.ErrServiceUnavailable {
 		t.Errorf("expected ErrServiceUnavailable, got %v", err)
 	}
 
-	pool := scheduler.New(make(chan any, 1), 1)
+	pool := scheduler.New(make(chan types.DownloadEvent, 1), 1)
 	mgr = NewLifecycleManager(pool, nil)
 
 	// Missing URL

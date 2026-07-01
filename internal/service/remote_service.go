@@ -315,12 +315,12 @@ func (s *RemoteDownloadService) SetDefaultRateLimit(rate int64) error {
 }
 
 // StreamEvents returns a channel that receives real-time download events via SSE.
-func (s *RemoteDownloadService) StreamEvents(ctx context.Context) (<-chan interface{}, func(), error) {
+func (s *RemoteDownloadService) StreamEvents(ctx context.Context) (<-chan types.DownloadEvent, func(), error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 	streamCtx, cancel := mergeContexts(s.ctx, ctx)
-	ch := make(chan interface{}, 100)
+	ch := make(chan types.DownloadEvent, 100)
 	go func() {
 		defer cancel()
 		s.streamWithReconnect(streamCtx, ch)
@@ -330,11 +330,11 @@ func (s *RemoteDownloadService) StreamEvents(ctx context.Context) (<-chan interf
 
 // Publish emits an event into the service's event stream.
 // Remote services do not accept client-side event injection.
-func (s *RemoteDownloadService) Publish(msg interface{}) error {
+func (s *RemoteDownloadService) Publish(msg types.DownloadEvent) error {
 	return fmt.Errorf("publish not supported for remote service")
 }
 
-func (s *RemoteDownloadService) streamWithReconnect(ctx context.Context, ch chan interface{}) {
+func (s *RemoteDownloadService) streamWithReconnect(ctx context.Context, ch chan types.DownloadEvent) {
 	defer close(ch)
 	backoff := 1 * time.Second
 	for {
@@ -379,7 +379,7 @@ func mergeContexts(contexts ...context.Context) (context.Context, context.Cancel
 	}
 }
 
-func (s *RemoteDownloadService) connectSSE(ctx context.Context, ch chan interface{}) error {
+func (s *RemoteDownloadService) connectSSE(ctx context.Context, ch chan types.DownloadEvent) error {
 	req, err := http.NewRequestWithContext(ctx, "GET", s.BaseURL+"/events", nil)
 	if err != nil {
 		return err

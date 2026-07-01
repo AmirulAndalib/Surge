@@ -14,7 +14,7 @@ import (
 // rate limit set via SetDownloadRateLimit while the download is queued is
 // carried through to the limiter when the worker starts.
 func TestWorkerPool_RateLimit_QueuedUpdateHonored(t *testing.T) {
-	ch := make(chan any, 10)
+	ch := make(chan types.DownloadEvent, 10)
 	pool := New(ch, 1)
 
 	id := "queued-rate-test"
@@ -60,7 +60,7 @@ func TestWorkerPool_RateLimit_QueuedUpdateHonored(t *testing.T) {
 // that a download with RateLimitSet=true and RateLimitBps=0 (explicit
 // unlimited) keeps rate=0 when the default is later raised.
 func TestWorkerPool_RateLimit_ExplicitUnlimitedSurvivesDefaultChange(t *testing.T) {
-	ch := make(chan any, 10)
+	ch := make(chan types.DownloadEvent, 10)
 	pool := New(ch, 1)
 
 	id := "explicit-unlimited"
@@ -102,7 +102,7 @@ func TestWorkerPool_RateLimit_ExplicitUnlimitedSurvivesDefaultChange(t *testing.
 // TestWorkerPool_RateLimit_DefaultChangeUpdatesInheritedActiveLimiter verifies
 // that changing the default affects already-running downloads that inherit it.
 func TestWorkerPool_RateLimit_DefaultChangeUpdatesInheritedActiveLimiter(t *testing.T) {
-	ch := make(chan any, 10)
+	ch := make(chan types.DownloadEvent, 10)
 	pool := New(ch, 1)
 
 	id := "active-inherited"
@@ -171,7 +171,7 @@ func TestWorkerPool_RateLimit_DefaultChangeUpdatesInheritedActiveLimiter(t *test
 // TestWorkerPool_RateLimit_DefaultChangeLeavesExplicitActiveLimiter verifies
 // that default changes do not alter active downloads with explicit overrides.
 func TestWorkerPool_RateLimit_DefaultChangeLeavesExplicitActiveLimiter(t *testing.T) {
-	ch := make(chan any, 10)
+	ch := make(chan types.DownloadEvent, 10)
 	pool := New(ch, 1)
 
 	id := "active-explicit"
@@ -246,7 +246,7 @@ func TestWorkerPool_RateLimit_DefaultChangeLeavesExplicitActiveLimiter(t *testin
 }
 
 func TestWorkerPool_RateLimit_UnknownDownloadDoesNotCreateLimiter(t *testing.T) {
-	ch := make(chan any, 10)
+	ch := make(chan types.DownloadEvent, 10)
 	pool := New(ch, 1)
 
 	if ok := pool.SetDownloadRateLimit("missing", 1024); ok {
@@ -266,7 +266,7 @@ func TestWorkerPool_RateLimit_UnknownDownloadDoesNotCreateLimiter(t *testing.T) 
 // TestWorkerPool_RateLimit_SetGlobalHonorsWaiter verifies that
 // SetGlobalRateLimit wakes any goroutine blocked on the global limiter.
 func TestWorkerPool_RateLimit_SetGlobalHonorsWaiter(t *testing.T) {
-	ch := make(chan any, 10)
+	ch := make(chan types.DownloadEvent, 10)
 	pool := New(ch, 1)
 
 	// 1 byte/s so WaitN blocks on a 100-byte request
@@ -300,7 +300,7 @@ func TestWorkerPool_RateLimit_SetGlobalHonorsWaiter(t *testing.T) {
 // TestWorkerPool_RateLimit_SetDownloadHonorsWaiter verifies that
 // SetDownloadRateLimit wakes any waiter blocked on the per-download limiter.
 func TestWorkerPool_RateLimit_SetDownloadHonorsWaiter(t *testing.T) {
-	ch := make(chan any, 10)
+	ch := make(chan types.DownloadEvent, 10)
 	pool := New(ch, 1)
 
 	id := "dl-waiter-test"

@@ -6,173 +6,115 @@ import (
 	"time"
 )
 
-// ProgressMsg represents a progress update from the downloader
-type ProgressMsg struct {
-	DownloadID        string
-	Downloaded        int64
-	Total             int64
-	Speed             float64 // bytes per second
-	Elapsed           time.Duration
-	ActiveConnections int
-	ChunkBitmap       []byte
-	BitmapWidth       int
-	ActualChunkSize   int64
-	ChunkProgress     []int64
-	RateLimited       bool
+type EventType int
+
+const (
+	EventStarted EventType = iota
+	EventProgress
+	EventComplete
+	EventPaused
+	EventResumed
+	EventQueued
+	EventRemoved
+	EventError
+	EventRequest
+	EventBatchRequest
+	EventBatchProgress
+	EventSystem
+)
+
+type DownloadEvent struct {
+	Type       EventType `json:"type"`
+	DownloadID string    `json:"download_id,omitempty"`
+	URL        string    `json:"url,omitempty"`
+	Filename   string    `json:"filename,omitempty"`
+	DestPath   string    `json:"dest_path,omitempty"`
+
+	// Progress
+	Downloaded    int64   `json:"downloaded,omitempty"`
+	Total         int64   `json:"total,omitempty"`
+	Speed         float64 `json:"speed,omitempty"`
+	Connections   int     `json:"connections,omitempty"`
+	RateLimited   bool    `json:"rate_limited,omitempty"`
+	ChunkBitmap   []byte  `json:"chunk_bitmap,omitempty"`
+	BitmapWidth   int     `json:"bitmap_width,omitempty"`
+	ChunkSize     int64   `json:"chunk_size,omitempty"`
+	ChunkProgress []int64 `json:"chunk_progress,omitempty"`
+
+	// Completion
+	Elapsed   time.Duration `json:"elapsed,omitempty"`
+	AvgSpeed  float64       `json:"avg_speed,omitempty"`
+	Completed bool          `json:"completed,omitempty"`
+
+	// Error
+	Err error `json:"-"`
+
+	// Pause state
+	State interface{} `json:"-"`
+
+	// Config echo
+	RateLimit    int64    `json:"rate_limit,omitempty"`
+	RateLimitSet bool     `json:"rate_limit_set,omitempty"`
+	Workers      int      `json:"workers,omitempty"`
+	MinChunkSize int64    `json:"min_chunk_size,omitempty"`
+	Mirrors      []string `json:"mirrors,omitempty"`
+
+	// Request
+	Headers map[string]string `json:"headers,omitempty"`
+	Path    string            `json:"path,omitempty"`
+
+	// Batch
+	BatchEvents []DownloadEvent `json:"batch_events,omitempty"`
+
+	// System
+	Message string `json:"message,omitempty"`
 }
 
-// DownloadCompleteMsg signals that the download finished successfully
-type DownloadCompleteMsg struct {
-	DownloadID   string
-	Filename     string
-	Elapsed      time.Duration
-	Total        int64
-	AvgSpeed     float64 // Average download speed in bytes/sec
-	RateLimit    int64
-	RateLimitSet bool
-}
-
-// DownloadErrorMsg signals that an error occurred
-type DownloadErrorMsg struct {
-	DownloadID string
-	Filename   string
-	DestPath   string
-	Err        error
-}
-
-func (m DownloadErrorMsg) MarshalJSON() ([]byte, error) {
-	type encoded struct {
-		DownloadID string `json:"DownloadID"`
-		Filename   string `json:"Filename,omitempty"`
-		DestPath   string `json:"DestPath,omitempty"`
-		Err        string `json:"Err,omitempty"`
-	}
-
-	out := encoded{
-		DownloadID: m.DownloadID,
-		Filename:   m.Filename,
-		DestPath:   m.DestPath,
-	}
+func (m DownloadEvent) MarshalJSON() ([]byte, error) {
+	type Alias DownloadEvent
+	var errStr string
 	if m.Err != nil {
-		out.Err = m.Err.Error()
+		errStr = m.Err.Error()
 	}
-
-	return json.Marshal(out)
+	return json.Marshal(&struct {
+		Alias
+		Err string `json:"error,omitempty"`
+	}{
+		Alias: (Alias)(m),
+		Err:   errStr,
+	})
 }
 
-func (m *DownloadErrorMsg) UnmarshalJSON(data []byte) error {
-	var aux struct {
-		DownloadID string          `json:"DownloadID"`
-		Filename   string          `json:"Filename"`
-		DestPath   string          `json:"DestPath"`
-		Err        json.RawMessage `json:"Err"`
+func (m *DownloadEvent) UnmarshalJSON(data []byte) error {
+	type Alias DownloadEvent
+	aux := &struct {
+		*Alias
+		Err json.RawMessage `json:"error"`
+	}{
+		Alias: (*Alias)(m),
 	}
 	if err := json.Unmarshal(data, &aux); err != nil {
 		return err
 	}
 
-	m.DownloadID = aux.DownloadID
-	m.Filename = aux.Filename
-	m.DestPath = aux.DestPath
 	m.Err = nil
-
-	if len(aux.Err) == 0 {
-		return nil
-	}
-
-	// Most common case: server sends Err as a string.
-	var errStr string
-	if err := json.Unmarshal(aux.Err, &errStr); err == nil {
-		if errStr != "" {
-			m.Err = errors.New(errStr)
+	if len(aux.Err) > 0 {
+		var errStr string
+		if err := json.Unmarshal(aux.Err, &errStr); err == nil {
+			if errStr != "" {
+				m.Err = errors.New(errStr)
+			}
+		} else {
+			raw := string(aux.Err)
+			if raw != "" && raw != "null" {
+				m.Err = errors.New(raw)
+			}
 		}
-		return nil
-	}
-
-	// Backward/forward compatibility: accept non-string payloads (e.g. {}).
-	raw := string(aux.Err)
-	if raw != "" && raw != "null" {
-		m.Err = errors.New(raw)
 	}
 	return nil
 }
 
-// DownloadStartedMsg is sent when a download actually starts (after metadata fetch)
-type DownloadStartedMsg struct {
-	DownloadID   string
-	URL          string
-	Filename     string
-	Total        int64
-	DestPath     string      // Full path to the destination file
-	State        interface{} `json:"-"`
-	RateLimit    int64
-	RateLimitSet bool
-	Workers      int
-	MinChunkSize int64
-}
-
-type DownloadPausedMsg struct {
-	DownloadID   string
-	Filename     string
-	Downloaded   int64
-	State        *DownloadState `json:"-"`
-	RateLimit    int64
-	RateLimitSet bool
-	Workers      int
-	MinChunkSize int64
-}
-
-type DownloadResumedMsg struct {
-	DownloadID string
-	Filename   string
-}
-
-type DownloadQueuedMsg struct {
-	DownloadID   string
-	Filename     string
-	URL          string
-	DestPath     string
-	Mirrors      []string
-	RateLimit    int64
-	RateLimitSet bool
-	Workers      int
-	MinChunkSize int64
-}
-
-type DownloadRemovedMsg struct {
-	DownloadID string
-	Filename   string
-	DestPath   string
-	Completed  bool
-}
-
-// SystemLogMsg carries informational system-level log messages for clients/UI.
-type SystemLogMsg struct {
-	Message string
-}
-
-// BatchProgressMsg represents a batch of progress updates to reduce TUI render calls
-type BatchProgressMsg []ProgressMsg
-
-// DownloadRequestMsg signals a request to start a download (e.g. from extension)
-// that may need user confirmation or duplicate checking
-type DownloadRequestMsg struct {
-	ID           string
-	URL          string
-	Filename     string
-	Path         string
-	Mirrors      []string
-	Headers      map[string]string
-	Workers      int
-	MinChunkSize int64
-}
-
-// BatchDownloadRequestMsg signals a batch request that should be confirmed once.
-type BatchDownloadRequestMsg struct {
-	ID       string
-	Path     string
-	Requests []DownloadRequestMsg
-}
+type BatchProgress []DownloadEvent
 
 const (
 	EventTypeProgress     = "progress"
@@ -185,152 +127,85 @@ const (
 	EventTypeRemoved      = "removed"
 	EventTypeRequest      = "request"
 	EventTypeBatchRequest = "batch_request"
+	EventTypeBatchProgress = "batch_progress"
 	EventTypeSystem       = "system"
 )
 
-// SSEMessage represents one server-sent event frame.
 type SSEMessage struct {
 	Event string
 	Data  []byte
 }
 
-// EncodeSSEMessages converts an event payload into one or more SSE messages.
-// BatchProgressMsg is flattened into multiple "progress" types.
-func EncodeSSEMessages(msg interface{}) ([]SSEMessage, error) {
-	switch m := msg.(type) {
-	case BatchProgressMsg:
-		frames := make([]SSEMessage, 0, len(m))
-		for _, p := range m {
-			data, err := json.Marshal(p)
-			if err != nil {
-				return nil, err
-			}
-			frames = append(frames, SSEMessage{
-				Event: EventTypeProgress,
-				Data:  data,
-			})
-		}
-		return frames, nil
-	default:
-		eventType, ok := EventTypeForMessage(msg)
-		if !ok {
-			return nil, nil
-		}
-		data, err := json.Marshal(msg)
+func EncodeSSEMessages(msg DownloadEvent) ([]SSEMessage, error) {
+	eventType := EventTypeToString(msg.Type)
+	if eventType == "" {
+		return nil, nil
+	}
+	
+	if msg.Type == EventBatchProgress {
+		return EncodeBatchProgress(msg.BatchEvents)
+	}
+
+	data, err := json.Marshal(msg)
+	if err != nil {
+		return nil, err
+	}
+	return []SSEMessage{{
+		Event: eventType,
+		Data:  data,
+	}}, nil
+}
+
+func EncodeBatchProgress(batch []DownloadEvent) ([]SSEMessage, error) {
+	frames := make([]SSEMessage, 0, len(batch))
+	for _, p := range batch {
+		data, err := json.Marshal(p)
 		if err != nil {
 			return nil, err
 		}
-		return []SSEMessage{{
-			Event: eventType,
+		frames = append(frames, SSEMessage{
+			Event: EventTypeProgress,
 			Data:  data,
-		}}, nil
+		})
+	}
+	return frames, nil
+}
+
+func EventTypeToString(t EventType) string {
+	switch t {
+	case EventStarted:
+		return EventTypeStarted
+	case EventProgress:
+		return EventTypeProgress
+	case EventComplete:
+		return EventTypeComplete
+	case EventPaused:
+		return EventTypePaused
+	case EventResumed:
+		return EventTypeResumed
+	case EventQueued:
+		return EventTypeQueued
+	case EventRemoved:
+		return EventTypeRemoved
+	case EventError:
+		return EventTypeError
+	case EventRequest:
+		return EventTypeRequest
+	case EventBatchRequest:
+		return EventTypeBatchRequest
+	case EventBatchProgress:
+		return EventTypeBatchProgress
+	case EventSystem:
+		return EventTypeSystem
+	default:
+		return ""
 	}
 }
 
-// EventTypeForMessage maps message payloads to SSE event type names.
-func EventTypeForMessage(msg interface{}) (string, bool) {
-	switch msg.(type) {
-	case ProgressMsg:
-		return EventTypeProgress, true
-	case DownloadStartedMsg:
-		return EventTypeStarted, true
-	case DownloadCompleteMsg:
-		return EventTypeComplete, true
-	case DownloadErrorMsg:
-		return EventTypeError, true
-	case DownloadPausedMsg:
-		return EventTypePaused, true
-	case DownloadResumedMsg:
-		return EventTypeResumed, true
-	case DownloadQueuedMsg:
-		return EventTypeQueued, true
-	case DownloadRemovedMsg:
-		return EventTypeRemoved, true
-	case DownloadRequestMsg:
-		return EventTypeRequest, true
-	case BatchDownloadRequestMsg:
-		return EventTypeBatchRequest, true
-	case SystemLogMsg:
-		return EventTypeSystem, true
-	default:
-		return "", false
+func DecodeSSEMessage(eventStr string, data []byte) (DownloadEvent, bool, error) {
+	var msg DownloadEvent
+	if err := json.Unmarshal(data, &msg); err != nil {
+		return msg, true, err
 	}
-}
-
-// DecodeSSEMessage decodes one SSE event payload into the corresponding message.
-func DecodeSSEMessage(eventType string, data []byte) (interface{}, bool, error) {
-	var msg interface{}
-
-	switch eventType {
-	case EventTypeProgress:
-		var m ProgressMsg
-		if err := json.Unmarshal(data, &m); err != nil {
-			return nil, true, err
-		}
-		msg = m
-	case EventTypeStarted:
-		var m DownloadStartedMsg
-		if err := json.Unmarshal(data, &m); err != nil {
-			return nil, true, err
-		}
-		msg = m
-	case EventTypeComplete:
-		var m DownloadCompleteMsg
-		if err := json.Unmarshal(data, &m); err != nil {
-			return nil, true, err
-		}
-		msg = m
-	case EventTypeError:
-		var m DownloadErrorMsg
-		if err := json.Unmarshal(data, &m); err != nil {
-			return nil, true, err
-		}
-		msg = m
-	case EventTypePaused:
-		var m DownloadPausedMsg
-		if err := json.Unmarshal(data, &m); err != nil {
-			return nil, true, err
-		}
-		msg = m
-	case EventTypeResumed:
-		var m DownloadResumedMsg
-		if err := json.Unmarshal(data, &m); err != nil {
-			return nil, true, err
-		}
-		msg = m
-	case EventTypeQueued:
-		var m DownloadQueuedMsg
-		if err := json.Unmarshal(data, &m); err != nil {
-			return nil, true, err
-		}
-		msg = m
-	case EventTypeRemoved:
-		var m DownloadRemovedMsg
-		if err := json.Unmarshal(data, &m); err != nil {
-			return nil, true, err
-		}
-		msg = m
-	case EventTypeRequest:
-		var m DownloadRequestMsg
-		if err := json.Unmarshal(data, &m); err != nil {
-			return nil, true, err
-		}
-		msg = m
-	case EventTypeBatchRequest:
-		var m BatchDownloadRequestMsg
-		if err := json.Unmarshal(data, &m); err != nil {
-			return nil, true, err
-		}
-		msg = m
-	case EventTypeSystem:
-		var m SystemLogMsg
-		if err := json.Unmarshal(data, &m); err != nil {
-			return nil, true, err
-		}
-		msg = m
-	default:
-		return nil, false, nil
-	}
-
 	return msg, true, nil
 }

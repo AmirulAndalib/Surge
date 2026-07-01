@@ -4,13 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	"net"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 	"time"
-	"github.com/google/uuid"
 
 	"net/url"
 
@@ -25,6 +25,16 @@ import (
 
 // IsNameActiveFunc lets routing treat in-flight downloads as filename conflicts within a directory.
 type IsNameActiveFunc func(dir, name string) bool
+
+// cfgProgress returns the *progress.DownloadProgress associated with cfg, or
+// nil if cfg.State is nil. This is the single point in the orchestrator package
+// where the untyped State field is narrowed to a concrete type.
+func cfgProgress(cfg *types.DownloadConfig) *progress.DownloadProgress {
+	if cfg == nil || cfg.State == nil {
+		return nil
+	}
+	return cfg.State.(*progress.DownloadProgress)
+}
 
 type LifecycleManager struct {
 	settings            *config.Settings
@@ -327,7 +337,8 @@ func (mgr *LifecycleManager) enqueueResolved(ctx context.Context, req *DownloadR
 					rateLimit = parsed
 				}
 			}
-			_ = mgr.eventBus.Publish(types.DownloadQueuedMsg{
+			_ = mgr.eventBus.Publish(types.DownloadEvent{
+				Type:         types.EventQueued,
 				DownloadID:   newID,
 				Filename:     finalFilename,
 				URL:          req.URL,

@@ -25,7 +25,8 @@ func main() {
 			return
 		}
 
-		frames, err := types.EncodeSSEMessages(types.DownloadQueuedMsg{
+		frames, err := types.EncodeSSEMessages(types.DownloadEvent{
+			Type:       types.EventQueued,
 			DownloadID: "queue-1",
 			Filename:   "archive.zip",
 			URL:        "https://example.com/archive.zip",

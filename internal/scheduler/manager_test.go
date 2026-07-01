@@ -157,7 +157,7 @@ func TestRunDownload_StartedEventUsesFullDestPath(t *testing.T) {
 	}
 	_ = f.Close()
 
-	progressCh := make(chan any, 16)
+	progressCh := make(chan types.DownloadEvent, 16)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -182,10 +182,8 @@ func TestRunDownload_StartedEventUsesFullDestPath(t *testing.T) {
 	for {
 		select {
 		case msg := <-progressCh:
-			started, ok := msg.(types.DownloadStartedMsg)
-			if !ok {
-				continue
-			}
+			started := msg
+			
 			if started.DestPath != finalPath {
 				t.Fatalf("started dest path = %q, want %q", started.DestPath, finalPath)
 			}
@@ -218,7 +216,7 @@ func TestRunDownload_ConcurrentBootstrapWithoutProbeMetadata(t *testing.T) {
 	}
 	_ = f.Close()
 
-	progressCh := make(chan any, 16)
+	progressCh := make(chan types.DownloadEvent, 16)
 	cfg := types.DownloadConfig{
 		URL:           server.URL(),
 		OutputPath:    tmpDir,
@@ -242,10 +240,8 @@ func TestRunDownload_ConcurrentBootstrapWithoutProbeMetadata(t *testing.T) {
 	foundComplete := false
 	for len(progressCh) > 0 {
 		msg := <-progressCh
-		complete, ok := msg.(types.DownloadCompleteMsg)
-		if !ok {
-			continue
-		}
+		complete := msg
+		
 		foundComplete = true
 		if complete.Total != fileSize {
 			t.Fatalf("complete total = %d, want %d", complete.Total, fileSize)
@@ -278,7 +274,7 @@ func TestRunDownload_OptimisticConcurrentFallsBackToSingle(t *testing.T) {
 	}
 	_ = f.Close()
 
-	progressCh := make(chan any, 16)
+	progressCh := make(chan types.DownloadEvent, 16)
 	cfg := types.DownloadConfig{
 		URL:           server.URL,
 		OutputPath:    tmpDir,
@@ -310,10 +306,8 @@ func TestRunDownload_OptimisticConcurrentFallsBackToSingle(t *testing.T) {
 	foundComplete := false
 	for len(progressCh) > 0 {
 		msg := <-progressCh
-		complete, ok := msg.(types.DownloadCompleteMsg)
-		if !ok {
-			continue
-		}
+		complete := msg
+		
 		foundComplete = true
 		if complete.Total != int64(len(content)) {
 			t.Fatalf("complete total = %d, want %d", complete.Total, len(content))
@@ -340,7 +334,7 @@ func TestRunDownload_MidTransferConcurrentFailureFallsBackToSingle(t *testing.T)
 		_ = f.Close()
 	}
 
-	progressCh := make(chan any, 100)
+	progressCh := make(chan types.DownloadEvent, 100)
 	cfg := types.DownloadConfig{
 		URL:           server.URL(),
 		OutputPath:    tmpDir,

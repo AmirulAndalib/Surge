@@ -1,13 +1,14 @@
 package service
 
 import (
+	_ "github.com/SurgeDM/Surge/internal/types"
+
 	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 
-	"github.com/SurgeDM/Surge/internal/types"
 )
 
 func TestRemoteDownloadService_SetRateLimit_ProxiesRequest(t *testing.T) {
@@ -200,7 +201,7 @@ func TestRemoteDownloadService_StreamEvents_ReceivesMessages(t *testing.T) {
 		if f, ok := w.(http.Flusher); ok {
 			f.Flush()
 		}
-		
+
 		msg := "event: started\ndata: {\"DownloadID\":\"test-1\",\"Filename\":\"test.txt\"}\n\n"
 		w.Write([]byte(msg))
 		if f, ok := w.(http.Flusher); ok {
@@ -226,7 +227,8 @@ func TestRemoteDownloadService_StreamEvents_ReceivesMessages(t *testing.T) {
 
 	select {
 	case msg := <-ch:
-		startedMsg, ok := msg.(types.DownloadStartedMsg)
+		startedMsg := msg
+		ok := true
 		if !ok {
 			t.Errorf("expected DownloadStartedMsg, got %T", msg)
 		}

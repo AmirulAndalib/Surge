@@ -16,6 +16,16 @@ import (
 	"github.com/SurgeDM/Surge/internal/utils"
 )
 
+// cfgProgress returns the *progress.DownloadProgress associated with cfg, or
+// nil if cfg.State is nil. This is the single point in the service package
+// where the untyped State field is narrowed to a concrete type.
+func cfgProgress(cfg *types.DownloadConfig) *progress.DownloadProgress {
+	if cfg == nil || cfg.State == nil {
+		return nil
+	}
+	return cfg.State.(*progress.DownloadProgress)
+}
+
 func completedSpeedBps(entry types.DownloadEntry) float64 {
 	if entry.Status != "completed" {
 		return 0
@@ -43,7 +53,7 @@ func (s *LocalDownloadService) ReloadSettings() error {
 	return nil // Handled elsewhere or let LifecycleManager manage it
 }
 
-func (s *LocalDownloadService) StreamEvents(ctx context.Context) (<-chan interface{}, func(), error) {
+func (s *LocalDownloadService) StreamEvents(ctx context.Context) (<-chan types.DownloadEvent, func(), error) {
 	if s.lifecycle == nil || s.lifecycle.GetEventBus() == nil {
 		return nil, nil, fmt.Errorf("event bus not initialized")
 	}
@@ -51,7 +61,7 @@ func (s *LocalDownloadService) StreamEvents(ctx context.Context) (<-chan interfa
 	return ch, cleanup, nil
 }
 
-func (s *LocalDownloadService) Publish(msg interface{}) error {
+func (s *LocalDownloadService) Publish(msg types.DownloadEvent) error {
 	if s.lifecycle != nil && s.lifecycle.GetEventBus() != nil {
 		return s.lifecycle.GetEventBus().Publish(msg)
 	}
@@ -339,21 +349,22 @@ func (s *LocalDownloadService) List() ([]types.DownloadStatus, error) {
 				RateLimitSet: cfg.RateLimitSet,
 			}
 			if cfg.State != nil {
-				downloaded, totalSize, _, sessionElapsed, connections, sessionStart := cfg.State.(*progress.DownloadProgress).GetProgress()
+				cp := cfgProgress(&cfg)
+				downloaded, totalSize, _, sessionElapsed, connections, sessionStart := cp.GetProgress()
 				status.TotalSize = totalSize
 				status.Downloaded = downloaded
-				if dp := cfg.State.(*progress.DownloadProgress).GetDestPath(); dp != "" {
+				if dp := cp.GetDestPath(); dp != "" {
 					status.DestPath = dp
 				}
 				if status.TotalSize > 0 {
 					status.Progress = float64(status.Downloaded) * 100 / float64(status.TotalSize)
 				}
 				status.Connections = int(connections)
-				if cfg.State.(*progress.DownloadProgress).IsPausing() {
+				if cp.IsPausing() {
 					status.Status = "pausing"
-				} else if cfg.State.(*progress.DownloadProgress).IsPaused() {
+				} else if cp.IsPaused() {
 					status.Status = "paused"
-				} else if cfg.State.(*progress.DownloadProgress).Done.Load() {
+				} else if cp.Done.Load() {
 					status.Status = "completed"
 				}
 				if status.Status == "downloading" {

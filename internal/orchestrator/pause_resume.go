@@ -28,7 +28,8 @@ func (mgr *LifecycleManager) Pause(id string) error {
 	entry, err := store.GetDownload(id)
 	if err == nil && entry != nil {
 		if mgr.eventBus != nil {
-			_ = mgr.eventBus.Publish(types.DownloadPausedMsg{
+			_ = mgr.eventBus.Publish(types.DownloadEvent{
+				Type:         types.EventPaused,
 				DownloadID:   id,
 				Filename:     entry.Filename,
 				Downloaded:   entry.Downloaded,
@@ -80,15 +81,16 @@ func (mgr *LifecycleManager) Resume(id string) error {
 	if cfg := mgr.pool.ExtractPausedConfig(id); cfg != nil {
 		hydrateConfigFromDisk(cfg)
 		cfg.IsResume = true
-		
+
 		if mgr.eventBus != nil {
 			cfg.ProgressCh = mgr.eventBus.InputCh
 		}
 
 		mgr.pool.Add(*cfg)
-		
+
 		if mgr.eventBus != nil {
-			_ = mgr.eventBus.Publish(types.DownloadResumedMsg{
+			_ = mgr.eventBus.Publish(types.DownloadEvent{
+				Type:       types.EventResumed,
 				DownloadID: id,
 				Filename:   cfg.Filename,
 			})
@@ -124,9 +126,10 @@ func (mgr *LifecycleManager) Resume(id string) error {
 		cfg.ProgressCh = mgr.eventBus.InputCh
 	}
 	mgr.pool.Add(cfg)
-	
+
 	if mgr.eventBus != nil {
-		_ = mgr.eventBus.Publish(types.DownloadResumedMsg{
+		_ = mgr.eventBus.Publish(types.DownloadEvent{
+			Type:       types.EventResumed,
 			DownloadID: id,
 			Filename:   entry.Filename,
 		})
@@ -165,15 +168,16 @@ func (mgr *LifecycleManager) ResumeBatch(ids []string) []error {
 		if cfg := mgr.pool.ExtractPausedConfig(id); cfg != nil {
 			hydrateConfigFromDisk(cfg)
 			cfg.IsResume = true
-			
+
 			if mgr.eventBus != nil {
 				cfg.ProgressCh = mgr.eventBus.InputCh
 			}
-			
+
 			mgr.pool.Add(*cfg)
-			
+
 			if mgr.eventBus != nil {
-				_ = mgr.eventBus.Publish(types.DownloadResumedMsg{
+				_ = mgr.eventBus.Publish(types.DownloadEvent{
+					Type:       types.EventResumed,
 					DownloadID: id,
 					Filename:   cfg.Filename,
 				})
@@ -209,15 +213,16 @@ func (mgr *LifecycleManager) ResumeBatch(ids []string) []error {
 		}
 
 		cfg := buildResumeConfig(id, outputPath, nil, savedState, settings)
-		
+
 		if mgr.eventBus != nil {
 			cfg.ProgressCh = mgr.eventBus.InputCh
 		}
-		
+
 		mgr.pool.Add(cfg)
 
 		if mgr.eventBus != nil {
-			_ = mgr.eventBus.Publish(types.DownloadResumedMsg{
+			_ = mgr.eventBus.Publish(types.DownloadEvent{
+				Type:       types.EventResumed,
 				DownloadID: id,
 				Filename:   savedState.Filename,
 			})
@@ -270,7 +275,8 @@ func (mgr *LifecycleManager) Cancel(id string) error {
 
 	// Emit removal event - event worker handles DB deletion and file cleanup.
 	if mgr.eventBus != nil {
-		_ = mgr.eventBus.Publish(types.DownloadRemovedMsg{
+		_ = mgr.eventBus.Publish(types.DownloadEvent{
+			Type:       types.EventRemoved,
 			DownloadID: id,
 			Filename:   filename,
 			DestPath:   destPath,

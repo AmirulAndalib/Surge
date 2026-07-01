@@ -17,7 +17,8 @@ func TestAutoFollow_BrandNewDownload(t *testing.T) {
 		logViewport: viewport.New(viewport.WithWidth(40), viewport.WithHeight(5)),
 	}
 
-	msg := types.DownloadStartedMsg{
+	msg := types.DownloadEvent{
+		Type:       types.EventStarted,
 		DownloadID: "new-1",
 		Filename:   "new-file",
 		Total:      100,
@@ -47,7 +48,8 @@ func TestAutoFollow_ExistingDownloadRestart(t *testing.T) {
 		logViewport: viewport.New(viewport.WithWidth(40), viewport.WithHeight(5)),
 	}
 
-	msg := types.DownloadStartedMsg{
+	msg := types.DownloadEvent{
+		Type:       types.EventStarted,
 		DownloadID: "existing-1",
 		Filename:   "file",
 		Total:      100,
@@ -70,7 +72,8 @@ func TestAutoFollow_SuppressedByPin(t *testing.T) {
 		logViewport: viewport.New(viewport.WithWidth(40), viewport.WithHeight(5)),
 	}
 
-	msg := types.DownloadStartedMsg{
+	msg := types.DownloadEvent{
+		Type:       types.EventStarted,
 		DownloadID: "new-1",
 		Filename:   "new-file",
 		Total:      100,
@@ -102,7 +105,8 @@ func TestAutoFollow_QueuedToActiveTransition(t *testing.T) {
 	// Update list to reflect initial state
 	m.UpdateListItems()
 
-	msg := types.DownloadStartedMsg{
+	msg := types.DownloadEvent{
+		Type:       types.EventStarted,
 		DownloadID: "id-1",
 		Filename:   "file",
 		Total:      100,

@@ -51,7 +51,7 @@ func TestIntegration_PauseResume(t *testing.T) {
 
 	// 3. Start Download and Interrupt
 	ctx := context.Background()
-	progressCh := make(chan any, 100)
+	progressCh := make(chan types.DownloadEvent, 100)
 	runtime := &types.RuntimeConfig{}
 	// DB/state persistence now lives in processing event worker.
 	mgr := orchestrator.NewLifecycleManager(nil, nil)

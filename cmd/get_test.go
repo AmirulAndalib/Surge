@@ -37,7 +37,7 @@ func TestCLI_DeleteEndpoint_CleansPausedStateAndPartialFile(t *testing.T) {
 		t.Fatalf("initializeGlobalState failed: %v", err)
 	}
 
-	GlobalProgressCh = make(chan any, 100)
+	GlobalProgressCh = make(chan types.DownloadEvent, 100)
 	GlobalPool = scheduler.New(GlobalProgressCh, 2)
 
 	// Start server

@@ -173,7 +173,7 @@ func handleBatchDownload(w http.ResponseWriter, r *http.Request, defaultOutputDi
 
 	settings := getSettings()
 	sharedPath := utils.EnsureAbsPath(resolveOutputDir(req.Path, false, defaultOutputDir, settings))
-	requests := make([]types.DownloadRequestMsg, 0, len(req.Downloads))
+	requests := make([]types.DownloadEvent, 0, len(req.Downloads))
 
 	for _, item := range req.Downloads {
 		if item.Path == "" {
@@ -187,8 +187,9 @@ func handleBatchDownload(w http.ResponseWriter, r *http.Request, defaultOutputDi
 		}
 		urlForAdd, mirrorsForAdd := normalizeDownloadTargets(validated.URL, validated.Mirrors)
 		itemPath := utils.EnsureAbsPath(resolveOutputDir(validated.Path, validated.RelativeToDefaultDir, defaultOutputDir, settings))
-		requests = append(requests, types.DownloadRequestMsg{
-			ID:           uuid.New().String(),
+		requests = append(requests, types.DownloadEvent{
+			Type:         types.EventRequest,
+			DownloadID:           uuid.New().String(),
 			URL:          urlForAdd,
 			Filename:     validated.Filename,
 			Path:         itemPath,
@@ -208,10 +209,11 @@ func handleBatchDownload(w http.ResponseWriter, r *http.Request, defaultOutputDi
 			return
 		}
 		batchID := uuid.New().String()
-		if err := service.Publish(types.BatchDownloadRequestMsg{
-			ID:       batchID,
+		if err := service.Publish(types.DownloadEvent{
+			Type:     types.EventBatchRequest,
+			DownloadID:       batchID,
 			Path:     sharedPath,
-			Requests: requests,
+			BatchEvents: requests,
 		}); err != nil {
 			http.Error(w, "Failed to notify TUI: "+err.Error(), http.StatusInternalServerError)
 			return
@@ -351,8 +353,9 @@ func maybeRequireDownloadApproval(w http.ResponseWriter, service service.Downloa
 		utils.Debug("Requesting TUI confirmation for: %s (Duplicate: %v)", req.URL, resolved.isDuplicate)
 
 		downloadID := uuid.New().String()
-		if err := service.Publish(types.DownloadRequestMsg{
-			ID:           downloadID,
+		if err := service.Publish(types.DownloadEvent{
+			Type:         types.EventRequest,
+			DownloadID:           downloadID,
 			URL:          resolved.urlForAdd,
 			Filename:     req.Filename,
 			Path:         resolved.outPath,

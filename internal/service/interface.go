@@ -43,10 +43,10 @@ type DownloadService interface {
 	// StreamEvents returns a channel that receives real-time download types.
 	// For local mode, this is a direct channel.
 	// For remote mode, this is sourced from SSE.
-	StreamEvents(ctx context.Context) (<-chan interface{}, func(), error)
+	StreamEvents(ctx context.Context) (<-chan types.DownloadEvent, func(), error)
 
 	// Publish emits an event into the service's event stream.
-	Publish(msg interface{}) error
+	Publish(msg types.DownloadEvent) error
 
 	// GetStatus returns a status for a single download by id.
 	GetStatus(id string) (*types.DownloadStatus, error)

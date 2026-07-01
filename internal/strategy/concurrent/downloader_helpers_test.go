@@ -70,7 +70,7 @@ func TestHandlePause_UsesLiveRateLimitFromState(t *testing.T) {
 	destPath := filepath.Join(tmpDir, "test.bin")
 	state := progress.New("test-id", fileSize)
 	state.SetRateLimit(3*1024*1024, true)
-	progressCh := make(chan any, 1)
+	progressCh := make(chan types.DownloadEvent, 1)
 	downloader := &ConcurrentDownloader{
 		ID:           "test-id",
 		URL:          "http://example.com/file.bin",
@@ -89,7 +89,7 @@ func TestHandlePause_UsesLiveRateLimitFromState(t *testing.T) {
 		t.Fatalf("Expected ErrPaused, got %v", err)
 	}
 
-	msg, ok := (<-progressCh).(types.DownloadPausedMsg)
+	msg, ok := <-progressCh
 	if !ok {
 		t.Fatalf("expected DownloadPausedMsg, got %T", msg)
 	}

@@ -15,7 +15,7 @@ import (
 )
 
 func TestNew(t *testing.T) {
-	ch := make(chan any, 10)
+	ch := make(chan types.DownloadEvent, 10)
 	pool := New(ch, 3)
 
 	if pool == nil {
@@ -40,7 +40,7 @@ func TestNew(t *testing.T) {
 }
 
 func TestNewScheduler_MaxDownloadsValidation(t *testing.T) {
-	ch := make(chan any, 10)
+	ch := make(chan types.DownloadEvent, 10)
 
 	tests := []struct {
 		name         string
@@ -77,7 +77,7 @@ func TestNewScheduler_NilChannel(t *testing.T) {
 }
 
 func TestScheduler_Add_QueuesToChannel(t *testing.T) {
-	ch := make(chan any, 10)
+	ch := make(chan types.DownloadEvent, 10)
 	pool := New(ch, 3)
 
 	cfg := types.DownloadConfig{
@@ -102,7 +102,7 @@ func TestScheduler_Add_QueuesToChannel(t *testing.T) {
 }
 
 func TestScheduler_Pause_NonExistentDownload(t *testing.T) {
-	ch := make(chan any, 10)
+	ch := make(chan types.DownloadEvent, 10)
 	pool := New(ch, 3)
 
 	// Should not panic when pausing non-existent download
@@ -118,7 +118,7 @@ func TestScheduler_Pause_NonExistentDownload(t *testing.T) {
 }
 
 func TestScheduler_Pause_ActiveDownload(t *testing.T) {
-	ch := make(chan any, 10)
+	ch := make(chan types.DownloadEvent, 10)
 	pool := New(ch, 3)
 
 	// Create a progress state
@@ -145,7 +145,7 @@ func TestScheduler_Pause_ActiveDownload(t *testing.T) {
 }
 
 func TestScheduler_Pause_NilState(t *testing.T) {
-	ch := make(chan any, 10)
+	ch := make(chan types.DownloadEvent, 10)
 	pool := New(ch, 3)
 	canceled := make(chan struct{}, 1)
 
@@ -177,7 +177,7 @@ func TestScheduler_Pause_NilState(t *testing.T) {
 }
 
 func TestScheduler_PauseAll_NoDownloads(t *testing.T) {
-	ch := make(chan any, 10)
+	ch := make(chan types.DownloadEvent, 10)
 	pool := New(ch, 3)
 
 	// Should not panic with no downloads
@@ -193,7 +193,7 @@ func TestScheduler_PauseAll_NoDownloads(t *testing.T) {
 }
 
 func TestScheduler_PauseAll_MultipleDownloads(t *testing.T) {
-	ch := make(chan any, 10)
+	ch := make(chan types.DownloadEvent, 10)
 	pool := New(ch, 3)
 
 	// Add multiple active downloads
@@ -222,7 +222,7 @@ func TestScheduler_PauseAll_MultipleDownloads(t *testing.T) {
 }
 
 func TestScheduler_PauseAll_SkipsAlreadyPaused(t *testing.T) {
-	ch := make(chan any, 10)
+	ch := make(chan types.DownloadEvent, 10)
 	pool := New(ch, 3)
 
 	// Add one paused and one active download
@@ -243,7 +243,7 @@ func TestScheduler_PauseAll_SkipsAlreadyPaused(t *testing.T) {
 }
 
 func TestScheduler_PauseAll_SkipsCompletedDownloads(t *testing.T) {
-	ch := make(chan any, 10)
+	ch := make(chan types.DownloadEvent, 10)
 	pool := New(ch, 3)
 
 	// Add one completed and one active download
@@ -264,7 +264,7 @@ func TestScheduler_PauseAll_SkipsCompletedDownloads(t *testing.T) {
 }
 
 func TestScheduler_Cancel_NonExistentDownload(t *testing.T) {
-	ch := make(chan any, 10)
+	ch := make(chan types.DownloadEvent, 10)
 	pool := New(ch, 3)
 
 	// Should not panic
@@ -272,7 +272,7 @@ func TestScheduler_Cancel_NonExistentDownload(t *testing.T) {
 }
 
 func TestScheduler_Cancel_RemovesFromMap(t *testing.T) {
-	ch := make(chan any, 10)
+	ch := make(chan types.DownloadEvent, 10)
 	pool := New(ch, 3)
 
 	state := progress.New("test-id", 1000)
@@ -322,7 +322,7 @@ func TestScheduler_Cancel_RemovesFromMap(t *testing.T) {
 }
 
 func TestScheduler_Cancel_CallsCancelFunc(t *testing.T) {
-	ch := make(chan any, 10)
+	ch := make(chan types.DownloadEvent, 10)
 	pool := New(ch, 3)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -361,7 +361,7 @@ func TestScheduler_Cancel_CallsCancelFunc(t *testing.T) {
 }
 
 func TestScheduler_Cancel_MarksDone(t *testing.T) {
-	ch := make(chan any, 10)
+	ch := make(chan types.DownloadEvent, 10)
 	pool := New(ch, 3)
 
 	state := progress.New("test-id", 1000)
@@ -386,7 +386,7 @@ func TestScheduler_Cancel_MarksDone(t *testing.T) {
 }
 
 func TestScheduler_Cancel_DoesNotRemoveIncompleteFile(t *testing.T) {
-	ch := make(chan any, 10)
+	ch := make(chan types.DownloadEvent, 10)
 	pool := New(ch, 3)
 
 	tmpDir := t.TempDir()
@@ -419,7 +419,7 @@ func TestScheduler_Cancel_DoesNotRemoveIncompleteFile(t *testing.T) {
 }
 
 func TestScheduler_Cancel_QueuedDownload_RemovesFromQueueAndReturnsResult(t *testing.T) {
-	ch := make(chan any, 10)
+	ch := make(chan types.DownloadEvent, 10)
 	pool := &Scheduler{
 		progressCh: ch,
 		downloads:  make(map[string]*activeDownload),
@@ -465,7 +465,7 @@ func TestScheduler_Cancel_QueuedDownload_RemovesFromQueueAndReturnsResult(t *tes
 // tests live in internal/processing/manager_test.go (see TestLifecycleManager_Cancel_NotFound).
 
 func TestScheduler_GracefulShutdown_PausesAll(t *testing.T) {
-	ch := make(chan any, 10)
+	ch := make(chan types.DownloadEvent, 10)
 	pool := New(ch, 3)
 
 	state := progress.New("test-id", 1000)
@@ -513,7 +513,7 @@ func TestScheduler_GracefulShutdown_PausesAll(t *testing.T) {
 }
 
 func TestScheduler_GracefulShutdown_WaitsPastSoftTimeout(t *testing.T) {
-	ch := make(chan any, 10)
+	ch := make(chan types.DownloadEvent, 10)
 	pool := New(ch, 1)
 
 	ps := progress.New("wait-test-id", 1000)
@@ -571,7 +571,7 @@ func TestScheduler_GracefulShutdown_WaitsPastSoftTimeout(t *testing.T) {
 }
 
 func TestScheduler_GracefulShutdown_ClearsStalePausingWithoutWorker(t *testing.T) {
-	ch := make(chan any, 10)
+	ch := make(chan types.DownloadEvent, 10)
 	pool := New(ch, 1)
 
 	ps := progress.New("stale-pausing-id", 1000)
@@ -614,7 +614,7 @@ func TestScheduler_GracefulShutdown_ClearsStalePausingWithoutWorker(t *testing.T
 }
 
 func TestScheduler_ConcurrentPauseCancel(t *testing.T) {
-	ch := make(chan any, 100)
+	ch := make(chan types.DownloadEvent, 100)
 	pool := New(ch, 3)
 
 	// Add multiple downloads
@@ -653,7 +653,7 @@ func TestScheduler_ConcurrentPauseCancel(t *testing.T) {
 }
 
 func TestScheduler_HasDownload(t *testing.T) {
-	ch := make(chan any, 10)
+	ch := make(chan types.DownloadEvent, 10)
 	pool := New(ch, 3)
 
 	// 1. Test Active Download
@@ -682,7 +682,7 @@ func TestScheduler_HasDownload(t *testing.T) {
 // --- ExtractPausedConfig Tests (replaces old pool.Resume tests) ---
 
 func TestScheduler_ExtractPausedConfig_NonExistent(t *testing.T) {
-	ch := make(chan any, 10)
+	ch := make(chan types.DownloadEvent, 10)
 	pool := New(ch, 3)
 
 	// Should return nil for non-existent download
@@ -692,7 +692,7 @@ func TestScheduler_ExtractPausedConfig_NonExistent(t *testing.T) {
 }
 
 func TestScheduler_ExtractPausedConfig_WhilePausing(t *testing.T) {
-	ch := make(chan any, 10)
+	ch := make(chan types.DownloadEvent, 10)
 	pool := New(ch, 3)
 
 	state := progress.New("test-id", 1000)
@@ -723,7 +723,7 @@ func TestScheduler_ExtractPausedConfig_WhilePausing(t *testing.T) {
 }
 
 func TestScheduler_ExtractPausedConfig_NotPaused(t *testing.T) {
-	ch := make(chan any, 10)
+	ch := make(chan types.DownloadEvent, 10)
 	pool := New(ch, 3)
 
 	state := progress.New("test-id", 1000)
@@ -744,7 +744,7 @@ func TestScheduler_ExtractPausedConfig_NotPaused(t *testing.T) {
 }
 
 func TestScheduler_ExtractPausedConfig_Success(t *testing.T) {
-	ch := make(chan any, 10)
+	ch := make(chan types.DownloadEvent, 10)
 	pool := New(ch, 3)
 
 	state := progress.New("test-id", 1000)
@@ -814,7 +814,7 @@ func TestScheduler_ExtractPausedConfig_Success(t *testing.T) {
 }
 
 func TestScheduler_PauseResume_Idempotency(t *testing.T) {
-	ch := make(chan any, 10)
+	ch := make(chan types.DownloadEvent, 10)
 	pool := New(ch, 3)
 
 	state := progress.New("idempotent-test", 1000)
@@ -859,7 +859,7 @@ func TestScheduler_PauseResume_Idempotency(t *testing.T) {
 }
 
 func TestScheduler_GetStatus_IncludesDestPath(t *testing.T) {
-	ch := make(chan any, 10)
+	ch := make(chan types.DownloadEvent, 10)
 	pool := New(ch, 1)
 
 	destPath := "/tmp/status-dest.bin"
@@ -886,7 +886,7 @@ func TestScheduler_GetStatus_IncludesDestPath(t *testing.T) {
 }
 
 func TestScheduler_UpdateURL(t *testing.T) {
-	ch := make(chan any, 10)
+	ch := make(chan types.DownloadEvent, 10)
 	pool := New(ch, 3)
 
 	activeState := progress.New("active-id", 1000)
@@ -945,7 +945,7 @@ func TestScheduler_UpdateURL(t *testing.T) {
 // removes all entries from p.queued so that idle workers skip any items they
 // drain from taskChan after shutdown has started.
 func TestScheduler_GracefulShutdown_ClearsQueuedMap(t *testing.T) {
-	ch := make(chan any, 10)
+	ch := make(chan types.DownloadEvent, 10)
 	// Use a pool with no workers so nothing auto-starts.
 	pool := &Scheduler{
 		progressCh:   ch,
@@ -988,7 +988,7 @@ func TestScheduler_GracefulShutdown_ClearsQueuedMap(t *testing.T) {
 // TestScheduler_GracefulShutdown_DrainsTaskChan verifies that GracefulShutdown
 // drains buffered items from taskChan so no items remain for workers to consume.
 func TestScheduler_GracefulShutdown_DrainsTaskChan(t *testing.T) {
-	ch := make(chan any, 20)
+	ch := make(chan types.DownloadEvent, 20)
 	pool := &Scheduler{
 		progressCh:   ch,
 		progressDone: make(chan struct{}),
@@ -1032,7 +1032,7 @@ func TestScheduler_GracefulShutdown_DrainsTaskChan(t *testing.T) {
 // worker-side guard: a worker that pulls a cfg from taskChan after shutdown has
 // cleared p.queued will skip the item without starting a download.
 func TestScheduler_GracefulShutdown_WorkerSkipsQueuedAfterShutdown(t *testing.T) {
-	ch := make(chan any, 50)
+	ch := make(chan types.DownloadEvent, 50)
 	// Single worker, small taskChan.
 	pool := New(ch, 1)
 

@@ -9,7 +9,7 @@ import (
 	"github.com/SurgeDM/Surge/internal/utils"
 )
 
-func (m RootModel) handleDownloadRequestMsg(msg types.DownloadRequestMsg, queueIfBusy bool) (tea.Model, tea.Cmd) {
+func (m RootModel) handleDownloadRequestMsg(msg types.DownloadEvent, queueIfBusy bool) (tea.Model, tea.Cmd) {
 	if queueIfBusy && (m.state == ExtensionConfirmationState || m.state == DuplicateWarningState || m.state == BatchConfirmState) {
 		m.pendingRequestQueue = append(m.pendingRequestQueue, msg)
 		return m, nil
@@ -59,17 +59,17 @@ func (m RootModel) handleDownloadRequestMsg(msg types.DownloadRequestMsg, queueI
 		return m, nil
 	}
 
-	return m.startDownload(msg.URL, msg.Mirrors, msg.Headers, path, isDefaultPath, msg.Filename, msg.ID, msg.Workers, msg.MinChunkSize)
+	return m.startDownload(msg.URL, msg.Mirrors, msg.Headers, path, isDefaultPath, msg.Filename, msg.DownloadID, msg.Workers, msg.MinChunkSize)
 }
 
-func (m RootModel) handleBatchDownloadRequestMsg(msg types.BatchDownloadRequestMsg, queueIfBusy bool) (tea.Model, tea.Cmd) {
+func (m RootModel) handleBatchDownloadRequestMsg(msg types.DownloadEvent, queueIfBusy bool) (tea.Model, tea.Cmd) {
 	if queueIfBusy && (m.state == ExtensionConfirmationState || m.state == DuplicateWarningState || m.state == BatchConfirmState) {
 		m.pendingBatchRequestQueue = append(m.pendingBatchRequestQueue, msg)
 		return m, nil
 	}
 
 	m.pendingBatchURLs = nil
-	m.pendingBatchRequests = append([]types.DownloadRequestMsg(nil), msg.Requests...)
+	m.pendingBatchRequests = append([]types.DownloadEvent(nil), msg.BatchEvents...)
 	m.batchFilePath = strings.TrimSpace(msg.Path)
 	if m.batchFilePath == "" {
 		m.batchFilePath = m.defaultDownloadPath()

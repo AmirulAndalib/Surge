@@ -23,7 +23,7 @@ import (
 
 // ConcurrentDownloader handles multi-connection downloads
 type ConcurrentDownloader struct {
-	ProgressChan chan<- any                 // Channel for events (start/complete/error)
+	ProgressChan chan<- types.DownloadEvent                 // Channel for events (start/complete/error)
 	ID           string                     // Download ID
 	State        *progress.DownloadProgress // Shared state for TUI polling
 	activeTasks  map[int]*ActiveTask
@@ -41,7 +41,7 @@ type ConcurrentDownloader struct {
 }
 
 // NewConcurrentDownloader creates a new concurrent downloader with all required parameters
-func NewConcurrentDownloader(id string, progressCh chan<- any, progState *progress.DownloadProgress, runtime *types.RuntimeConfig) *ConcurrentDownloader {
+func NewConcurrentDownloader(id string, progressCh chan<- types.DownloadEvent, progState *progress.DownloadProgress, runtime *types.RuntimeConfig) *ConcurrentDownloader {
 	if runtime == nil {
 		runtime = types.DefaultRuntimeConfig()
 	}
@@ -621,7 +621,8 @@ func (d *ConcurrentDownloader) handlePause(destPath string, fileSize int64, queu
 		MinChunkSize:    d.Runtime.MinChunkSize,
 	}
 	if d.ProgressChan != nil {
-		d.ProgressChan <- types.DownloadPausedMsg{
+		d.ProgressChan <- types.DownloadEvent{
+			Type:         types.EventPaused,
 			DownloadID:   d.ID,
 			Filename:     filepath.Base(destPath),
 			Downloaded:   computedDownloaded,

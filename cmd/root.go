@@ -74,7 +74,7 @@ var (
 // Globals for Unified Backend
 var (
 	GlobalPool              *scheduler.Scheduler
-	GlobalProgressCh        chan any
+	GlobalProgressCh        chan types.DownloadEvent
 	GlobalService           service.DownloadService
 	GlobalLifecycleCleanup  func()
 	serverProgram           *tea.Program
@@ -246,7 +246,8 @@ func ensureGlobalLocalServiceAndLifecycle() error {
 
 func publishSystemLog(message string) {
 	if GlobalService != nil {
-		_ = GlobalService.Publish(types.SystemLogMsg{Message: message})
+		_ = GlobalService.Publish(types.DownloadEvent{
+			Type: types.EventSystem, Message: message})
 		return
 	}
 	fmt.Fprintln(os.Stderr, message)
@@ -275,7 +276,8 @@ func recordPreflightDownloadError(url, outPath string, err error) {
 		utils.Debug("Failed to persist preflight download error for %s: %v", url, addErr)
 	}
 	if GlobalService != nil {
-		_ = GlobalService.Publish(types.DownloadErrorMsg{
+		_ = GlobalService.Publish(types.DownloadEvent{
+			Type:       types.EventError,
 			DownloadID: entry.ID,
 			Filename:   filename,
 			DestPath:   destPath,
@@ -449,7 +451,7 @@ var rootCmd = &cobra.Command{
 				fmt.Println("Settings and keybindings have been reset to defaults.")
 			}
 		}
-		GlobalProgressCh = make(chan any, 100)
+		GlobalProgressCh = make(chan types.DownloadEvent, 100)
 		globalSettings = getSettings()
 		GlobalPool = scheduler.New(GlobalProgressCh, config.Resolve[int](globalSettings.Network.MaxConcurrentDownloads))
 	},
@@ -539,7 +541,8 @@ func startTUI(port int, exitWhenDone bool, noResume bool) error {
 	}()
 
 	if startupIntegrityMessage != "" && GlobalService != nil {
-		_ = GlobalService.Publish(types.SystemLogMsg{
+		_ = GlobalService.Publish(types.DownloadEvent{
+			Type:    types.EventSystem,
 			Message: startupIntegrityMessage,
 		})
 		startupIntegrityMessage = ""

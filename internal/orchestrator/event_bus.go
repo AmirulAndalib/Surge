@@ -11,8 +11,8 @@ import (
 
 // EventBus handles broadcasting events from the orchestrator to all listeners.
 type EventBus struct {
-	InputCh    chan any
-	listeners  []chan any
+	InputCh    chan types.DownloadEvent
+	listeners  []chan types.DownloadEvent
 	listenerMu sync.Mutex
 	ctx        context.Context
 	cancel     context.CancelFunc
@@ -22,8 +22,8 @@ type EventBus struct {
 func NewEventBus() *EventBus {
 	ctx, cancel := context.WithCancel(context.Background())
 	eb := &EventBus{
-		InputCh:   make(chan any, 100),
-		listeners: make([]chan any, 0),
+		InputCh:   make(chan types.DownloadEvent, 100),
+		listeners: make([]chan types.DownloadEvent, 0),
 		ctx:       ctx,
 		cancel:    cancel,
 	}
@@ -57,15 +57,12 @@ func (eb *EventBus) broadcastLoop() {
 			}
 
 			eb.listenerMu.Lock()
-			listenersCopy := make([]chan any, len(eb.listeners))
+			listenersCopy := make([]chan types.DownloadEvent, len(eb.listeners))
 			copy(listenersCopy, eb.listeners)
 			eb.listenerMu.Unlock()
 
 			isProgress := false
-			switch msg.(type) {
-			case types.ProgressMsg:
-				isProgress = true
-			case types.BatchProgressMsg:
+			if msg.Type == types.EventProgress || msg.Type == types.EventBatchProgress {
 				isProgress = true
 			}
 
@@ -91,7 +88,7 @@ func (eb *EventBus) broadcastLoop() {
 }
 
 // Publish emits an event into the bus.
-func (eb *EventBus) Publish(msg any) error {
+func (eb *EventBus) Publish(msg types.DownloadEvent) error {
 	select {
 	case <-eb.ctx.Done():
 		return context.Canceled
@@ -103,8 +100,8 @@ func (eb *EventBus) Publish(msg any) error {
 }
 
 // Subscribe returns a channel that receives events.
-func (eb *EventBus) Subscribe() (<-chan any, func()) {
-	outCh := make(chan any, 100)
+func (eb *EventBus) Subscribe() (<-chan types.DownloadEvent, func()) {
+	outCh := make(chan types.DownloadEvent, 100)
 	eb.listenerMu.Lock()
 	eb.listeners = append(eb.listeners, outCh)
 	eb.listenerMu.Unlock()

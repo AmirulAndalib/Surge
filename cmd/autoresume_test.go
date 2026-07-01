@@ -84,7 +84,7 @@ func TestCmd_AutoResume_Execution(t *testing.T) {
 	}
 
 	// 5. Initialize GlobalPool + GlobalService
-	GlobalProgressCh = make(chan any, 10)
+	GlobalProgressCh = make(chan types.DownloadEvent, 10)
 	GlobalPool = scheduler.New(GlobalProgressCh, 4)
 
 	eventBus := orchestrator.NewEventBus()

@@ -33,7 +33,7 @@ func (m *overrideMockService) AddWithID(url string, path string, filename string
 
 func newOverrideTestModel(t *testing.T, addFunc func(url, path, filename string, mirrors []string, headers map[string]string, isExplicit bool, workers int, minChunkSize int64, fileSize int64, supportsRange bool) (string, error)) RootModel {
 	t.Helper()
-	
+
 	bus := orchestrator.NewEventBus()
 	mgr := orchestrator.NewLifecycleManager(nil, bus)
 	baseSvc := service.NewLocalDownloadService(mgr)
@@ -82,7 +82,8 @@ func TestOverride_ExtensionConfirmPreservesWorkersAndMinChunkSize(t *testing.T) 
 	m.Settings.Extension.ExtensionPrompt.Value = true
 	m.Settings.General.WarnOnDuplicate.Value = false
 
-	msg := types.DownloadRequestMsg{
+	msg := types.DownloadEvent{
+		Type:         types.EventRequest,
 		URL:          "http://example.com/file.zip",
 		Filename:     "file.zip",
 		Path:         t.TempDir(),
@@ -137,7 +138,8 @@ func TestOverride_DuplicateContinuePreservesWorkersAndMinChunkSize(t *testing.T)
 		Filename: "file.zip",
 	})
 
-	msg := types.DownloadRequestMsg{
+	msg := types.DownloadEvent{
+		Type:         types.EventRequest,
 		URL:          "http://example.com/file.zip",
 		Filename:     "file.zip",
 		Path:         t.TempDir(),
@@ -241,10 +243,11 @@ func TestOverride_BatchConfirmPreservesWorkersAndMinChunkSize(t *testing.T) {
 	m.Settings.General.WarnOnDuplicate.Value = false
 
 	batchPath := t.TempDir()
-	batchMsg := types.BatchDownloadRequestMsg{
+	batchMsg := types.DownloadEvent{
+		Type: types.EventBatchRequest,
 		Path: batchPath,
-		Requests: []types.DownloadRequestMsg{
-			{URL: "http://example.com/one.zip", Filename: "one.zip", Path: batchPath, Workers: 2, MinChunkSize: 256 * 1024},
+		BatchEvents: []types.DownloadEvent{
+			{Type: types.EventRequest, URL: "http://example.com/one.zip", Filename: "one.zip", Path: batchPath, Workers: 2, MinChunkSize: 256 * 1024},
 			{URL: "http://example.com/two.zip", Filename: "two.zip", Path: batchPath, Workers: 6, MinChunkSize: 1 << 20},
 		},
 	}

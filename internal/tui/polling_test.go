@@ -34,7 +34,8 @@ func TestStateSync(t *testing.T) {
 		// Current implementation of DownloadStartedMsg doesn't carry state
 		// So TUI will create its own state (BUG).
 		time.Sleep(200 * time.Millisecond)
-		p.Send(types.DownloadStartedMsg{
+		p.Send(types.DownloadEvent{
+			Type:       types.EventStarted,
 			DownloadID: downloadID,
 			Filename:   "external.file",
 			Total:      1000,
@@ -47,7 +48,8 @@ func TestStateSync(t *testing.T) {
 		// Note: The ProgressReporter reads from VerifiedProgress (via GetProgress)
 		time.Sleep(300 * time.Millisecond)
 		workerState.VerifiedProgress.Store(500)
-		p.Send(types.ProgressMsg{
+		p.Send(types.DownloadEvent{
+			Type:       types.EventProgress,
 			DownloadID: downloadID,
 			Downloaded: 500,
 			Total:      1000,

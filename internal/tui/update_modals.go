@@ -251,7 +251,7 @@ func (m RootModel) updateBatchConfirm(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) 
 				continue
 			}
 			var cmd tea.Cmd
-			m, cmd = m.startDownload(request.URL, request.Mirrors, request.Headers, requestPath, isDefaultPath, request.Filename, request.ID, request.Workers, request.MinChunkSize)
+			m, cmd = m.startDownload(request.URL, request.Mirrors, request.Headers, requestPath, isDefaultPath, request.Filename, request.DownloadID, request.Workers, request.MinChunkSize)
 			if cmd != nil {
 				batchCmds = append(batchCmds, cmd)
 			}

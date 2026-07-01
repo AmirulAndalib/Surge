@@ -33,7 +33,7 @@ func TestServer_Startup_HandlesResume(t *testing.T) {
 	seedDownload(t, testID, testURL, testDest, "queued")
 
 	// 3. Initialize Global Pool (required for resumePausedDownloads)
-	GlobalProgressCh = make(chan any, 10)
+	GlobalProgressCh = make(chan types.DownloadEvent, 10)
 	GlobalPool = scheduler.New(GlobalProgressCh, 3)
 	eventBus := orchestrator.NewEventBus()
 	getAll := func() []types.DownloadConfig { return GlobalPool.GetAll() }

@@ -82,8 +82,8 @@ func (s *httpAPITestService) Purge(string) error {
 	return nil
 }
 
-func (s *httpAPITestService) StreamEvents(context.Context) (<-chan interface{}, func(), error) {
-	channel := make(chan interface{}, len(s.streamMsgs))
+func (s *httpAPITestService) StreamEvents(context.Context) (<-chan types.DownloadEvent, func(), error) {
+	channel := make(chan types.DownloadEvent, len(s.streamMsgs))
 	for _, msg := range s.streamMsgs {
 		channel <- msg
 	}
@@ -101,7 +101,7 @@ type publishRecordingHTTPService struct {
 	published []interface{}
 }
 
-func (s *publishRecordingHTTPService) Publish(msg interface{}) error {
+func (s *publishRecordingHTTPService) Publish(msg types.DownloadEvent) error {
 	s.published = append(s.published, msg)
 	return nil
 }
@@ -243,7 +243,8 @@ func TestHistoryEndpoint_SortsMostRecentFirst(t *testing.T) {
 func TestEventsEndpoint_RequiresAuthAndStreamsSSE(t *testing.T) {
 	service := &httpAPITestService{
 		streamMsgs: []interface{}{
-			types.DownloadQueuedMsg{
+			types.DownloadEvent{
+				Type:       types.EventQueued,
 				DownloadID: "queue-1",
 				Filename:   "archive.zip",
 				URL:        "https://example.com/archive.zip",
@@ -328,15 +329,15 @@ func TestHandleBatchDownload_ConfirmPublishesSingleBatchRequest(t *testing.T) {
 	if len(service.published) != 1 {
 		t.Fatalf("expected 1 published message, got %d", len(service.published))
 	}
-	msg, ok := service.published[0].(types.BatchDownloadRequestMsg)
+	msg, ok := service.published[0].(types.DownloadEvent)
 	if !ok {
 		t.Fatalf("expected BatchDownloadRequestMsg, got %T", service.published[0])
 	}
-	if len(msg.Requests) != 2 {
-		t.Fatalf("expected 2 batch requests, got %d", len(msg.Requests))
+	if len(msg.BatchEvents) != 2 {
+		t.Fatalf("expected 2 batch requests, got %d", len(msg.BatchEvents))
 	}
-	if msg.Requests[0].URL != "https://example.com/one.zip" || msg.Requests[1].URL != "https://example.com/two.zip" {
-		t.Fatalf("unexpected batch URLs: %#v", msg.Requests)
+	if msg.BatchEvents[0].URL != "https://example.com/one.zip" || msg.BatchEvents[1].URL != "https://example.com/two.zip" {
+		t.Fatalf("unexpected batch URLs: %#v", msg.BatchEvents)
 	}
 }
 
@@ -863,8 +864,8 @@ func (r *rateLimitWrapper) ClearCompleted() (int64, error)                  { re
 func (r *rateLimitWrapper) ClearFailed() (int64, error)                     { return 0, nil }
 func (r *rateLimitWrapper) SetRateLimit(string, int64) error                { return nil }
 func (r *rateLimitWrapper) ClearRateLimit(string) error                     { return nil }
-func (r *rateLimitWrapper) StreamEvents(context.Context) (<-chan interface{}, func(), error) {
-	return make(chan interface{}), func() {}, nil
+func (r *rateLimitWrapper) StreamEvents(context.Context) (<-chan types.DownloadEvent, func(), error) {
+	return make(chan types.DownloadEvent), func() {}, nil
 }
 
 // TestRateLimitDefaultEndpoint tests the /rate-limit/default endpoint.

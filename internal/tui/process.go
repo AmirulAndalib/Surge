@@ -14,7 +14,7 @@ import (
 	"github.com/SurgeDM/Surge/internal/utils"
 )
 
-func (m *RootModel) processProgressMsg(msg types.ProgressMsg) tea.Cmd {
+func (m *RootModel) processProgressMsg(msg types.DownloadEvent) tea.Cmd {
 	d := m.FindDownloadByID(msg.DownloadID)
 	if d == nil || d.done || d.paused {
 		return nil
@@ -25,7 +25,7 @@ func (m *RootModel) processProgressMsg(msg types.ProgressMsg) tea.Cmd {
 	d.Total = msg.Total
 	d.Speed = msg.Speed
 	d.Elapsed = msg.Elapsed
-	d.Connections = msg.ActiveConnections
+	d.Connections = msg.Connections
 	d.rateLimited = msg.RateLimited
 
 	// Keep "Resuming..." visible until we observe actual transfer.
@@ -41,7 +41,7 @@ func (m *RootModel) processProgressMsg(msg types.ProgressMsg) tea.Cmd {
 		// We only get bitmap, no progress array (to save bandwidth)
 		// State needs to be updated carefully
 		if d.state != nil {
-			d.state.RestoreBitmap(msg.ChunkBitmap, msg.ActualChunkSize)
+			d.state.RestoreBitmap(msg.ChunkBitmap, msg.ChunkSize)
 		}
 		if d.state != nil && len(msg.ChunkProgress) > 0 {
 			d.state.SetChunkProgress(msg.ChunkProgress)

@@ -24,7 +24,7 @@ import (
 
 type countingLifecycleService struct {
 	streamCalls atomic.Int32
-	streamCh    chan interface{}
+	streamCh    chan types.DownloadEvent
 	cleanupMu   sync.Mutex
 	cleaned     bool
 	logs        []string
@@ -46,8 +46,8 @@ func (s *countingLifecycleService) ResumeBatch([]string) []error   { return nil 
 func (s *countingLifecycleService) UpdateURL(string, string) error { return nil }
 func (s *countingLifecycleService) Delete(string) error            { return nil }
 func (s *countingLifecycleService) Purge(string) error             { return nil }
-func (s *countingLifecycleService) Publish(msg interface{}) error {
-	if log, ok := msg.(types.SystemLogMsg); ok {
+func (s *countingLifecycleService) Publish(msg types.DownloadEvent) error {
+	{
 		s.cleanupMu.Lock()
 		s.logs = append(s.logs, log.Message)
 		s.cleanupMu.Unlock()
@@ -59,9 +59,9 @@ func (s *countingLifecycleService) Shutdown() error                             
 func (s *countingLifecycleService) SetRateLimit(string, int64) error                { return nil }
 func (s *countingLifecycleService) ClearRateLimit(string) error                     { return nil }
 
-func (s *countingLifecycleService) StreamEvents(context.Context) (<-chan interface{}, func(), error) {
+func (s *countingLifecycleService) StreamEvents(context.Context) (<-chan types.DownloadEvent, func(), error) {
 	s.streamCalls.Add(1)
-	ch := make(chan interface{})
+	ch := make(chan types.DownloadEvent)
 	s.streamCh = ch
 	cleanup := func() {
 		s.cleanupMu.Lock()
@@ -130,7 +130,7 @@ func TestEnsureLocalLifecycle_StartsEventWorker(t *testing.T) {
 	setupIsolatedCmdState(t)
 	GlobalLifecycle = nil
 	GlobalLifecycleCleanup = nil
-	GlobalProgressCh = make(chan any, 32)
+	GlobalProgressCh = make(chan types.DownloadEvent, 32)
 	GlobalPool = scheduler.New(GlobalProgressCh, 1)
 	eventBus := orchestrator.NewEventBus()
 	getAll := func() []types.DownloadConfig { return GlobalPool.GetAll() }

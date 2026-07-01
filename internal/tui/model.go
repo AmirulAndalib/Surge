@@ -192,9 +192,9 @@ type RootModel struct {
 
 	// Batch import
 	pendingBatchURLs         []string // URLs pending batch import
-	pendingBatchRequests     []types.DownloadRequestMsg
-	pendingRequestQueue      []types.DownloadRequestMsg
-	pendingBatchRequestQueue []types.BatchDownloadRequestMsg
+	pendingBatchRequests     []types.DownloadEvent
+	pendingRequestQueue      []types.DownloadEvent
+	pendingBatchRequestQueue []types.DownloadEvent
 	batchFilePath            string // Path to the batch file
 
 	// URL Refresh

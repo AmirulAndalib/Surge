@@ -49,7 +49,7 @@ func TestHandleDownload_HeadlessMode_AutoApprovesNonDuplicate(t *testing.T) {
 	}))
 	defer probeServer.Close()
 
-	progressCh := make(chan any, 10)
+	progressCh := make(chan types.DownloadEvent, 10)
 	GlobalProgressCh = progressCh
 	GlobalPool = scheduler.New(progressCh, 1)
 
@@ -98,7 +98,7 @@ func TestHandleDownload_HeadlessMode_RejectsDuplicateWithWarn(t *testing.T) {
 		t.Fatalf("SaveSettings failed: %v", err)
 	}
 
-	progressCh := make(chan any, 10)
+	progressCh := make(chan types.DownloadEvent, 10)
 	GlobalProgressCh = progressCh
 	GlobalPool = scheduler.New(progressCh, 1)
 
@@ -158,7 +158,7 @@ func TestHandleDownload_HeadlessMode_RejectsExtensionPromptDuplicate(t *testing.
 		ID: "ext-dup-id", URL: url, Filename: "already-downloaded.bin", Status: "completed",
 	})
 
-	progressCh := make(chan any, 10)
+	progressCh := make(chan types.DownloadEvent, 10)
 	GlobalProgressCh = progressCh
 	GlobalPool = scheduler.New(progressCh, 1)
 	eventBus := orchestrator.NewEventBus()

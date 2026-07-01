@@ -59,7 +59,7 @@ type DownloadConfig struct {
 	ID         string
 	Filename   string
 	IsResume   bool
-	ProgressCh chan<- any
+	ProgressCh chan<- DownloadEvent
 	State      interface{}
 	SavedState *DownloadState
 	Runtime    *RuntimeConfig

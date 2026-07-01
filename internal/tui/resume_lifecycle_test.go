@@ -57,11 +57,11 @@ func TestResume_RespectsOriginalPath_WhenDefaultChanges(t *testing.T) {
 	settings.General.DefaultDownloadDir.Value = dirA
 
 	m := RootModel{
-		Settings:  settings,
-		Service:   &resumeMockService{DownloadService: service.NewLocalDownloadService(mgr)},
+		Settings:     settings,
+		Service:      &resumeMockService{DownloadService: service.NewLocalDownloadService(mgr)},
 		Orchestrator: nil,
-		downloads: []*DownloadModel{},
-		list:      NewDownloadList(80, 20), // Initialize list to prevent panic
+		downloads:    []*DownloadModel{},
+		list:         NewDownloadList(80, 20), // Initialize list to prevent panic
 	}
 
 	// 3. Start a download (simulating "surge get <url>" or TUI add)

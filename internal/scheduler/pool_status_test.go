@@ -8,7 +8,7 @@ import (
 )
 
 func TestWorkerPool_GetStatus_NonExistent(t *testing.T) {
-	ch := make(chan any, 10)
+	ch := make(chan types.DownloadEvent, 10)
 	pool := New(ch, 3)
 
 	status := pool.GetStatus("non-existent-id")
@@ -18,7 +18,7 @@ func TestWorkerPool_GetStatus_NonExistent(t *testing.T) {
 }
 
 func TestWorkerPool_GetStatus_Active(t *testing.T) {
-	ch := make(chan any, 10)
+	ch := make(chan types.DownloadEvent, 10)
 	pool := New(ch, 3)
 
 	id := "test-id"
@@ -61,7 +61,7 @@ func TestWorkerPool_GetStatus_Active(t *testing.T) {
 }
 
 func TestWorkerPool_GetStatus_Paused(t *testing.T) {
-	ch := make(chan any, 10)
+	ch := make(chan types.DownloadEvent, 10)
 	pool := New(ch, 3)
 
 	id := "test-id"
@@ -91,7 +91,7 @@ func TestWorkerPool_GetStatus_Paused(t *testing.T) {
 }
 
 func TestWorkerPool_GetStatus_Completed(t *testing.T) {
-	ch := make(chan any, 10)
+	ch := make(chan types.DownloadEvent, 10)
 	pool := New(ch, 3)
 
 	id := "test-id"

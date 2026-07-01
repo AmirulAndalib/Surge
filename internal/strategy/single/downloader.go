@@ -20,7 +20,7 @@ import (
 // NOTE: Pause/resume is NOT supported because this downloader is only used when
 // the server doesn't support Range headers. If interrupted, the download must restart.
 type SingleDownloader struct {
-	ProgressChan chan<- any                 // Channel for events (start/complete/error)
+	ProgressChan chan<- types.DownloadEvent                 // Channel for events (start/complete/error)
 	ID           string                     // Download ID
 	State        *progress.DownloadProgress // Shared state for TUI polling
 	Runtime      *types.RuntimeConfig
@@ -37,7 +37,7 @@ var bufPool = sync.Pool{
 }
 
 // NewSingleDownloader creates a new single-threaded downloader with all required parameters
-func NewSingleDownloader(id string, progressCh chan<- any, state *progress.DownloadProgress, runtime *types.RuntimeConfig) *SingleDownloader {
+func NewSingleDownloader(id string, progressCh chan<- types.DownloadEvent, state *progress.DownloadProgress, runtime *types.RuntimeConfig) *SingleDownloader {
 	if runtime == nil {
 		runtime = types.DefaultRuntimeConfig()
 	}

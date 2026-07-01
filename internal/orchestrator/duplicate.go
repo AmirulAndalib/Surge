@@ -3,7 +3,6 @@ package orchestrator
 import (
 	"strings"
 
-	"github.com/SurgeDM/Surge/internal/progress"
 	"github.com/SurgeDM/Surge/internal/store"
 	"github.com/SurgeDM/Surge/internal/types"
 )
@@ -31,7 +30,7 @@ func CheckForDuplicate(url string, activeDownloads func() map[string]*types.Down
 			normalizedExistingURL := strings.TrimRight(d.URL, "/")
 			if normalizedExistingURL == normalizedInputURL {
 				isActive := false
-				if d.State != nil && !d.State.(*progress.DownloadProgress).Done.Load() {
+				if d.State != nil && !cfgProgress(d).Done.Load() {
 					isActive = true
 				}
 

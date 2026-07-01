@@ -20,9 +20,19 @@ import (
 
 // safeSendProgress sends msg on ch, recovering from panics caused by sending
 // on a closed channel (which can happen during shutdown).
-func safeSendProgress(ch chan<- any, msg any) {
+func safeSendProgress(ch chan<- types.DownloadEvent, msg types.DownloadEvent) {
 	defer func() { _ = recover() }()
 	ch <- msg
+}
+
+// cfgProgress returns the *progress.DownloadProgress associated with cfg, or
+// nil if cfg.State is nil. This is the single point in the scheduler package
+// where the untyped State field is narrowed to a concrete type.
+func cfgProgress(cfg *types.DownloadConfig) *progress.DownloadProgress {
+	if cfg == nil || cfg.State == nil {
+		return nil
+	}
+	return cfg.State.(*progress.DownloadProgress)
 }
 
 // uniqueFilePath returns a unique file path by appending (1), (2), etc. if the file exists
@@ -124,7 +134,7 @@ func RunDownload(ctx context.Context, cfg *types.DownloadConfig) error {
 
 	var progState *progress.DownloadProgress
 	if cfg.State != nil {
-		progState = cfg.State.(*progress.DownloadProgress)
+		progState = cfgProgress(cfg)
 		progState.SetFilename(finalFilename)
 		progState.SetDestPath(finalDestPath)
 	}
@@ -139,7 +149,8 @@ func RunDownload(ctx context.Context, cfg *types.DownloadConfig) error {
 	// Send download started message
 	if cfg.ProgressCh != nil {
 		rateLimit, rateLimitSet := currentRateLimit()
-		safeSendProgress(cfg.ProgressCh, types.DownloadStartedMsg{
+		safeSendProgress(cfg.ProgressCh, types.DownloadEvent{
+			Type:         types.EventStarted,
 			DownloadID:   cfg.ID,
 			URL:          cfg.URL,
 			Filename:     finalFilename,
@@ -272,7 +283,8 @@ func RunDownload(ctx context.Context, cfg *types.DownloadConfig) error {
 
 		if cfg.ProgressCh != nil {
 			rateLimit, rateLimitSet := currentRateLimit()
-			safeSendProgress(cfg.ProgressCh, types.DownloadCompleteMsg{
+			safeSendProgress(cfg.ProgressCh, types.DownloadEvent{
+				Type:         types.EventComplete,
 				DownloadID:   cfg.ID,
 				Filename:     finalFilename,
 				Elapsed:      elapsed,
@@ -291,7 +303,8 @@ func RunDownload(ctx context.Context, cfg *types.DownloadConfig) error {
 
 		// Send error event
 		if cfg.ProgressCh != nil {
-			safeSendProgress(cfg.ProgressCh, types.DownloadErrorMsg{
+			safeSendProgress(cfg.ProgressCh, types.DownloadEvent{
+				Type:       types.EventError,
 				DownloadID: cfg.ID,
 				Filename:   finalFilename,
 				DestPath:   finalDestPath,
@@ -304,7 +317,7 @@ func RunDownload(ctx context.Context, cfg *types.DownloadConfig) error {
 }
 
 // Download is the CLI entry point (non-TUI) - convenience wrapper
-func Download(ctx context.Context, url string, outPath string, progressCh chan<- any, id string) error {
+func Download(ctx context.Context, url string, outPath string, progressCh chan<- types.DownloadEvent, id string) error {
 	cfg := types.DownloadConfig{
 		URL:        url,
 		OutputPath: outPath,

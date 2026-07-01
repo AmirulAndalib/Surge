@@ -24,23 +24,23 @@ func StartHeadlessConsumer(service service.DownloadService) {
 		defer cleanup()
 
 		for msg := range stream {
-			switch m := msg.(type) {
-			case types.DownloadStartedMsg:
-				fmt.Printf("Started: %s [%s]\n", m.Filename, truncateID(m.DownloadID))
-			case types.DownloadCompleteMsg:
+			switch msg.Type {
+			case types.EventStarted:
+				fmt.Printf("Started: %s [%s]\n", msg.Filename, truncateID(msg.DownloadID))
+			case types.EventComplete:
 				atomic.AddInt32(&activeDownloads, -1)
-				fmt.Printf("Completed: %s [%s] (in %s)\n", m.Filename, truncateID(m.DownloadID), m.Elapsed)
-			case types.DownloadErrorMsg:
+				fmt.Printf("Completed: %s [%s] (in %s)\n", msg.Filename, truncateID(msg.DownloadID), msg.Elapsed)
+			case types.EventError:
 				atomic.AddInt32(&activeDownloads, -1)
-				fmt.Printf("Error: %s [%s]: %v\n", m.Filename, truncateID(m.DownloadID), m.Err)
-			case types.DownloadQueuedMsg:
-				fmt.Printf("Queued: %s [%s]\n", m.Filename, truncateID(m.DownloadID))
-			case types.DownloadPausedMsg:
-				fmt.Printf("Paused: %s [%s]\n", m.Filename, truncateID(m.DownloadID))
-			case types.DownloadResumedMsg:
-				fmt.Printf("Resumed: %s [%s]\n", m.Filename, truncateID(m.DownloadID))
-			case types.DownloadRemovedMsg:
-				fmt.Printf("Removed: %s [%s]\n", m.Filename, truncateID(m.DownloadID))
+				fmt.Printf("Error: %s [%s]: %v\n", msg.Filename, truncateID(msg.DownloadID), msg.Err)
+			case types.EventQueued:
+				fmt.Printf("Queued: %s [%s]\n", msg.Filename, truncateID(msg.DownloadID))
+			case types.EventPaused:
+				fmt.Printf("Paused: %s [%s]\n", msg.Filename, truncateID(msg.DownloadID))
+			case types.EventResumed:
+				fmt.Printf("Resumed: %s [%s]\n", msg.Filename, truncateID(msg.DownloadID))
+			case types.EventRemoved:
+				fmt.Printf("Removed: %s [%s]\n", msg.Filename, truncateID(msg.DownloadID))
 			}
 		}
 	}()

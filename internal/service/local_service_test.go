@@ -24,11 +24,11 @@ func setupTestService(t *testing.T) (*LocalDownloadService, *httptest.Server, st
 		w.Write(make([]byte, 1024))
 	}))
 
-	progressCh := make(chan any, 10)
+	progressCh := make(chan types.DownloadEvent, 10)
 	pool := scheduler.New(progressCh, 1)
 	eb := orchestrator.NewEventBus()
 	mgr := orchestrator.NewLifecycleManager(pool, eb)
-	
+
 	// Ensure config directory exists for settings tests
 	tmpDir := t.TempDir()
 	os.Setenv("XDG_CONFIG_HOME", tmpDir)
@@ -45,7 +45,7 @@ func TestLocalDownloadService_AddWithID_UsesProvidedID(t *testing.T) {
 
 	customID := "test-id-123"
 	id, err := svc.AddWithID(ts.URL, tmpDir, "test.txt", nil, nil, customID, 1, 0, 0, false)
-	
+
 	if err != nil {
 		t.Fatalf("AddWithID failed: %v", err)
 	}
@@ -139,7 +139,7 @@ func TestLocalDownloadService_RateLimits(t *testing.T) {
 
 	// Add a download and set its specific rate limit
 	id, _ := svc.Add(ts.URL, tmpDir, "rate.txt", nil, nil, false, 1, 0, 0, false)
-	
+
 	err = svc.SetRateLimit(id, 2000)
 	if err != nil {
 		t.Errorf("SetRateLimit failed: %v", err)
@@ -220,11 +220,11 @@ func TestLocalDownloadService_HistoryAndList(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Add failed: %v", err)
 	}
-	
+
 	// Add a dummy completed download to store
 	testutil.SeedMasterList(t, types.DownloadEntry{
-		ID: "db-id",
-		Status: "completed",
+		ID:       "db-id",
+		Status:   "completed",
 		Filename: "db.txt",
 	})
 
@@ -258,7 +258,7 @@ func TestLocalDownloadService_Delete(t *testing.T) {
 	defer svc.Shutdown()
 
 	id, _ := svc.Add(ts.URL, tmpDir, "delete.txt", nil, nil, false, 1, 0, 0, false)
-	
+
 	err := svc.Delete(id)
 	if err != nil {
 		t.Errorf("Delete failed: %v", err)

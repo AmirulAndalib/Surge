@@ -72,11 +72,12 @@ func finalizeCompletedFile(finalPath string) error {
 
 // StartEventWorker listens to engine events and handles database persistence
 // and file cleanup, ensuring the core engine remains stateless.
-func (mgr *LifecycleManager) StartEventWorker(ch <-chan interface{}) {
+func (mgr *LifecycleManager) StartEventWorker(ch <-chan types.DownloadEvent) {
 	for msg := range ch {
-		switch m := msg.(type) {
+		m := msg
+		switch m.Type {
 
-		case types.DownloadStartedMsg:
+		case types.EventStarted:
 			// Persist the started record immediately so crash recovery and later lifecycle
 			// events have a stable destination record even before the first pause snapshot.
 			entry := types.DownloadEntry{
@@ -106,7 +107,7 @@ func (mgr *LifecycleManager) StartEventWorker(ch <-chan interface{}) {
 				utils.Debug("Lifecycle: Failed to save initial download state: %v", err)
 			}
 
-		case types.DownloadPausedMsg:
+		case types.EventPaused:
 			if m.State == nil {
 				existing, _ := store.GetDownload(m.DownloadID)
 				if existing == nil {
@@ -154,9 +155,10 @@ func (mgr *LifecycleManager) StartEventWorker(ch <-chan interface{}) {
 
 			// Pause snapshots can race slightly behind the master entry, so fall back to
 			// the DB values to keep the resume key stable when the in-memory state is sparse.
-			snapshot := *m.State
-			destPath := m.State.DestPath
-			url := m.State.URL
+			stateSnapshot := m.State.(*types.DownloadState)
+			snapshot := *stateSnapshot
+			destPath := stateSnapshot.DestPath
+			url := stateSnapshot.URL
 
 			existing, _ := store.GetDownload(m.DownloadID)
 			if existing != nil {
@@ -209,7 +211,7 @@ func (mgr *LifecycleManager) StartEventWorker(ch <-chan interface{}) {
 				utils.Debug("Lifecycle: Skipping SaveState for %s: destPath=%q url=%q", m.DownloadID, destPath, url)
 			}
 
-		case types.DownloadCompleteMsg:
+		case types.EventComplete:
 			var avgSpeed float64
 			if m.Elapsed.Seconds() > 0 {
 				avgSpeed = float64(m.Total) / m.Elapsed.Seconds()
@@ -311,7 +313,7 @@ func (mgr *LifecycleManager) StartEventWorker(ch <-chan interface{}) {
 				}
 			}
 
-		case types.DownloadErrorMsg:
+		case types.EventError:
 			existing, _ := store.GetDownload(m.DownloadID)
 			destPath := m.DestPath
 			if existing != nil {
@@ -346,7 +348,7 @@ func (mgr *LifecycleManager) StartEventWorker(ch <-chan interface{}) {
 				notify(fmt.Sprintf("Download failed: %s", filename), msg)
 			}
 
-		case types.DownloadRemovedMsg:
+		case types.EventRemoved:
 			// Remove resume metadata before touching files so a deleted download does not
 			// come back during startup recovery. DeleteState atomically removes both the
 			// detail gob and the master list entry, so no separate RemoveFromMasterList call
@@ -363,7 +365,7 @@ func (mgr *LifecycleManager) StartEventWorker(ch <-chan interface{}) {
 				}
 			}
 
-		case types.DownloadQueuedMsg:
+		case types.EventQueued:
 			// Queue persistence is what lets downloads survive shutdown before any worker
 			// has emitted a started event.
 			if err := store.AddToMasterList(types.DownloadEntry{
@@ -382,7 +384,7 @@ func (mgr *LifecycleManager) StartEventWorker(ch <-chan interface{}) {
 				utils.Debug("Lifecycle: Failed to persist queued download: %v", err)
 			}
 
-		case types.BatchProgressMsg, types.ProgressMsg:
+		case types.EventBatchProgress, types.EventProgress:
 			// Progress ticks are intentionally transient; persisting them would add
 			// file I/O churn without improving resume or history recovery.
 		}
