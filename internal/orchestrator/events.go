@@ -76,7 +76,6 @@ func (mgr *LifecycleManager) StartEventWorker(ch <-chan types.DownloadEvent) {
 	for msg := range ch {
 		m := msg
 		switch m.Type {
-
 		case types.EventStarted:
 			// Persist the started record immediately so crash recovery and later lifecycle
 			// events have a stable destination record even before the first pause snapshot.
@@ -296,7 +295,6 @@ func (mgr *LifecycleManager) StartEventWorker(ch <-chan types.DownloadEvent) {
 				utils.Debug("Lifecycle: Failed to delete completed tasks: %v", err)
 			}
 			if settings := mgr.GetSettings(); settings != nil && config.Resolve[bool](settings.General.DownloadCompleteNotification) {
-
 				if filename == "" {
 					filename = m.Filename
 				}
@@ -331,7 +329,6 @@ func (mgr *LifecycleManager) StartEventWorker(ch <-chan types.DownloadEvent) {
 				}
 			}
 			if settings := mgr.GetSettings(); settings != nil && config.Resolve[bool](settings.General.DownloadCompleteNotification) {
-
 				filename := m.Filename
 				if filename == "" && existing != nil {
 					filename = existing.Filename
@@ -383,6 +380,9 @@ func (mgr *LifecycleManager) StartEventWorker(ch <-chan types.DownloadEvent) {
 			}); err != nil {
 				utils.Debug("Lifecycle: Failed to persist queued download: %v", err)
 			}
+
+		case types.EventResumed, types.EventRequest, types.EventBatchRequest, types.EventSystem:
+			// These events require no persistence in the lifecycle worker.
 
 		case types.EventBatchProgress, types.EventProgress:
 			// Progress ticks are intentionally transient; persisting them would add

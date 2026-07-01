@@ -670,7 +670,6 @@ func (p *Scheduler) worker() {
 			delete(p.downloads, localCfg.ID)
 			delete(p.downloadLimiters, localCfg.ID)
 			p.mu.Unlock()
-
 		} else {
 			// Only mark as done if not paused
 			if localCfg.ProgressState != nil {

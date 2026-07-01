@@ -23,7 +23,6 @@ func stateProgress(state interface{}) *engineprogress.DownloadProgress {
 }
 
 func (m RootModel) updateEvents(msg tea.Msg) (tea.Model, tea.Cmd) {
-
 	if ev, ok := msg.(types.DownloadEvent); ok {
 		return m.handleDownloadEvent(ev)
 	}

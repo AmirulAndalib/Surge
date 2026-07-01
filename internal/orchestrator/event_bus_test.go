@@ -2,6 +2,7 @@ package orchestrator
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -137,7 +138,7 @@ func TestEventBus_ShutdownCleanly(t *testing.T) {
 
 	// Should not be able to publish after shutdown
 	err := eb.Publish(types.DownloadEvent{})
-	if err != context.Canceled {
+	if !errors.Is(err, context.Canceled) {
 		t.Errorf("expected context.Canceled on publish after shutdown, got %v", err)
 	}
 

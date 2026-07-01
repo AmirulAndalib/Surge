@@ -2,6 +2,7 @@ package orchestrator
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -144,7 +145,7 @@ func TestLifecycleManager_EnqueueInvalid(t *testing.T) {
 
 	// Missing Pool
 	_, _, err := mgr.Enqueue(context.Background(), &DownloadRequest{URL: "http://example.com", Path: "/tmp"})
-	if err != types.ErrServiceUnavailable {
+	if !errors.Is(err, types.ErrServiceUnavailable) {
 		t.Errorf("expected ErrServiceUnavailable, got %v", err)
 	}
 
@@ -153,13 +154,13 @@ func TestLifecycleManager_EnqueueInvalid(t *testing.T) {
 
 	// Missing URL
 	_, _, err = mgr.Enqueue(context.Background(), &DownloadRequest{Path: "/tmp"})
-	if err != types.ErrURLRequired {
+	if !errors.Is(err, types.ErrURLRequired) {
 		t.Errorf("expected ErrURLRequired, got %v", err)
 	}
 
 	// Missing Path
 	_, _, err = mgr.Enqueue(context.Background(), &DownloadRequest{URL: "http://example.com"})
-	if err != types.ErrDestRequired {
+	if !errors.Is(err, types.ErrDestRequired) {
 		t.Errorf("expected ErrDestRequired, got %v", err)
 	}
 }

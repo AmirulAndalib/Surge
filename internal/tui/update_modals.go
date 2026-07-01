@@ -189,7 +189,6 @@ func (m RootModel) updateDuplicateWarning(msg tea.KeyPressMsg) (tea.Model, tea.C
 }
 
 func (m RootModel) updateQuitConfirm(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
-
 	confirmQuit := func() (tea.Model, tea.Cmd) {
 		if m.cancelEnqueue != nil {
 			m.cancelEnqueue()
@@ -225,7 +224,6 @@ func (m RootModel) updateQuitConfirm(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m RootModel) updateBatchConfirm(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
-
 	if key.Matches(msg, m.keys.BatchConfirm.Confirm) {
 		// Add all URLs as downloads, skipping duplicates
 		path := strings.TrimSpace(m.inputs[2].Value())
@@ -296,7 +294,6 @@ func (m RootModel) updateBatchConfirm(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) 
 }
 
 func (m RootModel) updateURLUpdate(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
-
 	if key.Matches(msg, m.keys.Input.Esc) {
 		m.state = DashboardState
 		m.urlUpdateInput.SetValue("")

@@ -13,7 +13,6 @@ import (
 )
 
 func (m RootModel) updateDashboard(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
-
 	// Handle search input FIRST when active (intercepts ALL keys)
 	if m.searchActive {
 		switch msg.String() {

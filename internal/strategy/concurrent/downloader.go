@@ -399,7 +399,6 @@ func (d *ConcurrentDownloader) getEffectiveSizeForWorkers(fileSize int64, savedS
 }
 
 func (d *ConcurrentDownloader) setupTasks(destPath string, fileSize, chunkSize int64, outFile *os.File, savedState *types.DownloadRecord, isResume bool) ([]types.Task, error) {
-
 	if isResume {
 		if d.State != nil {
 			d.State.Bytes.Downloaded.Store(savedState.Downloaded)
@@ -721,7 +720,6 @@ func (d *ConcurrentDownloader) prewarmConnections(ctx context.Context, client *h
 
 	for i := 0; i < totalToStart; i++ {
 		go func(idx int) {
-
 			// Round-robin mirrors
 			mirror := mirrors[idx%len(mirrors)]
 

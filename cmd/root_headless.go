@@ -41,6 +41,8 @@ func StartHeadlessConsumer(service service.DownloadService) {
 				fmt.Printf("Resumed: %s [%s]\n", msg.Filename, truncateID(msg.DownloadID))
 			case types.EventRemoved:
 				fmt.Printf("Removed: %s [%s]\n", msg.Filename, truncateID(msg.DownloadID))
+			case types.EventProgress, types.EventRequest, types.EventBatchRequest, types.EventBatchProgress, types.EventSystem:
+				// Streaming/internal events are intentionally not logged to stdout.
 			}
 		}
 	}()

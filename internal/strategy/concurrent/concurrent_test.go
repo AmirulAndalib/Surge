@@ -308,7 +308,6 @@ func TestConcurrentDownloader_SmallFile(t *testing.T) {
 	if err := testutil.VerifyFileSize(destPath+types.IncompleteSuffix, fileSize); err != nil {
 		t.Error(err)
 	}
-
 }
 
 func TestConcurrentDownloader_MediumFile(t *testing.T) {
@@ -437,7 +436,6 @@ func TestConcurrentDownloader_PauseAtCompletionFinalizesAsCompleted(t *testing.T
 	if err := testutil.VerifyFileSize(destPath+types.IncompleteSuffix, fileSize); err != nil {
 		t.Fatal(err)
 	}
-
 }
 
 func TestConcurrentDownloader_ProgressTracking(t *testing.T) {
@@ -630,7 +628,6 @@ func TestConcurrentDownloader_ResumePartialDownload(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Resume download failed: %v", err)
 	}
-
 }
 
 // =============================================================================

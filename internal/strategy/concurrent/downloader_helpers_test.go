@@ -1,6 +1,7 @@
 package concurrent
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -56,7 +57,7 @@ func TestHandlePause_Normal(t *testing.T) {
 	queue.Push(types.Task{Offset: 500, Length: 500})
 
 	err := downloader.handlePause(destPath, fileSize, queue, nil)
-	if err != types.ErrPaused {
+	if !errors.Is(err, types.ErrPaused) {
 		t.Fatalf("Expected ErrPaused, got %v", err)
 	}
 }
@@ -85,7 +86,7 @@ func TestHandlePause_UsesLiveRateLimitFromState(t *testing.T) {
 	queue.Push(types.Task{Offset: 500, Length: 500})
 
 	err := downloader.handlePause(destPath, fileSize, queue, nil)
-	if err != types.ErrPaused {
+	if !errors.Is(err, types.ErrPaused) {
 		t.Fatalf("Expected ErrPaused, got %v", err)
 	}
 

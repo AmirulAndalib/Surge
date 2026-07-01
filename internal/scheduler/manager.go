@@ -83,8 +83,7 @@ func RunDownload(ctx context.Context, cfg *types.DownloadRecord) error {
 	finalDestPath := filepath.Join(destPath, finalFilename)
 
 	// Local mirrors slice to avoid modifying config (race condition)
-	mirrors := make([]string, len(cfg.Mirrors))
-	copy(mirrors, cfg.Mirrors)
+	mirrors := append([]string(nil), cfg.Mirrors...)
 
 	// Check if this is a resume (explicitly marked by TUI)
 	var savedState *types.DownloadRecord

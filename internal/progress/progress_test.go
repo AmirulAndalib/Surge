@@ -2,6 +2,7 @@ package progress
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -126,7 +127,7 @@ func TestDownloadProgress_Error(t *testing.T) {
 	testErr := context.DeadlineExceeded
 	ps.SetError(testErr)
 
-	if err := ps.GetError(); err != testErr {
+	if err := ps.GetError(); !errors.Is(err, testErr) {
 		t.Errorf("GetError = %v, want %v", err, testErr)
 	}
 }
