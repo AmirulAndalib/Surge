@@ -204,6 +204,8 @@ type DownloadRequest struct {
 	SkipApproval       bool
 	Workers            int
 	MinChunkSize       int64
+	TotalSize          int64
+	SupportsRange      bool
 }
 
 // Enqueue probes and reserves a stable destination before dispatching to the queue layer.
@@ -393,6 +395,15 @@ func (mgr *LifecycleManager) dispatchToScheduler(req *DownloadRequest, requestID
 		}
 	}
 
+	totalSize := probeResult.FileSize
+	if req.TotalSize > 0 {
+		totalSize = req.TotalSize
+	}
+	supportsRange := probeResult.SupportsRange
+	if req.TotalSize > 0 || req.SupportsRange {
+		supportsRange = req.SupportsRange
+	}
+
 	cfg := types.DownloadRecord{
 		URL:                req.URL,
 		Mirrors:            req.Mirrors,
@@ -403,8 +414,8 @@ func (mgr *LifecycleManager) dispatchToScheduler(req *DownloadRequest, requestID
 		Runtime:            runtime,
 		Headers:            req.Headers,
 		IsExplicitCategory: req.IsExplicitCategory,
-		TotalSize:          probeResult.FileSize,
-		SupportsRange:      probeResult.SupportsRange,
+		TotalSize:          totalSize,
+		SupportsRange:      supportsRange,
 		RateLimit:          rateLimit,
 		RateLimitSet:       rateLimitSet,
 	}

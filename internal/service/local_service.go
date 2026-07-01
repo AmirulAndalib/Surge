@@ -80,6 +80,8 @@ func (s *LocalDownloadService) Add(url string, path string, filename string, mir
 		IsExplicitCategory: isExplicitCategory,
 		Workers:            workers,
 		MinChunkSize:       minChunkSize,
+		TotalSize:          totalSize,
+		SupportsRange:      supportsRange,
 	}
 	id, _, err := s.lifecycle.Enqueue(context.Background(), req)
 	return id, err
@@ -95,6 +97,8 @@ func (s *LocalDownloadService) AddWithID(url string, path string, filename strin
 		IsExplicitCategory: false,
 		Workers:            workers,
 		MinChunkSize:       minChunkSize,
+		TotalSize:          totalSize,
+		SupportsRange:      supportsRange,
 	}
 	newID, _, err := s.lifecycle.EnqueueWithID(context.Background(), req, id)
 	return newID, err
