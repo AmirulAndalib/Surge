@@ -4,6 +4,8 @@ import (
 	"context"
 	"testing"
 	"time"
+
+	"github.com/SurgeDM/Surge/internal/types"
 )
 
 func TestNew(t *testing.T) {
@@ -317,7 +319,7 @@ func TestDownloadProgress_SessionReset(t *testing.T) {
 	ps.InitBitmap(1000, 100)
 
 	// Simulate some activity
-	ps.UpdateChunkStatus(0, 100, ChunkCompleted)
+	ps.UpdateChunkStatus(0, 100, types.ChunkCompleted)
 
 	ps.SessionReset()
 
