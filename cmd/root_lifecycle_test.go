@@ -47,11 +47,9 @@ func (s *countingLifecycleService) UpdateURL(string, string) error { return nil 
 func (s *countingLifecycleService) Delete(string) error            { return nil }
 func (s *countingLifecycleService) Purge(string) error             { return nil }
 func (s *countingLifecycleService) Publish(msg types.DownloadEvent) error {
-	{
-		s.cleanupMu.Lock()
-		s.logs = append(s.logs, msg.Message)
-		s.cleanupMu.Unlock()
-	}
+	s.cleanupMu.Lock()
+	s.logs = append(s.logs, msg.Message)
+	s.cleanupMu.Unlock()
 	return nil
 }
 func (s *countingLifecycleService) GetStatus(string) (*types.DownloadStatus, error) { return nil, nil }
