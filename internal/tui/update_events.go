@@ -18,8 +18,10 @@ func stateProgress(state interface{}) *engineprogress.DownloadProgress {
 	if state == nil {
 		return nil
 	}
-	dp, _ := state.(*engineprogress.DownloadProgress)
-	return dp
+	if dr, ok := state.(*types.DownloadRecord); ok {
+		return engineprogress.CfgProgress(dr)
+	}
+	return nil
 }
 
 func (m RootModel) updateEvents(msg tea.Msg) (tea.Model, tea.Cmd) {
