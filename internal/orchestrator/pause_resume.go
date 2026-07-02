@@ -397,19 +397,31 @@ func buildResumeConfig(id, outputPath string, entry *types.DownloadRecord, saved
 	}
 	dmState.SetRateLimit(rateLimit, rateLimitSet)
 
+	var tasks []types.Task
+	var chunkBitmap []byte
+	var actualChunkSize int64
+	if savedState != nil {
+		tasks = savedState.Tasks
+		chunkBitmap = savedState.ChunkBitmap
+		actualChunkSize = savedState.ActualChunkSize
+	}
+
 	return types.DownloadRecord{
-		URL:           url,
-		OutputPath:    outputPath,
-		DestPath:      destPath,
-		ID:            id,
-		Filename:      filename,
-		TotalSize:     totalSize,
-		SupportsRange: savedState != nil && len(savedState.Tasks) > 0,
-		IsResume:      true,
-		ProgressState: dmState,
-		Runtime:       runtime,
-		Mirrors:       mirrorURLs,
-		RateLimit:     rateLimit,
-		RateLimitSet:  rateLimitSet,
+		URL:             url,
+		OutputPath:      outputPath,
+		DestPath:        destPath,
+		ID:              id,
+		Filename:        filename,
+		TotalSize:       totalSize,
+		SupportsRange:   savedState != nil && len(savedState.Tasks) > 0,
+		IsResume:        true,
+		ProgressState:   dmState,
+		Runtime:         runtime,
+		Mirrors:         mirrorURLs,
+		RateLimit:       rateLimit,
+		RateLimitSet:    rateLimitSet,
+		Tasks:           tasks,
+		ChunkBitmap:     chunkBitmap,
+		ActualChunkSize: actualChunkSize,
 	}
 }

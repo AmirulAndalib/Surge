@@ -66,9 +66,9 @@ func uniqueFilePath(path string) string {
 		}
 	}
 
-	// Fallback: just append a large random number or give up (original behavior essentially gave up or made ugly names)
-	// Here we fallback to original behavior of appending if the clean one failed 100 times
-	return path
+	// Fallback: if all 100 numbered candidates are taken, return an empty string so
+	// callers can detect the failure rather than silently receiving a conflicting path.
+	return ""
 }
 
 // RunDownload is the main entry point for downloads executed by the Engine pool
