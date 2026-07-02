@@ -12,6 +12,7 @@ import (
 
 	"github.com/SurgeDM/Surge/internal/config"
 	"github.com/SurgeDM/Surge/internal/scheduler"
+	"github.com/SurgeDM/Surge/internal/store"
 	"github.com/SurgeDM/Surge/internal/types"
 )
 
@@ -162,5 +163,70 @@ func TestLifecycleManager_EnqueueInvalid(t *testing.T) {
 	_, _, err = mgr.Enqueue(context.Background(), &DownloadRequest{URL: "http://example.com"})
 	if !errors.Is(err, types.ErrDestRequired) {
 		t.Errorf("expected ErrDestRequired, got %v", err)
+	}
+}
+
+func TestLifecycleManager_ResumeBatch_CorruptStateIgnored(t *testing.T) {
+	// Setup store
+	tmpDir := t.TempDir()
+	dbPath := filepath.Join(tmpDir, "surge.db")
+	store.Configure(dbPath)
+	t.Cleanup(func() { store.CloseDB() })
+
+	// Add two entries to master list
+	entry1 := types.DownloadRecord{
+		ID:       "id-valid",
+		URL:      "http://example.com/valid",
+		DestPath: filepath.Join(tmpDir, "valid"),
+		Status:   "paused",
+	}
+	entry2 := types.DownloadRecord{
+		ID:       "id-corrupt",
+		URL:      "http://example.com/corrupt",
+		DestPath: filepath.Join(tmpDir, "corrupt"),
+		Status:   "paused",
+	}
+	if err := store.AddToMasterList(entry1); err != nil {
+		t.Fatalf("failed to add entry1: %v", err)
+	}
+	if err := store.AddToMasterList(entry2); err != nil {
+		t.Fatalf("failed to add entry2: %v", err)
+	}
+
+	// Write a corrupt gob state for entry2
+	corruptStateFile := filepath.Join(tmpDir, "details", "id-corrupt.gob")
+	if err := os.MkdirAll(filepath.Dir(corruptStateFile), 0755); err != nil {
+		t.Fatalf("failed to create details dir: %v", err)
+	}
+	if err := os.WriteFile(corruptStateFile, []byte("not-a-gob"), 0644); err != nil {
+		t.Fatalf("failed to write corrupt state file: %v", err)
+	}
+
+	// Initialize manager
+	progressCh := make(chan types.DownloadEvent, 10)
+	pool := scheduler.New(progressCh, 2)
+	eb := NewEventBus()
+	mgr := NewLifecycleManager(pool, eb)
+	defer mgr.Shutdown()
+
+	errs := mgr.ResumeBatch([]string{"id-valid", "id-corrupt"})
+
+	if len(errs) != 2 {
+		t.Fatalf("expected 2 errors, got %d", len(errs))
+	}
+	if errs[0] != nil {
+		t.Errorf("expected no error for id-valid, got %v", errs[0])
+	}
+	if errs[1] != nil {
+		// Even for the corrupt one, it should fallback to the master list and successfully enqueue a fresh resume
+		t.Errorf("expected no error for id-corrupt, got %v", errs[1])
+	}
+	
+	// Check that pool has both downloads enqueued/started
+	if pool.GetStatus("id-valid") == nil {
+		t.Errorf("expected id-valid to be in pool")
+	}
+	if pool.GetStatus("id-corrupt") == nil {
+		t.Errorf("expected id-corrupt to be in pool")
 	}
 }

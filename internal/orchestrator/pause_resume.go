@@ -1,7 +1,6 @@
 package orchestrator
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/SurgeDM/Surge/internal/config"
@@ -197,14 +196,7 @@ func (mgr *LifecycleManager) ResumeBatch(ids []string) []error {
 		return errs
 	}
 
-	states, err := store.LoadStates(coldIDs)
-	if err != nil {
-		for _, id := range coldIDs {
-			idx := coldIdx[id]
-			errs[idx] = fmt.Errorf("failed to load state: %w", err)
-		}
-		return errs
-	}
+	states, _ := store.LoadStates(coldIDs)
 
 	masterList, mErr := store.LoadMasterList()
 	var masterMap map[string]*types.DownloadRecord
