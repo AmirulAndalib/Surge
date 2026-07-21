@@ -152,9 +152,18 @@ func TestAutoShutdown_DeleteLastPendingDownloadReconciles(t *testing.T) {
 	m.UpdateListItems()
 	m.list.Select(0)
 
-	updated, cmd := m.Update(tea.KeyPressMsg{Code: 'x', Text: "x"})
+	updated, _ := m.Update(tea.KeyPressMsg{Code: 'x', Text: "x"})
 	m2 := updated.(RootModel)
 
+	if m2.state != RemoveConfirmState {
+		t.Fatalf("expected remove confirmation state, got %v", m2.state)
+	}
+	if len(m2.downloads) != 1 {
+		t.Fatalf("expected download to remain before confirmation, got %d", len(m2.downloads))
+	}
+
+	updated, cmd := m2.Update(tea.KeyPressMsg{Code: 'y', Text: "y"})
+	m2 = updated.(RootModel)
 	if len(m2.downloads) != 0 {
 		t.Fatalf("expected delete to remove download, got %d", len(m2.downloads))
 	}

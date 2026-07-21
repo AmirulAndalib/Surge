@@ -276,6 +276,9 @@ func (m RootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case PurgeConfirmState:
 			return m.updatePurgeConfirm(msg)
 
+		case RemoveConfirmState:
+			return m.updateRemoveConfirm(msg)
+
 		default:
 			return m, nil
 		}

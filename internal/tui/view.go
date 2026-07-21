@@ -314,6 +314,10 @@ func (m RootModel) View() tea.View {
 		return m.wrapView(m.renderModalWithOverlay(m.viewPurgeConfirm()))
 	}
 
+	if m.state == RemoveConfirmState {
+		return m.wrapView(m.renderModalWithOverlay(m.viewRemoveConfirm()))
+	}
+
 	if m.state == UpdateAvailableState && m.UpdateInfo != nil {
 		modal := components.ConfirmationModal{
 			Title:       "\u2b06 Update Available",
@@ -910,8 +914,8 @@ func (m RootModel) viewPurgeConfirm() string {
 
 	if filename == "" {
 		filename = "this download"
-	} else if len(filename) > 30 {
-		filename = filename[:27] + "..."
+	} else {
+		filename = utils.Truncate(filename, 30)
 	}
 
 	modal := components.ConfirmationModal{
@@ -921,6 +925,42 @@ func (m RootModel) viewPurgeConfirm() string {
 		Keys:             m.keys.QuitConfirm, // QuitConfirm works as a general yes/no
 		Help:             m.help,
 		BorderColor:      colors.Red(),
+		ShowYesNoButtons: true,
+		YesNoFocused:     m.quitConfirmFocused,
+		YesLabel:         "Yes",
+		NoLabel:          "No",
+	}
+
+	w, h := GetDynamicModalDimensions(m.width, m.height, 46, 8, 60, 12)
+	modal.Width = w
+	modal.Height = h
+
+	return modal.RenderWithBtopBox(renderBtopBox, PaneTitleStyle)
+}
+
+func (m RootModel) viewRemoveConfirm() string {
+	filename := ""
+	if d := m.FindDownloadByID(m.removeTargetID); d != nil {
+		filename = d.Filename
+		if filename == "" || filename == "Queued" {
+			filename = d.URL
+		}
+	}
+
+	if filename == "" {
+		filename = "this download"
+	} else {
+		filename = utils.Truncate(filename, 30)
+	}
+
+	modal := components.ConfirmationModal{
+		Title:            "Remove Download",
+		Message:          "Remove this download?",
+		Detail:           fmt.Sprintf("File: %s\nThis paused or active download may lose progress data.", filename),
+		Keys:             m.keys.QuitConfirm, // QuitConfirm works as a general yes/no
+		Help:             m.help,
+		BorderColor:      colors.Orange(),
+		ButtonColor:      colors.Orange(),
 		ShowYesNoButtons: true,
 		YesNoFocused:     m.quitConfirmFocused,
 		YesLabel:         "Yes",

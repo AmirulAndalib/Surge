@@ -1,8 +1,6 @@
 package tui
 
 import (
-	"errors"
-
 	"charm.land/bubbles/v2/key"
 	"charm.land/bubbles/v2/list"
 	tea "charm.land/bubbletea/v2"
@@ -145,27 +143,13 @@ func (m RootModel) updateDashboard(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		if m.list.FilterState() == list.Filtering {
 			// Fall through
 		} else if d := m.GetSelectedDownload(); d != nil {
-			if m.Service == nil {
-				m.addLogEntry(LogStyleError.Render("\u2716 Service unavailable"))
+			if !d.done || d.err != nil {
+				m.removeTargetID = d.ID
+				m.quitConfirmFocused = 1 // default focus on "Cancel"
+				m.state = RemoveConfirmState
 				return m, nil
 			}
-			targetID := d.ID
-
-			// Call Service Delete
-			if err := m.Service.Delete(targetID); err != nil {
-				// If the download is not found, it's already gone from the engine/DB.
-				// We still remove it from our local list to avoid it being "stuck".
-				if errors.Is(err, types.ErrNotFound) {
-					m.removeDownloadByID(targetID)
-				} else {
-					m.addLogEntry(LogStyleError.Render("\u2716 Delete failed: " + err.Error()))
-				}
-			} else {
-				m.removeDownloadByID(targetID)
-			}
-			m.UpdateListItems()
-			m, autoCmd := m.refreshAutoShutdown()
-			return m, autoCmd
+			return m.deleteDownload(d.ID)
 		}
 	}
 

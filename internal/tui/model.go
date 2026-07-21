@@ -66,6 +66,7 @@ const (
 	CategoryResetConfirmState
 	SpeedLimitsState
 	PurgeConfirmState
+	RemoveConfirmState
 )
 
 type FilePickerOrigin int
@@ -118,15 +119,16 @@ type DownloadModel struct {
 }
 
 type RootModel struct {
-	downloads     []*DownloadModel
-	width         int
-	height        int
-	state         UIState
-	activeTab     int // 0=Queued, 1=Active, 2=Done
-	pinnedTab     int // -1=None, 0=Queued, 1=Active, 2=Done
-	inputs        []textinput.Model
-	focusedInput  int
-	purgeTargetID string
+	downloads      []*DownloadModel
+	width          int
+	height         int
+	state          UIState
+	activeTab      int // 0=Queued, 1=Active, 2=Done
+	pinnedTab      int // -1=None, 0=Queued, 1=Active, 2=Done
+	inputs         []textinput.Model
+	focusedInput   int
+	purgeTargetID  string
+	removeTargetID string
 	// Service Interface
 	// Core
 	Service      service.DownloadService

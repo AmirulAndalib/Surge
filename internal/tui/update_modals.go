@@ -665,3 +665,67 @@ func (m RootModel) updatePurgeConfirm(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) 
 
 	return m, nil
 }
+
+func (m RootModel) updateRemoveConfirm(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	confirmRemove := func() (tea.Model, tea.Cmd) {
+		targetID := m.removeTargetID
+		m.removeTargetID = ""
+		m.quitConfirmFocused = 0
+		m.state = DashboardState
+		model, deleteCmd := m.deleteDownload(targetID)
+		root, ok := model.(RootModel)
+		if !ok {
+			return model, deleteCmd
+		}
+		nextModel, nextCmd := root.showNextPendingRequest()
+		return nextModel, tea.Batch(deleteCmd, nextCmd)
+	}
+
+	cancelRemove := func() (tea.Model, tea.Cmd) {
+		m.removeTargetID = ""
+		m.quitConfirmFocused = 0
+		m.state = DashboardState
+		return m.showNextPendingRequest()
+	}
+
+	m, decision, handled := m.handleYesNoSelection(msg)
+	if !handled {
+		return m, nil
+	}
+
+	switch decision {
+	case yesNoYes:
+		return confirmRemove()
+	case yesNoNo, yesNoCancel:
+		return cancelRemove()
+	}
+
+	return m, nil
+}
+
+func (m RootModel) deleteDownload(targetID string) (tea.Model, tea.Cmd) {
+	if targetID == "" {
+		return m, nil
+	}
+
+	if m.Service == nil {
+		m.addLogEntry(LogStyleError.Render("\u2716 Service unavailable"))
+		return m, nil
+	}
+
+	if err := m.Service.Delete(targetID); err != nil {
+		// If the download is not found, it's already gone from the engine/DB.
+		// We still remove it from our local list to avoid it being "stuck".
+		if errors.Is(err, types.ErrNotFound) {
+			m.removeDownloadByID(targetID)
+		} else {
+			m.addLogEntry(LogStyleError.Render("\u2716 Delete failed: " + err.Error()))
+		}
+	} else {
+		m.removeDownloadByID(targetID)
+	}
+
+	m.UpdateListItems()
+	m, autoCmd := m.refreshAutoShutdown()
+	return m, autoCmd
+}
