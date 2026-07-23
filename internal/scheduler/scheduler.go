@@ -713,14 +713,16 @@ func (p *Scheduler) worker() {
 			p.mu.Lock()
 			delete(p.downloads, localCfg.ID)
 
-			if !p.isShuttingDown && !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) && qt.retries < 3 {
+			if !p.isShuttingDown && !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) && !types.IsPermanentHTTPError(err) && qt.retries < 10 {
 				qt.retries++
-				qt.inFlight = false
+				qt.inFlight = true // Keep in-flight while sending progress outside lock
 				qt.cfg = localCfg
 				p.queued[localCfg.ID] = qt
 
 				p.removeQueueOrderLocked(localCfg.ID)
-				p.queueOrder = append([]string{localCfg.ID}, p.queueOrder...)
+				p.queueOrder = append(p.queueOrder, localCfg.ID)
+
+				p.mu.Unlock()
 
 				if localCfg.ProgressCh != nil {
 					safeSendProgress(localCfg.ProgressCh, types.DownloadEvent{
@@ -736,9 +738,52 @@ func (p *Scheduler) worker() {
 						MinChunkSize: localCfg.MinChunkSize,
 					}, p.progressDone)
 				}
+
+				p.mu.Lock()
+				if _, ok := p.queued[localCfg.ID]; ok {
+					qt.inFlight = false
+					p.queued[localCfg.ID] = qt
+				} else {
+					// GracefulShutdown or Cancel removed it while we were unlocked.
+					// Since we were in-flight, they didn't decrement wg, so we must.
+					p.wg.Done()
+				}
 				p.taskCond.Signal()
 				p.mu.Unlock()
+				// ponytail: naive backoff blocks worker thread, but naturally limits retry storms
+				select {
+				case <-time.After(time.Second * time.Duration(qt.retries)):
+				case <-p.progressDone:
+					// Wake up early if shutting down
+				}
 				continue
+			}
+
+			// All retries exhausted (or error is permanent/canceled): collect event
+			// metadata under the lock, then send outside it so a full progress
+			// channel cannot block the scheduler mutex.
+			var errEvent *types.DownloadEvent
+			if localCfg.ProgressCh != nil {
+				var finalDestPath string
+				var finalFilename string
+				if localCfg.ProgressState != nil {
+					p := progress.CfgProgress(&localCfg)
+					finalDestPath = p.GetDestPath()
+					finalFilename = p.GetFilename()
+				}
+				if finalDestPath == "" {
+					finalDestPath = resolveDestPath(&localCfg)
+				}
+				if finalFilename == "" {
+					finalFilename = localCfg.Filename
+				}
+				errEvent = &types.DownloadEvent{
+					Type:       types.EventError,
+					DownloadID: localCfg.ID,
+					Filename:   finalFilename,
+					DestPath:   finalDestPath,
+					Err:        err,
+				}
 			}
 
 			if localCfg.ProgressState != nil {
@@ -746,6 +791,12 @@ func (p *Scheduler) worker() {
 			}
 			delete(p.downloadLimiters, localCfg.ID)
 			p.mu.Unlock()
+
+			// Send outside the lock: safeSendProgress may block on a full
+			// channel and must not hold p.mu while doing so.
+			if errEvent != nil {
+				safeSendProgress(localCfg.ProgressCh, *errEvent, p.progressDone)
+			}
 		} else {
 			// Only mark as done if not paused
 			if localCfg.ProgressState != nil {
@@ -922,10 +973,12 @@ func (p *Scheduler) GracefulShutdown() {
 			<-ticker.C
 		}
 
-		p.wg.Wait() // Blocks until all workers call Done()
-
 		// Signal that progressCh must no longer be sent to, so that
 		// safeSendProgress calls in workers can abort if the channel is full.
+		// This must happen before wg.Wait() to break deadlocks where a worker
+		// is blocked on a full channel and preventing wg from completing.
 		close(p.progressDone)
+
+		p.wg.Wait() // Blocks until all workers call Done()
 	})
 }
