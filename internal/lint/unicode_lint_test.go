@@ -29,9 +29,8 @@ import (
 func TestNoRawUnicodeInStringLiterals(t *testing.T) {
 	root := projectRoot(t)
 
-	// Directories to skip entirely.
+	// Directories to skip entirely (in addition to those starting with . or _)
 	skipDirs := map[string]bool{
-		".git":     true,
 		"vendor":   true,
 		"testdata": true,
 	}
@@ -50,7 +49,13 @@ func TestNoRawUnicodeInStringLiterals(t *testing.T) {
 			return err
 		}
 		if d.IsDir() {
-			if skipDirs[d.Name()] {
+			// Never skip the walk root: packaging trees often live under
+			// names like _build-surge-xbps that contain go.mod.
+			if path == root {
+				return nil
+			}
+			name := d.Name()
+			if skipDirs[name] || strings.HasPrefix(name, ".") || strings.HasPrefix(name, "_") {
 				return filepath.SkipDir
 			}
 			return nil
