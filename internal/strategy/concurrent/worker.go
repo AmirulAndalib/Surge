@@ -166,18 +166,27 @@ func (d *ConcurrentDownloader) worker(ctx context.Context, id int, mirrors []str
 			resumeOnRetryOffset(&task, activeTask)
 		}
 
-		d.activeMu.Lock()
-		delete(d.activeTasks, id)
-		d.activeMu.Unlock()
-
 		if d.State != nil {
 			d.State.ActiveWorkers.Add(-1)
 		}
 
 		if lastErr != nil {
 			utils.Debug("Worker %d: task at offset %d failed after %d retries: %v", id, task.Offset, maxRetries, lastErr)
+
+			if remain := activeTask.RemainingTask(); remain != nil {
+				queue.Push(*remain)
+			}
+
+			d.activeMu.Lock()
+			delete(d.activeTasks, id)
+			d.activeMu.Unlock()
+
 			return lastErr
 		}
+
+		d.activeMu.Lock()
+		delete(d.activeTasks, id)
+		d.activeMu.Unlock()
 	}
 }
 
@@ -230,6 +239,9 @@ func (d *ConcurrentDownloader) downloadTask(ctx context.Context, rawurl string, 
 			return fmt.Errorf("server indicated success (200) but ignored range request (expected 206)")
 		}
 	} else if resp.StatusCode != http.StatusPartialContent {
+		if types.IsPermanentHTTPStatus(resp.StatusCode) {
+			return fmt.Errorf("unexpected status: %d: %w", resp.StatusCode, types.ErrPermanentHTTP)
+		}
 		return fmt.Errorf("unexpected status: %d", resp.StatusCode)
 	}
 

@@ -564,10 +564,6 @@ func (d *ConcurrentDownloader) saveStateSnapshot(destPath string, fileSize int64
 	d.activeMu.Lock()
 	for _, active := range d.activeTasks {
 		if remaining := active.RemainingTask(); remaining != nil {
-			// Temporarily attach SharedMaxOffset for deduplication (cleared later)
-			if active.SharedMaxOffset != nil {
-				remaining.SharedMaxOffset = active.SharedMaxOffset
-			}
 			activeRemaining = append(activeRemaining, *remaining)
 		}
 	}
@@ -592,7 +588,7 @@ func (d *ConcurrentDownloader) saveStateSnapshot(destPath string, fileSize int64
 		remainingTasks = append(remainingTasks, task)
 		remainingBytes += task.Length
 	}
-	
+
 	if remainingBytes == 0 {
 		utils.Debug("Download state save requested at completion boundary; finalizing as completed")
 		d.State.Resume()
@@ -633,7 +629,7 @@ func (d *ConcurrentDownloader) saveStateSnapshot(destPath string, fileSize int64
 		Workers:         d.Runtime.Workers,
 		MinChunkSize:    d.Runtime.MinChunkSize,
 	}
-	
+
 	if emitPauseEvent {
 		if d.ProgressChan != nil {
 			d.ProgressChan <- types.DownloadEvent{
