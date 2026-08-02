@@ -41,7 +41,6 @@ func (m RootModel) viewSettings() string {
 		return m.renderModalWithOverlay(box)
 	}
 
-	metadata := config.GetSettingsMetadata()
 	activeTab := m.SettingsActiveTab
 	if activeTab < 0 {
 		activeTab = 0
@@ -51,7 +50,7 @@ func (m RootModel) viewSettings() string {
 	}
 
 	currentCategory := categories[activeTab]
-	settingsMeta := metadata[currentCategory]
+	settingsMeta := m.buildSettingsMetaForCategory(currentCategory)
 	if len(settingsMeta) == 0 {
 		content := lipgloss.NewStyle().
 			Padding(1, 2).
@@ -275,9 +274,9 @@ func (m RootModel) renderSettingsListViewport(settingsMeta []config.SettingMeta,
 		selectedRow = len(settingsMeta) - 1
 	}
 
-	start := 0
-	if selectedRow >= rows {
-		start = selectedRow - rows + 1
+	start := selectedRow - (rows / 2)
+	if start < 0 {
+		start = 0
 	}
 	maxStart := len(settingsMeta) - rows
 	if maxStart < 0 {
@@ -352,9 +351,20 @@ func (m RootModel) renderSettingsDetailBlock(settingsMeta []config.SettingMeta, 
 	unit := m.getSettingUnit()
 	unitStyle := lipgloss.NewStyle().Foreground(colors.Gray())
 
+	valueLabel := "Value: "
 	var valueStr string
 	if m.SettingsIsEditing {
-		valueStr = m.SettingsInput.View() + unitStyle.Render(unit)
+		if meta.Type == config.TypeCustomCategory || meta.Type == config.TypeCustomCategoryAdd {
+			valueStr = lipgloss.JoinVertical(lipgloss.Left,
+				m.renderCategoryInputLine("Name:", 0, innerWidth),
+				m.renderCategoryInputLine("Desc:", 1, innerWidth),
+				m.renderCategoryInputLine("Regex:", 2, innerWidth),
+				m.renderCategoryInputLine("Path:", 3, innerWidth),
+			)
+			valueLabel = ""
+		} else {
+			valueStr = m.SettingsInput.View() + unitStyle.Render(unit)
+		}
 	} else {
 		switch meta.Type {
 		case config.TypeAuthToken:
@@ -374,6 +384,23 @@ func (m RootModel) renderSettingsDetailBlock(settingsMeta []config.SettingMeta, 
 			}
 		case config.TypeLink:
 			valueStr = lipgloss.NewStyle().Foreground(colors.Cyan()).Render("Open [Enter]")
+			valueLabel = "Action: "
+		case config.TypeCustomCategoryAdd:
+			valueStr = lipgloss.NewStyle().Foreground(colors.Cyan()).Render("Create Category [Enter]")
+			valueLabel = "Action: "
+		case config.TypeCustomCategory:
+			cat, ok := value.(config.Category)
+			if !ok {
+				break
+			}
+			labelStyle := lipgloss.NewStyle().Foreground(colors.LightGray()).Width(8)
+			valueStr = lipgloss.JoinVertical(lipgloss.Left,
+				lipgloss.JoinHorizontal(lipgloss.Top, labelStyle.Render("Name:"), utils.TruncateMiddle(cat.Name, innerWidth-20)),
+				lipgloss.JoinHorizontal(lipgloss.Top, labelStyle.Render("Desc:"), utils.TruncateMiddle(cat.Description, innerWidth-20)),
+				lipgloss.JoinHorizontal(lipgloss.Top, labelStyle.Render("Regex:"), utils.TruncateMiddle(cat.Pattern, innerWidth-20)),
+				lipgloss.JoinHorizontal(lipgloss.Top, labelStyle.Render("Path:"), utils.TruncateMiddle(cat.Path, innerWidth-20)),
+			)
+			valueLabel = ""
 		default:
 			valueStr = formatSettingValueForEdit(value, meta.Type, meta.Key, true)
 			if valueStr != "\u221E" {
@@ -385,12 +412,8 @@ func (m RootModel) renderSettingsDetailBlock(settingsMeta []config.SettingMeta, 
 		}
 	}
 
-	valueLabel := "Value: "
 	if (meta.Key == "default_download_dir" || meta.Key == "theme_path") && !m.SettingsIsEditing {
 		valueLabel = "[Tab] Browse: "
-	}
-	if meta.Type == "link" {
-		valueLabel = "Action: "
 	}
 
 	valueLabelStyle := lipgloss.NewStyle().Foreground(colors.LightGray()).Bold(true)
@@ -402,10 +425,18 @@ func (m RootModel) renderSettingsDetailBlock(settingsMeta []config.SettingMeta, 
 		availableValueWidth = 5
 	}
 
-	valueDisplay := lipgloss.JoinHorizontal(lipgloss.Top,
-		labelRendered,
-		valueContentStyle.Render(utils.TruncateTwoLines(valueStr, availableValueWidth)),
-	)
+	var valueDisplay string
+	if meta.Type == config.TypeCustomCategory || meta.Type == config.TypeCustomCategoryAdd {
+		valueDisplay = lipgloss.JoinHorizontal(lipgloss.Top,
+			labelRendered,
+			valueContentStyle.Render(valueStr),
+		)
+	} else {
+		valueDisplay = lipgloss.JoinHorizontal(lipgloss.Top,
+			labelRendered,
+			valueContentStyle.Render(utils.TruncateTwoLines(valueStr, availableValueWidth)),
+		)
+	}
 	valueDisplay = lipgloss.NewStyle().Width(innerWidth).MaxWidth(innerWidth).Render(valueDisplay)
 
 	divider := lipgloss.NewStyle().Foreground(colors.Gray()).Render(strings.Repeat("\u2500", innerWidth))
@@ -442,8 +473,17 @@ func (m RootModel) renderSettingsDetailBlock(settingsMeta []config.SettingMeta, 
 	return formatSettingsBlock(detail, innerWidth, rows)
 }
 
+func calculateSettingsPaneWidths(modalWidth int) (leftWidth, rightWidth int) {
+	leftWidth, rightWidth = CalculateTwoColumnWidths(modalWidth, 32, 22)
+	innerWidthForModal := modalWidth - BoxStyle.GetHorizontalFrameSize()
+	if leftWidth > 0 && innerWidthForModal > leftWidth+1 {
+		rightWidth = innerWidthForModal - leftWidth - 1
+	}
+	return leftWidth, rightWidth
+}
+
 func (m RootModel) renderSettingsTwoColumn(settingsMeta []config.SettingMeta, selectedRow int, settingsValues map[string]interface{}, modalWidth, bodyHeight int) string {
-	leftWidth, rightWidth := CalculateTwoColumnWidths(modalWidth, 32, 22)
+	leftWidth, rightWidth := calculateSettingsPaneWidths(modalWidth)
 
 	if leftWidth < 12 || rightWidth < 14 {
 		return m.renderSettingsCompact(settingsMeta, selectedRow, settingsValues, modalWidth, bodyHeight)
@@ -540,8 +580,7 @@ func (m *RootModel) normalizeSettingsSelection() {
 		m.SettingsActiveTab = len(categories) - 1
 	}
 
-	settingsMap := config.GetSettingsMetadata()
-	settingsList := settingsMap[categories[m.SettingsActiveTab]]
+	settingsList := m.buildSettingsMetaForCategory(categories[m.SettingsActiveTab])
 	if len(settingsList) == 0 {
 		m.SettingsSelectedRow = 0
 		if m.SettingsIsEditing {
@@ -562,11 +601,15 @@ func (m *RootModel) normalizeSettingsSelection() {
 func (m *RootModel) updateSettingsInputWidthForViewport() {
 	modalWidth, _ := GetSettingsDimensions(m.width, m.height)
 	var targetWidth int
+	var catInputWidth int
 	if modalWidth >= 72 {
-		_, rightWidth := CalculateTwoColumnWidths(modalWidth, 32, 22)
-		targetWidth = rightWidth - 10 // Fixed offset for labels
+		_, rightWidth := calculateSettingsPaneWidths(modalWidth)
+
+		targetWidth = rightWidth - 10   // Fixed offset for labels
+		catInputWidth = rightWidth - 12 // rightWidth - 4 (padding) - 8 (label width)
 	} else {
-		targetWidth = modalWidth - 16 // Fixed offset for labels
+		targetWidth = modalWidth - 16   // Fixed offset for labels
+		catInputWidth = modalWidth - 10 // modalWidth - 2 (padding) - 8 (label width)
 	}
 
 	if targetWidth < MinSettingsInputW {
@@ -576,7 +619,17 @@ func (m *RootModel) updateSettingsInputWidthForViewport() {
 		targetWidth = MaxSettingsInputW
 	}
 
+	if catInputWidth < MinSettingsInputW {
+		catInputWidth = MinSettingsInputW
+	}
+	if catInputWidth > MaxSettingsInputW {
+		catInputWidth = MaxSettingsInputW
+	}
+
 	m.SettingsInput.SetWidth(targetWidth)
+	for i := range m.catMgrInputs {
+		m.catMgrInputs[i].SetWidth(catInputWidth)
+	}
 }
 
 // getSettingsValues returns a map of setting key -> value for a category
@@ -591,7 +644,13 @@ func (m RootModel) getSettingsValues(category string) map[string]interface{} {
 			for _, set := range cat.Settings {
 				values[set.Key] = set.Value
 			}
-			return values
+			break
+		}
+	}
+
+	if category == "Categories" {
+		for i, cat := range m.Settings.Categories.Categories {
+			values[fmt.Sprintf("category_%d", i)] = cat
 		}
 	}
 
@@ -754,7 +813,6 @@ func (m RootModel) getCurrentSettingKey() string {
 	return ""
 }
 
-// getCurrentSettingMeta returns the metadata for the currently selected setting
 func (m RootModel) getCurrentSettingMeta() *config.SettingMeta {
 	categories := config.CategoryOrder()
 	if m.SettingsActiveTab < 0 || m.SettingsActiveTab >= len(categories) {
@@ -762,15 +820,42 @@ func (m RootModel) getCurrentSettingMeta() *config.SettingMeta {
 	}
 
 	activeCategory := categories[m.SettingsActiveTab]
-	settingsMap := config.GetSettingsMetadata()
-	settingsList, ok := settingsMap[activeCategory]
-	if !ok {
-		return nil
-	}
+	settingsList := m.buildSettingsMetaForCategory(activeCategory)
 	if m.SettingsSelectedRow < 0 || m.SettingsSelectedRow >= len(settingsList) {
 		return nil
 	}
 	return &settingsList[m.SettingsSelectedRow]
+}
+
+// buildSettingsMetaForCategory retrieves and dynamically augments metadata
+func (m RootModel) buildSettingsMetaForCategory(category string) []config.SettingMeta {
+	settingsMap := config.GetSettingsMetadata()
+	settingsList, ok := settingsMap[category]
+	if !ok {
+		return nil
+	}
+
+	if category == "Categories" {
+		baseMeta := make([]config.SettingMeta, len(settingsList))
+		copy(baseMeta, settingsList)
+		settingsList = baseMeta
+		if m.Settings != nil {
+			for i, cat := range m.Settings.Categories.Categories {
+				settingsList = append(settingsList, config.SettingMeta{
+					Key:   fmt.Sprintf("category_%d", i),
+					Label: fmt.Sprintf("[%s]", cat.Name),
+					Type:  config.TypeCustomCategory,
+				})
+			}
+		}
+		settingsList = append(settingsList, config.SettingMeta{
+			Key:   "add_category",
+			Label: "+ Add Category...",
+			Type:  config.TypeCustomCategoryAdd,
+		})
+	}
+
+	return settingsList
 }
 
 // getCurrentSettingType returns the type of the currently selected setting
@@ -787,11 +872,8 @@ func (m RootModel) getSettingsCount() int {
 	categories := config.CategoryOrder()
 	if m.SettingsActiveTab >= 0 && m.SettingsActiveTab < len(categories) {
 		activeCategory := categories[m.SettingsActiveTab]
-		settingsMap := config.GetSettingsMetadata()
-
-		if settingsList, ok := settingsMap[activeCategory]; ok {
-			return len(settingsList)
-		}
+		settingsList := m.buildSettingsMetaForCategory(activeCategory)
+		return len(settingsList)
 	}
 	return 0
 }
@@ -965,4 +1047,21 @@ func (m *RootModel) resetSettingToDefault(category, key string, defaults *config
 		m.applyAutoShutdownSettingChange()
 	}
 	return nil
+}
+
+func (m RootModel) renderCategoryInputLine(label string, fieldIndex int, width int) string {
+	labelStyle := lipgloss.NewStyle().Foreground(colors.LightGray()).Width(8)
+	if m.catMgrEditField == fieldIndex {
+		labelStyle = labelStyle.Foreground(colors.Cyan()).Bold(true)
+	}
+
+	inputView := m.catMgrInputs[fieldIndex].View()
+	inputWidth := width - 8
+	if inputWidth < 5 {
+		inputWidth = 5
+	}
+	// Force the input view to fit within the allowed width
+	inputStyle := lipgloss.NewStyle().Width(inputWidth).MaxWidth(inputWidth)
+
+	return lipgloss.JoinHorizontal(lipgloss.Top, labelStyle.Render(label), inputStyle.Render(inputView))
 }

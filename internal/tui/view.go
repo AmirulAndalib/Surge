@@ -139,10 +139,6 @@ func (m RootModel) View() tea.View {
 		return m.wrapView(m.renderModalWithOverlay(m.viewSpeedLimits()))
 	}
 
-	if m.state == CategoryManagerState {
-		return m.wrapView(m.viewCategoryManager())
-	}
-
 	if m.state == DuplicateWarningState {
 		modal := components.ConfirmationModal{
 			Title:       "\u26a0 Duplicate Detected",
@@ -304,10 +300,6 @@ func (m RootModel) View() tea.View {
 
 	if m.state == RestartConfirmState {
 		return m.wrapView(m.renderModalWithOverlay(m.viewRestartConfirm()))
-	}
-
-	if m.state == CategoryResetConfirmState {
-		return m.wrapView(m.renderModalWithOverlay(m.viewCategoryResetConfirm()))
 	}
 
 	if m.state == PurgeConfirmState {
@@ -971,26 +963,6 @@ func (m RootModel) viewRemoveConfirm() string {
 	modal.Width = w
 	modal.Height = h
 
-	return modal.RenderWithBtopBox(renderBtopBox, PaneTitleStyle)
-}
-
-func (m RootModel) viewCategoryResetConfirm() string {
-	w, h := GetDynamicModalDimensions(m.width, m.height, 40, 8, 60, 10)
-	modal := components.ConfirmationModal{
-		Title:            "Category Reset",
-		Message:          "Reset all categories to defaults?",
-		Detail:           "This will overwrite your custom rules.",
-		Keys:             m.keys.QuitConfirm,
-		Help:             m.help,
-		BorderColor:      colors.Orange(),
-		ButtonColor:      colors.Orange(),
-		Width:            w,
-		Height:           h,
-		ShowYesNoButtons: true,
-		YesNoFocused:     m.quitConfirmFocused,
-		YesLabel:         "Yes",
-		NoLabel:          "No",
-	}
 	return modal.RenderWithBtopBox(renderBtopBox, PaneTitleStyle)
 }
 
