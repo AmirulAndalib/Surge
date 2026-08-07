@@ -1,6 +1,7 @@
 package concurrent
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/SurgeDM/Surge/internal/types"
@@ -23,6 +24,7 @@ func TestTaskRangeAssignment(t *testing.T) {
 		numConns  int
 		wantChunk int64
 		wantTasks int
+		wantLast  int64
 	}{
 		{
 			name:      "Exact division",
@@ -30,6 +32,7 @@ func TestTaskRangeAssignment(t *testing.T) {
 			numConns:  4,
 			wantChunk: 25 * utils.MiB,
 			wantTasks: 4,
+			wantLast:  25 * utils.MiB,
 		},
 		{
 			name:     "Uneven division",
@@ -38,11 +41,11 @@ func TestTaskRangeAssignment(t *testing.T) {
 			// 100MB / 4 = 25MB. 123 bytes remainder.
 			// Calculation: (104857600 + 123) / 4 = 26214430.
 			// Aligned: 26214430 / 4096 * 4096 = 26214400 (25MB).
-			// So chunk size is 25MB.
-			// 4 tasks of 25MB = 100MB.
-			// Remainder 123 bytes -> 5th task.
+			// So chunk size is 25MB. The final primary task absorbs the
+			// 123-byte remainder instead of creating a fifth request.
 			wantChunk: 25 * utils.MiB,
-			wantTasks: 5,
+			wantTasks: 4,
+			wantLast:  25*utils.MiB + 123,
 		},
 		{
 			name:      "Small file",
@@ -50,6 +53,31 @@ func TestTaskRangeAssignment(t *testing.T) {
 			numConns:  2,
 			wantChunk: 5 * utils.MiB,
 			wantTasks: 2,
+			wantLast:  5 * utils.MiB,
+		},
+		{
+			name:      "Tiny file",
+			fileSize:  512 * utils.KiB,
+			numConns:  4,
+			wantChunk: 1 * utils.MiB,
+			wantTasks: 1,
+			wantLast:  512 * utils.KiB,
+		},
+		{
+			name:      "One worker absorbs remainder",
+			fileSize:  10*utils.MiB + 123,
+			numConns:  1,
+			wantChunk: 10 * utils.MiB,
+			wantTasks: 1,
+			wantLast:  10*utils.MiB + 123,
+		},
+		{
+			name:      "Minimum chunk limits task count",
+			fileSize:  2 * utils.MiB,
+			numConns:  4,
+			wantChunk: 1 * utils.MiB,
+			wantTasks: 2,
+			wantLast:  1 * utils.MiB,
 		},
 	}
 
@@ -61,16 +89,18 @@ func TestTaskRangeAssignment(t *testing.T) {
 			assert.InDelta(t, tt.wantChunk, chunkSize, float64(types.AlignSize), "Chunk size mismatch")
 
 			// specific verification for task creation
-			tasks := createTasks(tt.fileSize, chunkSize)
+			tasks := createInitialTasks(tt.fileSize, chunkSize, tt.numConns)
 			assert.Equal(t, tt.wantTasks, len(tasks), "Task count mismatch")
 
 			// Verify task continuity
 			var total int64
 			for i, task := range tasks {
 				assert.Equal(t, total, task.Offset, "Task offset mismatch at index %d", i)
+				assert.Greater(t, task.Length, int64(0), "Task length must be positive at index %d", i)
 				total += task.Length
 			}
 			assert.Equal(t, tt.fileSize, total, "Total task length mismatch")
+			assert.Equal(t, tt.wantLast, tasks[len(tasks)-1].Length, "Final task length mismatch")
 		})
 	}
 }
@@ -161,4 +191,51 @@ func TestCalculateChunkSize_EdgeCases(t *testing.T) {
 		got := dSmall.calculateChunkSize(1*utils.KiB, 1)
 		assert.Equal(t, int64(types.AlignSize), got, "Should be bumped to AlignSize")
 	})
+}
+
+func TestCreateInitialTasks_NeverExceedsNumConns(t *testing.T) {
+	runtime := &types.RuntimeConfig{
+		MinChunkSize: 1 * utils.MiB,
+	}
+	d := &ConcurrentDownloader{
+		Runtime: runtime,
+	}
+
+	// Matrix of file sizes and numConns to test
+	fileSizes := []int64{
+		1,                               // tiny
+		types.AlignSize - 1,             // almost aligned
+		types.AlignSize,                 // perfectly aligned
+		1 * utils.MiB,                   // small
+		1*utils.MiB + 1,                 // slight remainder
+		10*utils.MiB + 12345,            // medium remainder
+		100 * utils.MiB,                 // large aligned
+		100*utils.MiB + types.AlignSize, // large aligned + 1 alignment block
+		500*utils.MiB - 1,               // large unaligned
+	}
+
+	conns := []int{1, 2, 3, 4, 7, 8, 15, 16, 32, 64}
+
+	for _, size := range fileSizes {
+		for _, numConns := range conns {
+			name := fmt.Sprintf("Size_%d_Conns_%d", size, numConns)
+			t.Run(name, func(t *testing.T) {
+				chunkSize := d.calculateChunkSize(size, numConns)
+				tasks := createInitialTasks(size, chunkSize, numConns)
+
+				// STRICT PROPERTY 1: Task count must NEVER exceed numConns
+				if len(tasks) > numConns {
+					t.Fatalf("Strict violation: generated %d tasks, which exceeds numConns limit %d", len(tasks), numConns)
+				}
+				assert.LessOrEqual(t, len(tasks), numConns, "Task count must not exceed numConns")
+
+				// STRICT PROPERTY 2: Sum of tasks must EXACTLY equal total file size
+				var total int64
+				for _, task := range tasks {
+					total += task.Length
+				}
+				assert.Equal(t, size, total, "Total lengths of all tasks must equal file size (no data loss)")
+			})
+		}
+	}
 }
