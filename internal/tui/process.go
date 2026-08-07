@@ -28,6 +28,9 @@ func (m *RootModel) processProgressMsg(msg types.DownloadEvent) tea.Cmd {
 	d.Connections = msg.Connections
 	d.rateLimited = msg.RateLimited
 
+	// Update smoothed ETA on every progress tick
+	d.UpdateETA()
+
 	// Keep "Resuming..." visible until we observe actual transfer.
 	if d.resuming && (d.Speed > 0 || d.Downloaded > prevDownloaded) {
 		d.resuming = false
@@ -56,7 +59,7 @@ func (m *RootModel) processProgressMsg(msg types.DownloadEvent) tea.Cmd {
 
 	// Update speed graph history with EMA smoothing for smooth transitions
 	if time.Since(m.lastSpeedHistoryUpdate) >= GraphUpdateInterval {
-		totalSpeed := float64(m.calcTotalSpeedBps())
+		totalSpeed := float64(m.cachedTotalSpeed)
 		// EMA smooth against previous graph point for visual continuity
 		var smoothed float64
 		if m.Settings != nil && config.Resolve[bool](m.Settings.General.LiveSpeedGraph) {
@@ -74,7 +77,9 @@ func (m *RootModel) processProgressMsg(msg types.DownloadEvent) tea.Cmd {
 		m.lastSpeedHistoryUpdate = time.Now()
 	}
 
-	m.UpdateListItems()
+	// ponytail: list items hold *DownloadModel pointers — speed/progress are
+	// read live on every View() without a rebuild. UpdateListItems() is only
+	// needed for structural changes (start/pause/complete/error/tab switch).
 	return cmd
 }
 

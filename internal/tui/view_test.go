@@ -12,6 +12,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	"github.com/SurgeDM/Surge/internal/tui/colors"
+	"github.com/SurgeDM/Surge/internal/types"
 )
 
 var ansiEscapeRE = regexp.MustCompile(`\x1b\[[0-9;]*m`)
@@ -612,6 +613,7 @@ func TestFooter_ActiveSpeedShowsMBps(t *testing.T) {
 	m.downloads = []*DownloadModel{
 		{Speed: 2.5 * 1024 * 1024},
 	}
+	m.cachedTotalSpeed = int64(2.5 * 1024 * 1024)
 
 	last := footerLine(m)
 	if !strings.Contains(last, "MiB/s") {
@@ -631,6 +633,7 @@ func TestFooter_ActiveSpeedShowsKBps(t *testing.T) {
 	m.downloads = []*DownloadModel{
 		{Speed: 512 * 1024},
 	}
+	m.cachedTotalSpeed = 512 * 1024
 
 	last := footerLine(m)
 	if !strings.Contains(last, "KiB/s") {
@@ -709,5 +712,98 @@ func TestFooter_NoLineOverflowAtVariousSizes(t *testing.T) {
 				t.Errorf("line %d overflows at %dx%d: width=%d", i, tc.width, tc.height, w)
 			}
 		}
+	}
+}
+
+func TestView_ETAFlickerBug(t *testing.T) {
+	InitializeTUI()
+	m := InitialRootModel(1701, "1.0.0", nil, orchestrator.NewLifecycleManager(nil, nil, nil), nil, false)
+	m.width = 120
+	m.height = 35
+
+	d := &DownloadModel{
+		ID:         "flicker-test",
+		Filename:   "flicker.iso",
+		Total:      1000 * 1024 * 1024,
+		Downloaded: 500 * 1024 * 1024,
+		Speed:      10 * 1024 * 1024, // 10 MB/s
+	}
+	m.downloads = []*DownloadModel{d}
+	m.SelectedDownloadID = d.ID
+	m.activeTab = TabActive
+	m.UpdateListItems()
+
+	// Initial View should set the ETA cache to the raw ETA (500MB / 10MB/s = 50s)
+	// We do it once to initialize it.
+	d.UpdateETA()
+
+	if d.lastETA != 50*time.Second {
+		t.Fatalf("expected initial ETA to be 50s, got %v", d.lastETA)
+	}
+
+	// Now speed drastically drops to 1 MB/s (raw ETA becomes 500s)
+	d.Speed = 1 * 1024 * 1024
+
+	// Process ONE progress message (as it would happen every 150ms in reality)
+	d.UpdateETA()
+
+	// With EMA alpha = 0.02 on etaSpeed:
+	// d.etaSpeed = 0.02 * 1MB/s + 0.98 * 10MB/s = 9.82 MB/s
+	// ETA = 500MB / 9.82 MB/s = 50.916496945s
+	expectedSmoothed := time.Duration(50.916496945 * float64(time.Second))
+
+	// Use a small tolerance for floating point imprecision
+	diff := d.lastETA - expectedSmoothed
+	if diff < 0 {
+		diff = -diff
+	}
+	if diff > time.Millisecond {
+		t.Fatalf("expected ETA to be smoothed to %v, got %v", expectedSmoothed, d.lastETA)
+	}
+
+	// In the old bug, calling View() 10 times would instantly converge the ETA
+	// Let's call View() 10 times (simulating spinner ticks or terminal resizing)
+	snapshot := d.lastETA
+	for i := 0; i < 10; i++ {
+		m.View()
+	}
+
+	// Since View() should be side-effect free, lastETA should not change!
+	if d.lastETA != snapshot {
+		t.Fatalf("ETA drifted during View() calls! View() is causing side effects. Got: %v, Expected: %v", d.lastETA, snapshot)
+	}
+}
+
+func TestUpdateETA_ResetOnResume(t *testing.T) {
+	m := InitialRootModel(1701, "1.0.0", nil, orchestrator.NewLifecycleManager(nil, nil, nil), nil, false)
+
+	d := &DownloadModel{
+		ID:         "resume-test",
+		Filename:   "test.iso",
+		Total:      1000 * 1024 * 1024,
+		Downloaded: 500 * 1024 * 1024,
+		Speed:      10 * 1024 * 1024,
+	}
+	m.downloads = []*DownloadModel{d}
+
+	// 1. Initial speed
+	d.UpdateETA()
+	if !d.hasEtaSpeed || d.etaSpeed != 10*1024*1024 {
+		t.Fatalf("expected ETA speed to seed correctly")
+	}
+
+	// 2. Simulate pause and resume
+	m.updateEvents(types.DownloadEvent{Type: types.EventPaused, DownloadID: d.ID})
+	m.updateEvents(types.DownloadEvent{Type: types.EventResumed, DownloadID: d.ID})
+
+	if d.hasEtaSpeed || d.etaSpeed != 0 || d.lastETA != 0 {
+		t.Fatalf("expected EventResumed to wipe ETA state, got has=%v, speed=%v, eta=%v", d.hasEtaSpeed, d.etaSpeed, d.lastETA)
+	}
+
+	// 3. New speed on resume
+	d.Speed = 5 * 1024 * 1024
+	d.UpdateETA()
+	if d.etaSpeed != 5*1024*1024 {
+		t.Fatalf("expected ETA speed to re-seed entirely at new speed, got %v", d.etaSpeed)
 	}
 }

@@ -165,6 +165,9 @@ func (m RootModel) handleDownloadEvent(msg types.DownloadEvent) (tea.Model, tea.
 			d.StartTime = time.Now()
 			d.paused = false
 			d.pausing = false
+			d.hasEtaSpeed = false
+			d.etaSpeed = 0
+			d.lastETA = 0
 			var progressCmd tea.Cmd
 			if d.Total > 0 {
 				progressCmd = d.progress.SetPercent(0)
@@ -199,11 +202,21 @@ func (m RootModel) handleDownloadEvent(msg types.DownloadEvent) (tea.Model, tea.
 		}
 
 	case types.EventProgress:
+		if d := m.FindDownloadByID(msg.DownloadID); d != nil && !d.done && !d.paused {
+			d.Speed = msg.Speed
+		}
+		m.cachedTotalSpeed = m.calcTotalSpeedBps()
 		cmd := m.processProgressMsg(msg)
 		return m, cmd
 
 	case types.EventBatchProgress:
 		var cmds []tea.Cmd
+		for _, bm := range msg.BatchEvents {
+			if d := m.FindDownloadByID(bm.DownloadID); d != nil && !d.done && !d.paused {
+				d.Speed = bm.Speed
+			}
+		}
+		m.cachedTotalSpeed = m.calcTotalSpeedBps()
 		for _, bm := range msg.BatchEvents {
 			cmds = append(cmds, m.processProgressMsg(bm))
 		}
@@ -229,6 +242,7 @@ func (m RootModel) handleDownloadEvent(msg types.DownloadEvent) (tea.Model, tea.
 				m.addLogEntry(LogStyleComplete.Render(fmt.Sprintf("\u2714 Done: %s (%.2f MiB/s)", d.Filename, speed/float64(utils.MiB))))
 			}
 		}
+		m.cachedTotalSpeed = m.calcTotalSpeedBps()
 		m.UpdateListItems()
 		return m, tea.Batch(cmds...)
 
@@ -247,6 +261,7 @@ func (m RootModel) handleDownloadEvent(msg types.DownloadEvent) (tea.Model, tea.
 			m.downloads = append(m.downloads, newDownload)
 			m.addLogEntry(LogStyleError.Render("\u2716 Error: " + msg.Filename))
 		}
+		m.cachedTotalSpeed = m.calcTotalSpeedBps()
 		m.UpdateListItems()
 		return m, nil
 
@@ -261,6 +276,7 @@ func (m RootModel) handleDownloadEvent(msg types.DownloadEvent) (tea.Model, tea.
 			d.Speed = 0
 			m.addLogEntry(LogStylePaused.Render("\u23f8 Paused: " + d.Filename))
 		}
+		m.cachedTotalSpeed = m.calcTotalSpeedBps()
 		m.UpdateListItems()
 		return m, nil
 
@@ -269,6 +285,9 @@ func (m RootModel) handleDownloadEvent(msg types.DownloadEvent) (tea.Model, tea.
 			d.paused = false
 			d.pausing = false
 			d.resuming = true
+			d.hasEtaSpeed = false
+			d.etaSpeed = 0
+			d.lastETA = 0
 			m.addLogEntry(LogStyleStarted.Render("\u25b6 Resumed: " + d.Filename))
 		}
 		m.UpdateListItems()
@@ -298,6 +317,7 @@ func (m RootModel) handleDownloadEvent(msg types.DownloadEvent) (tea.Model, tea.
 			if msg.Filename != "" {
 				m.addLogEntry(LogStyleError.Render("\u2716 Removed: " + msg.Filename))
 			}
+			m.cachedTotalSpeed = m.calcTotalSpeedBps()
 			m.UpdateListItems()
 		}
 		return m, nil

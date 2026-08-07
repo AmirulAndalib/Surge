@@ -97,9 +97,11 @@ type DownloadModel struct {
 	RateLimit     int64 // Speed limit in bytes/sec
 	RateLimitSet  bool  // Whether RateLimit is an explicit per-download override
 
-	StartTime time.Time
-	Elapsed   time.Duration
-	lastETA   time.Duration // EMA-smoothed ETA for UI stability
+	StartTime   time.Time
+	Elapsed     time.Duration
+	etaSpeed    float64       // Heavily smoothed speed strictly for stable ETA calculation
+	hasEtaSpeed bool          // True if etaSpeed has been seeded
+	lastETA     time.Duration // Last computed ETA for UI stability
 
 	progress progress.Model
 
@@ -159,6 +161,9 @@ type RootModel struct {
 	// Graph Data
 	SpeedHistory           []float64 // Stores the last ~60 ticks of speed data
 	lastSpeedHistoryUpdate time.Time // Last time SpeedHistory was updated (for 0.5s sampling)
+	cachedTotalSpeed       int64     // Cached total speed (bytes/s), updated once per progress batch
+	graphRenderer          *GraphRenderer
+	lastResizeTime         time.Time
 
 	// Notification log system
 	logViewport viewport.Model // Scrollable log viewport
@@ -266,6 +271,34 @@ func NewDownloadModel(id string, url string, filename string, total int64) *Down
 		),
 		state: state,
 	}
+}
+
+// UpdateETA calculates the remaining time and applies EMA smoothing to prevent jitter.
+// This should be called once per progress update, NOT per render frame.
+func (d *DownloadModel) UpdateETA() {
+	if d.Total <= 0 || d.Speed <= 0 {
+		return // Do not clear lastETA to preserve EMA history when speed drops to 0 momentarily
+	}
+
+	remaining := d.Total - d.Downloaded
+
+	if !d.hasEtaSpeed {
+		d.etaSpeed = d.Speed
+		d.hasEtaSpeed = true
+	} else {
+		const etaAlpha = 0.02
+		d.etaSpeed = etaAlpha*d.Speed + (1-etaAlpha)*d.etaSpeed
+	}
+
+	etaSeconds := float64(remaining) / d.etaSpeed
+
+	// Clamp ETA to 24 hours max to prevent bonkers values
+	const maxETASeconds = 24 * 60 * 60
+	if etaSeconds > maxETASeconds || etaSeconds < 0 {
+		return // Keep previous displayed ETA; etaSpeed itself is already updated above
+	}
+
+	d.lastETA = time.Duration(etaSeconds * float64(time.Second))
 }
 
 func InitialRootModel(serverPort int, currentVersion string, service service.DownloadService, orchestrator *orchestrator.LifecycleManager, settings *config.Settings, noResume bool, currentCommit ...string) RootModel {
@@ -489,7 +522,8 @@ func InitialRootModel(serverPort int, currentVersion string, service service.Dow
 		SettingsActiveTab:     0,
 		SettingsSelectedRow:   0,
 		SettingsFocusedPane:   1,
-		SpeedHistory:          make([]float64, GraphHistoryPoints),                          // 60 points of history (30s at 0.5s interval)
+		SpeedHistory:          make([]float64, GraphHistoryPoints), // 60 points of history (60s at 1s interval)
+		graphRenderer:         NewGraphRenderer(),
 		logViewport:           viewport.New(viewport.WithWidth(40), viewport.WithHeight(5)), // Default size, will be resized
 		logEntries:            make([]string, 0),
 		SettingsInput:         settingsInput,
@@ -512,6 +546,7 @@ func InitialRootModel(serverPort int, currentVersion string, service service.Dow
 	InitAuthToken() // Cache auth token for TUI to avoid per-frame disk I/O
 
 	m.refreshThemeCaches()
+	m.cachedTotalSpeed = m.calcTotalSpeedBps()
 
 	return m
 }
@@ -724,6 +759,9 @@ func (m *RootModel) refreshThemeCaches() {
 	applyListTheme(&m.list)
 	applyFilepickerTheme(&m.filepicker)
 	m.logoCache = ""
+	if m.graphRenderer != nil {
+		m.graphRenderer.InvalidateCache()
+	}
 	// Rebuild progress bar colors for all existing downloads so the gradient
 	// matches the newly loaded palette rather than the one active at creation time.
 	for _, d := range m.downloads {
@@ -750,4 +788,8 @@ func applyFilepickerTheme(fp *filepicker.Model) {
 	fp.Styles.DisabledSelected = lipgloss.NewStyle().Foreground(colors.LightGray())
 	fp.Styles.FileSize = lipgloss.NewStyle().Foreground(colors.Gray()).Width(7).Align(lipgloss.Right)
 	fp.Styles.EmptyDirectory = lipgloss.NewStyle().Foreground(colors.Gray()).Padding(0, 2)
+}
+
+func (m RootModel) isResizing() bool {
+	return time.Since(m.lastResizeTime) < 200*time.Millisecond
 }

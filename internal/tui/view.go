@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/SurgeDM/Surge/internal/config"
 	"github.com/SurgeDM/Surge/internal/tui/colors"
 	"github.com/SurgeDM/Surge/internal/tui/components"
 	"github.com/SurgeDM/Surge/internal/utils"
@@ -374,7 +375,7 @@ func (m RootModel) View() tea.View {
 	dimSep := lipgloss.NewStyle().Foreground(colors.Gray()).Render(" \u2502 ")
 
 	// Global speed indicator
-	speedBps := m.calcTotalSpeedBps()
+	speedBps := m.cachedTotalSpeed
 	speedGlyph := lipgloss.NewStyle().Foreground(colors.Cyan()).Render("\u2B07")
 	var speedVal string
 	if speedBps <= 0 {
@@ -501,11 +502,20 @@ func (m RootModel) View() tea.View {
 			layout.DetailHeight += layout.ChunkMapHeight
 		}
 
-		graphBox := m.renderGraphBox(layout.RightWidth, layout.GraphHeight, stats)
+		var graphBox string
+		showGraph := layout.GraphHeight >= layout.MinGraphHeight
+		if showGraph && m.Settings != nil {
+			showGraph = config.Resolve[bool](m.Settings.General.ShowSpeedGraph)
+		}
+		if showGraph {
+			graphBox = m.renderGraphBox(layout.RightWidth, layout.GraphHeight, stats)
+		} else if layout.GraphHeight > 0 {
+			layout.DetailHeight += layout.GraphHeight
+		}
 		detailBox := renderBtopBox("", PaneTitleStyle.Render(" File Details "), detailContent, layout.RightWidth, layout.DetailHeight, colors.Gray())
 
 		var rightParts []string
-		if layout.GraphHeight >= layout.MinGraphHeight {
+		if showGraph {
 			rightParts = append(rightParts, graphBox)
 		}
 		rightParts = append(rightParts, detailBox)
@@ -698,23 +708,8 @@ func renderFocusedDetails(d *DownloadModel, w int, spinnerView string) string {
 		} else if d.RateLimitSet {
 			speedStr += " (Limit: \u221E)"
 		}
-		if d.Total > 0 {
-			remaining := d.Total - d.Downloaded
-			etaSeconds := float64(remaining) / d.Speed
-			// Clamp ETA to 24 hours max to prevent bonkers values
-			const maxETASeconds = 24 * 60 * 60
-			if etaSeconds > maxETASeconds || etaSeconds < 0 {
-				etaStr = "\u221e"
-			} else {
-				etaDuration := time.Duration(etaSeconds) * time.Second
-				// EMA smooth ETA to prevent jitter from speed fluctuations
-				if d.lastETA > 0 {
-					const etaAlpha = 0.3
-					etaDuration = time.Duration(etaAlpha*float64(etaDuration) + (1-etaAlpha)*float64(d.lastETA))
-				}
-				d.lastETA = etaDuration
-				etaStr = formatDurationForUI(etaDuration)
-			}
+		if d.Speed > 0 && d.Total > 0 && d.lastETA > 0 {
+			etaStr = formatDurationForUI(d.lastETA)
 		} else {
 			etaStr = "\u221e"
 		}
