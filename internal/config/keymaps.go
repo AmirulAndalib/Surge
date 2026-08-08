@@ -36,29 +36,30 @@ type KeyMap struct {
 
 // DashboardKeyMap defines keybindings for the main dashboard
 type DashboardKeyMap struct {
-	TabQueued      key.Binding
-	TabActive      key.Binding
-	TabDone        key.Binding
-	NextTab        key.Binding
-	PrevTab        key.Binding
-	Add            key.Binding
-	BatchImport    key.Binding
-	Search         key.Binding
-	Pause          key.Binding
-	Refresh        key.Binding
-	Delete         key.Binding
-	PurgeFile      key.Binding
-	Settings       key.Binding
-	SpeedLimits    key.Binding
-	Log            key.Binding
-	ToggleHelp     key.Binding
-	ReportBug      key.Binding
-	OpenFile       key.Binding
-	OpenFolder     key.Binding
-	Quit           key.Binding
-	ForceQuit      key.Binding
-	CategoryFilter key.Binding
-	PinTab         key.Binding
+	TabQueued        key.Binding
+	TabActive        key.Binding
+	TabDone          key.Binding
+	NextTab          key.Binding
+	PrevTab          key.Binding
+	Add              key.Binding
+	AddFromClipboard key.Binding
+	BatchImport      key.Binding
+	Search           key.Binding
+	Pause            key.Binding
+	Refresh          key.Binding
+	Delete           key.Binding
+	PurgeFile        key.Binding
+	Settings         key.Binding
+	SpeedLimits      key.Binding
+	Log              key.Binding
+	ToggleHelp       key.Binding
+	ReportBug        key.Binding
+	OpenFile         key.Binding
+	OpenFolder       key.Binding
+	Quit             key.Binding
+	ForceQuit        key.Binding
+	CategoryFilter   key.Binding
+	PinTab           key.Binding
 	// Navigation
 	Up   key.Binding
 	Down key.Binding
@@ -416,6 +417,10 @@ func DefaultKeyMap() *KeyMap {
 				key.WithKeys("a"),
 				key.WithHelp("a", "add download"),
 			),
+			AddFromClipboard: key.NewBinding(
+				key.WithKeys("A"),
+				key.WithHelp("A", "add from clipboard"),
+			),
 			BatchImport: key.NewBinding(
 				key.WithKeys("b", "B"),
 				key.WithHelp("b", "batch import"),
@@ -763,7 +768,7 @@ func (k DashboardKeyMap) ShortHelp() []key.Binding {
 func (k DashboardKeyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
 		{k.TabQueued, k.TabActive, k.TabDone, k.NextTab, k.PrevTab},
-		{k.Add, k.BatchImport, k.Search, k.CategoryFilter, k.Pause, k.Refresh, k.Delete, k.PurgeFile, k.Settings, k.SpeedLimits, k.PinTab},
+		{k.Add, k.AddFromClipboard, k.BatchImport, k.Search, k.CategoryFilter, k.Pause, k.Refresh, k.Delete, k.PurgeFile, k.Settings, k.SpeedLimits, k.PinTab},
 		{k.Log, k.OpenFile, k.OpenFolder, k.ReportBug, k.Quit},
 	}
 }

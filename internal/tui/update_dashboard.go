@@ -1,6 +1,8 @@
 package tui
 
 import (
+	"strings"
+
 	"charm.land/bubbles/v2/key"
 	"charm.land/bubbles/v2/list"
 	tea "charm.land/bubbletea/v2"
@@ -96,6 +98,7 @@ func (m RootModel) updateDashboard(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	// Add download
 	if key.Matches(msg, m.keys.Dashboard.Add) {
 		m.state = InputState
+		m.hideMirrors = false
 		m.focusedInput = 0
 		m.inputs[0].Focus()
 		// Use default download dir from settings
@@ -109,12 +112,22 @@ func (m RootModel) updateDashboard(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		m.inputs[3].Blur()
 		m.inputs[1].SetValue("") // Clear mirrors
 		m.inputs[1].Blur()
+		m.pendingHeaders = nil // clear stale headers
 
 		url := ""
 		if config.Resolve[bool](m.Settings.General.ClipboardMonitor) {
 			url = clipboard.ReadURL()
 		}
 		m.inputs[0].SetValue(url)
+		return m, nil
+	}
+
+	// Add from clipboard
+	if key.Matches(msg, m.keys.Dashboard.AddFromClipboard) {
+		text, err := clipboard.Read()
+		if err == nil && text != "" {
+			return m.handleClipboardPaste(text)
+		}
 		return m, nil
 	}
 
@@ -383,4 +396,57 @@ func (m RootModel) updateDashboard(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	m.list, cmd = m.list.Update(msg)
 	return m, cmd
+}
+
+func (m RootModel) handleClipboardPaste(text string) (tea.Model, tea.Cmd) {
+	url, headers := clipboard.ParseCurl(text)
+	if url == "" {
+		if strings.HasPrefix(strings.TrimSpace(text), "http") {
+			url = strings.TrimSpace(text)
+		} else {
+			url = clipboard.ReadURL()
+		}
+		if url == "" {
+			return m, nil
+		}
+		m.pendingHeaders = nil // clear stale headers
+		m.state = InputState
+		m.hideMirrors = false
+		m.focusedInput = 0
+		m.inputs[0].Focus()
+
+		defaultDir := config.Resolve[string](m.Settings.General.DefaultDownloadDir)
+		if defaultDir == "" {
+			defaultDir = "."
+		}
+		m.inputs[2].SetValue(defaultDir)
+		m.inputs[2].Blur()
+		m.inputs[3].SetValue("")
+		m.inputs[3].Blur()
+		m.inputs[1].SetValue("") // Clear mirrors
+		m.inputs[1].Blur()
+		m.inputs[0].SetValue(url)
+		return m, nil
+	} else {
+		defaultDir := config.Resolve[string](m.Settings.General.DefaultDownloadDir)
+		if defaultDir == "" {
+			defaultDir = "."
+		}
+
+		m.pendingHeaders = headers
+		m.state = InputState
+		m.hideMirrors = true
+		m.focusedInput = 0
+		m.inputs[0].Focus()
+
+		m.inputs[2].SetValue(defaultDir)
+		m.inputs[2].Blur()
+		m.inputs[3].SetValue("")
+		m.inputs[3].Blur()
+		m.inputs[1].SetValue("") // Clear mirrors
+		m.inputs[1].Blur()
+		m.inputs[0].SetValue(url)
+
+		return m, nil
+	}
 }
