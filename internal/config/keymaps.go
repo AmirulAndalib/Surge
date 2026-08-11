@@ -140,9 +140,9 @@ type BatchConfirmKeyMap struct {
 
 // UpdateKeyMap defines keybindings for update notification
 type UpdateKeyMap struct {
-	OpenGitHub  key.Binding
-	IgnoreNow   key.Binding
-	NeverRemind key.Binding
+	Install    key.Binding
+	OpenGitHub key.Binding
+	IgnoreNow  key.Binding
 }
 
 // BugReportKeyMap defines keybindings for selecting bug report target.
@@ -689,17 +689,17 @@ func DefaultKeyMap() *KeyMap {
 			),
 		},
 		Update: UpdateKeyMap{
+			Install: key.NewBinding(
+				key.WithKeys("enter", "u", "U"),
+				key.WithHelp("enter/u", "install update"),
+			),
 			OpenGitHub: key.NewBinding(
-				key.WithKeys("o", "O", "enter"),
+				key.WithKeys("o", "O"),
 				key.WithHelp("o", "open on github"),
 			),
 			IgnoreNow: key.NewBinding(
 				key.WithKeys("i", "I", "esc"),
-				key.WithHelp("i", "ignore for now"),
-			),
-			NeverRemind: key.NewBinding(
-				key.WithKeys("n", "N"),
-				key.WithHelp("n", "never remind"),
+				key.WithHelp("esc/i", "later"),
 			),
 		},
 		BugReport: BugReportKeyMap{
@@ -833,11 +833,11 @@ func (k BatchConfirmKeyMap) FullHelp() [][]key.Binding {
 }
 
 func (k UpdateKeyMap) ShortHelp() []key.Binding {
-	return []key.Binding{k.OpenGitHub, k.IgnoreNow, k.NeverRemind}
+	return []key.Binding{k.Install, k.OpenGitHub, k.IgnoreNow}
 }
 
 func (k UpdateKeyMap) FullHelp() [][]key.Binding {
-	return [][]key.Binding{{k.OpenGitHub, k.IgnoreNow, k.NeverRemind}}
+	return [][]key.Binding{{k.Install, k.OpenGitHub, k.IgnoreNow}}
 }
 
 func (k BugReportKeyMap) ShortHelp() []key.Binding {
