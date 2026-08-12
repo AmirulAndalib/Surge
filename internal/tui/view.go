@@ -123,6 +123,7 @@ func (m RootModel) View() tea.View {
 			Labels:          activeLabels,
 			FocusedInput:    mappedFocus,
 			BrowseHintIndex: browseHint,
+			BrowseHintKey:   m.keys.Input.Tab.Help().Key,
 			Help:            m.help,
 			HelpKeys:        m.keys.Input,
 			BorderColor:     colors.Pink(),
@@ -204,6 +205,7 @@ func (m RootModel) View() tea.View {
 			ShowURL:         true,
 			URL:             m.pendingURL,
 			BrowseHintIndex: 0,
+			BrowseHintKey:   m.keys.Extension.Browse.Help().Key,
 			Help:            m.help,
 			HelpKeys:        m.keys.Extension,
 			BorderColor:     colors.Cyan(),
@@ -475,7 +477,7 @@ func (m RootModel) View() tea.View {
 	var bitmapWidth int
 	var totalSize, chunkSize int64
 	var chunkProgress []int64
-	if selected != nil && selected.state != nil {
+	if layout.ShowChunkMap && !layout.HideRightColumn && selected != nil && !selected.done && selected.state != nil {
 		bitmap, bitmapWidth, totalSize, chunkSize, chunkProgress = selected.state.GetBitmap()
 	}
 
