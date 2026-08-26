@@ -252,7 +252,8 @@ func TestConcurrentDownloader_429RespectsRetryAfterHeader(t *testing.T) {
 		DialHedgeCount:            0,
 	}
 
-	downloader := NewConcurrentDownloader("retryafter-id", nil, state, runtime)
+	progressCh := make(chan types.DownloadEvent, 1)
+	downloader := NewConcurrentDownloader("retryafter-id", progressCh, state, runtime)
 	downloader.hostLimiter = transport.NewHostRateLimiter()
 
 	mirrors := []string{}
@@ -283,6 +284,15 @@ func TestConcurrentDownloader_429RespectsRetryAfterHeader(t *testing.T) {
 	}
 	if gap > 35*time.Second {
 		t.Errorf("gap between 429 and next request %v; expected <= ~30s cap", gap)
+	}
+
+	select {
+	case event := <-progressCh:
+		if event.Type != types.EventSystem || event.Message == "" {
+			t.Fatalf("rate-limit event = %+v, want system message", event)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("expected rate-limit activity event")
 	}
 }
 
@@ -429,6 +439,47 @@ func TestSoft403NilStateWaitsForConfirmation(t *testing.T) {
 	}
 }
 
+func TestConcurrentDownloader_Soft403ZeroRetriesHasCooldown(t *testing.T) {
+	tmpDir, cleanup := initTestState(t)
+	defer cleanup()
+
+	const fileSize = int64(64 * utils.KiB)
+	var requests atomic.Int64
+	server := testutil.NewHTTPServerT(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		requests.Add(1)
+		w.WriteHeader(http.StatusForbidden)
+	}))
+	defer server.Close()
+
+	destPath := filepath.Join(tmpDir, "soft403-zero-retries.bin")
+	file, err := os.Create(destPath + types.IncompleteSuffix)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := file.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	state := progress.New("soft403-zero-retries", fileSize)
+	downloader := NewConcurrentDownloader(state.ID, nil, state, &types.RuntimeConfig{
+		MaxConnectionsPerDownload: 1,
+		Workers:                   1,
+		MinChunkSize:              fileSize,
+		MaxTaskRetries:            0,
+		DialHedgeCount:            0,
+	})
+	ctx, cancel := context.WithTimeout(context.Background(), 150*time.Millisecond)
+	defer cancel()
+
+	err = downloader.Download(ctx, server.URL, nil, nil, destPath, fileSize)
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("Download error = %v, want context deadline", err)
+	}
+	if got := requests.Load(); got > 1 {
+		t.Fatalf("soft 403 requests = %d in 150ms, want at most 1", got)
+	}
+}
+
 func TestConcurrentDownloader_503WithRetryAfterTreatedAsThrottle(t *testing.T) {
 	tmpDir, cleanup := initTestState(t)
 	defer cleanup()
@@ -490,7 +541,7 @@ func TestConcurrentDownloader_503WithRetryAfterTreatedAsThrottle(t *testing.T) {
 	}
 }
 
-func TestConcurrentDownloader_Persistent429ExhaustsBudget(t *testing.T) {
+func TestConcurrentDownloader_Persistent429WaitsForCancellation(t *testing.T) {
 	tmpDir, cleanup := initTestState(t)
 	defer cleanup()
 
@@ -521,7 +572,7 @@ func TestConcurrentDownloader_Persistent429ExhaustsBudget(t *testing.T) {
 
 	mirrors := []string{}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
 	if f, err := os.Create(destPath + ".surge"); err == nil {
@@ -529,11 +580,8 @@ func TestConcurrentDownloader_Persistent429ExhaustsBudget(t *testing.T) {
 	}
 
 	err := downloader.Download(ctx, server.URL(), mirrors, nil, destPath, fileSize)
-	if err == nil {
-		t.Fatal("expected download to fail after exhausting rate-limit budget")
-	}
-	if !errors.Is(err, ErrRateLimited) {
-		t.Fatalf("expected rate-limit error, got: %v", err)
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("expected context deadline after continued rate-limit waiting, got: %v", err)
 	}
 }
 

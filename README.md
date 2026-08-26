@@ -27,7 +27,7 @@ Surge is designed for power users who prefer a keyboard-driven workflow. It feat
 
 ## Why use Surge?
 
-Most browsers open a single connection for a download. Surge opens multiple (up to 32), splits the file, and downloads chunks in parallel. But we take it a step further:
+Most browsers open a single connection for a download. Surge opens multiple (up to 16 by default), splits the file, and downloads chunks in parallel. But we take it a step further:
 
 - **Blazing Fast:** Designed to maximize your bandwidth utilization and download files as quickly as possible.
 - **Multiple Mirrors:** Download from multiple sources simultaneously. Surge distributes workers across all available mirrors and automatically handles failover.
@@ -235,6 +235,16 @@ We tested Surge against standard tools. Because of our connection optimization l
 > _Test details: 1GB file, Windows 11, Ryzen 5 5600X, 360 Mbps Network. Results averaged over 5 runs._
 
 We would love to see you benchmark Surge on your system!
+
+To compare fixed and adaptive concurrency under deterministic throttling, run:
+
+```bash
+go test ./internal/strategy/concurrent -run '^$' -bench BenchmarkThrottle -benchtime=1x -count=5
+```
+
+The native Go benchmark runs persistent-overload and burst-recovery workloads
+with both policies and reports elapsed time, request amplification, throttled
+requests, and peak accepted concurrency.
 
 ---
 
